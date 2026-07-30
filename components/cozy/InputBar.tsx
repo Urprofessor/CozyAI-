@@ -46,6 +46,24 @@ export function InputBar({
     }
   }, [text]);
 
+  // Remove the keyboard-open class if we unmount while focused (tab switch).
+  useEffect(() => {
+    return () => document.documentElement.classList.remove('kb-open');
+  }, []);
+
+  // Only treat focus as "keyboard up" on touch devices — desktop focus should
+  // not hide the tab bar. This mirrors COZYAI_next's in-flow composer, where
+  // the browser itself lifts the field above the keyboard.
+  function isTouch() {
+    return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  }
+  function onFocus() {
+    if (isTouch()) document.documentElement.classList.add('kb-open');
+  }
+  function onBlur() {
+    document.documentElement.classList.remove('kb-open');
+  }
+
   const hasContent = text.trim().length > 0 || pendingImages.length > 0;
 
   function submit() {
@@ -108,6 +126,8 @@ export function InputBar({
             type="button"
             className="cozy-suggestion"
             disabled={streaming}
+            // Keep the textarea focused (keyboard up) when tapping a chip.
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => onSend(q)}
           >
             {q}
@@ -135,6 +155,8 @@ export function InputBar({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKey}
+          onFocus={onFocus}
+          onBlur={onBlur}
           placeholder="Ask a question or log your baby's day"
           className={cn(
             'flex-1 min-w-0 border-0 outline-none bg-transparent text-base leading-[22px] resize-none block',
@@ -144,6 +166,7 @@ export function InputBar({
 
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={streaming ? onStop : submit}
           aria-label={streaming ? 'Stop' : 'Send'}
           className={cn(

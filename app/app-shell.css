@@ -1395,6 +1395,14 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  /* Reserve room for the floating tab bar so the in-flow composer sits above
+     it. Removed while the keyboard is up (.kb-open) so the field drops flush
+     to the bottom and the browser lifts it above the keyboard. */
+  padding-bottom: calc(var(--tokens-96, 96px) + env(safe-area-inset-bottom, 0px));
+}
+
+.kb-open .cozy-page {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .cozy-topbar {
@@ -1452,20 +1460,13 @@
   transform: translateY(var(--tokens-1));
 }
 
-/* When the mobile keyboard is up: hide the tab bar + disclaimer + bottom fade,
-   drop the composer flush against the keyboard, and reveal the suggestion
-   chips. --kb-height is set by the visualViewport listener in Chat.tsx. */
+/* When the composer's textarea is focused (mobile keyboard up), hide the tab
+   bar + disclaimer and reveal the suggestion chips. Toggled by focus/blur in
+   InputBar.tsx — no viewport math. The in-flow composer is lifted above the
+   keyboard by the browser itself (same as COZYAI_next). */
 .kb-open .glass-tab-bar,
-.kb-open .cozy-disclaimer,
-.kb-open .cozy-fade {
+.kb-open .cozy-disclaimer {
   display: none;
-}
-
-.kb-open .cozy-input-dock {
-  /* The app container already shrank to the visible viewport (--app-h), so the
-     composer just needs a small offset off the bottom — it's above the keyboard
-     with no keyboard-height math. */
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
 }
 
 .cozy-suggestions {
@@ -1668,12 +1669,13 @@
 
 .cozy-stream {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--tokens-18, 18px);
-  padding: var(--space-3) var(--space-4) var(--tokens-176, 176px);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   scrollbar-width: none;
 }
 
@@ -1696,15 +1698,12 @@
   color: var(--colors-brands-mom-700);
 }
 
-/* Floating glass input above the tab bar */
+/* In-flow glass composer — sits after the scroll area, above the tab bar. */
 .cozy-input-dock {
-  position: absolute;
-  left: var(--space-4);
-  right: var(--space-4);
-  bottom: var(--tokens-96, 96px);
-  z-index: 15;
+  flex-shrink: 0;
   display: grid;
   gap: var(--space-2);
+  padding: 0 var(--space-4);
 }
 
 .cozy-input-glass {
@@ -1735,40 +1734,17 @@
   line-height: 1.4;
 }
 
-/* Bottom fade so messages melt behind the input/tab bar */
-.cozy-fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--tokens-176, 176px);
-  z-index: 4;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in srgb, var(--colors-backgrouds-primary) 88%, transparent) 46%,
-    var(--colors-backgrouds-primary) 100%
-  );
-}
-
 /* ---------- mobile: fullscreen, no frame ---------- */
 
 @media (max-width: 480px) {
   .demo-stage {
     min-height: 100svh;
     padding: 0;
-    /* Pin the frame to the top so that when it shrinks to --app-h (keyboard
-       open) its bottom edge lands at the top of the keyboard, not centered. */
-    align-items: start;
   }
 
   .phone-screen {
     width: 100vw;
-    /* Follow the visible viewport (set by Chat.tsx) so the container shrinks
-       when the keyboard opens and bottom-docked UI stays above it. Falls back
-       to 100svh before the script runs / on non-chat tabs. */
-    height: var(--app-h, 100svh);
+    height: 100dvh;
     min-height: 0;
     border: 0;
     border-radius: 0;

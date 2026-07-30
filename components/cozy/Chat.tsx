@@ -25,36 +25,6 @@ export function CozyChat() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat.messages.length, chat.streaming]);
 
-  // Toggle a root class while the mobile keyboard is up so CSS can hide the
-  // tab bar + disclaimer. visualViewport only shrinks on real keyboards, so
-  // desktop (no keyboard) never triggers it.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    // Keyboard height derived purely from visualViewport: the tallest height
-    // we've seen is the keyboard-closed baseline; any shrink from it is the
-    // keyboard. Using window.innerHeight here is unreliable on mobile because
-    // browser toolbars make it disagree with the visual viewport.
-    let baseline = vv.height;
-    const apply = () => {
-      if (vv.height > baseline) baseline = vv.height;
-      const root = document.documentElement;
-      // Track the visible height so the app container can shrink to it — the
-      // composer then naturally sits above the keyboard with no px math.
-      root.style.setProperty('--app-h', `${Math.round(vv.height)}px`);
-      root.classList.toggle('kb-open', baseline - vv.height > 150);
-    };
-    vv.addEventListener('resize', apply);
-    vv.addEventListener('scroll', apply);
-    apply();
-    return () => {
-      vv.removeEventListener('resize', apply);
-      vv.removeEventListener('scroll', apply);
-      document.documentElement.classList.remove('kb-open');
-      document.documentElement.style.removeProperty('--app-h');
-    };
-  }, []);
-
   const introQueuedRef = useRef(false);
   function handleSarahIntro() {
     if (introQueuedRef.current) return;
@@ -99,8 +69,6 @@ export function CozyChat() {
           <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
         )}
       </div>
-
-      <div className="cozy-fade" aria-hidden />
 
       <InputBar
         streaming={chat.streaming}
