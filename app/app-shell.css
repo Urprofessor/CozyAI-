@@ -282,9 +282,10 @@
 }
 
 .glass-tab-bar__cozy {
-  width: var(--tokens-44);
-  height: var(--tokens-44);
-  margin-top: calc(var(--space-2) * -1);
+  /* IP art has ~32% transparent padding, so filling the 28px icon box
+     lands its visible mascot at ~19px — matching the lucide glyphs. */
+  width: var(--tokens-28);
+  height: var(--tokens-28);
   object-fit: contain;
   display: block;
 }

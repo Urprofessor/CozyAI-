@@ -30,12 +30,14 @@ export function GlassTabBar() {
         className={`glass-tab-bar__item ${cozyActive ? 'is-active' : ''}`}
         aria-label="Cozy AI"
       >
-        <img
-          src={cozyActive ? '/images/cozyAIbutton%20down.png' : '/images/Cozy%20AI%20button%20up.png'}
-          alt=""
-          draggable={false}
-          className="glass-tab-bar__cozy"
-        />
+        <span className="glass-tab-bar__icon">
+          <img
+            src="/images/IP_%E9%AB%98%E5%85%B4.png"
+            alt=""
+            draggable={false}
+            className="glass-tab-bar__cozy"
+          />
+        </span>
         <span>Cozy AI</span>
       </Link>
 
