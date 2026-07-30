@@ -1,0 +1,52 @@
+@import './momcozy-theme.css';
+@import './app-shell.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--colors-text-color-text-primary);
+  background: var(--colors-backgrouds-primary);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Tier-3 typography token — system messages, hints */
+@layer components {
+  .cozy-tier-3 {
+    @apply text-[12px] leading-[1.4] tracking-[0.01em] text-center font-normal;
+    color: var(--colors-text-color-text-tertiary);
+  }
+}

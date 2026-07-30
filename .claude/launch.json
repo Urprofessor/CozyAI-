@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cozyai",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "momcozy-demo",
+      "cwd": "momcozy-demo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["pnpm@11", "vite", "--host", "127.0.0.1", "--port", "5177"],
+      "port": 5177,
+      "url": "http://127.0.0.1:5177"
+    }
+  ]
+}

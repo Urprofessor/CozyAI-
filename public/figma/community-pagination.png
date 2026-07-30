@@ -1,0 +1,7 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 32 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Pagination indicators">
+<rect id="Pagination dot" width="16" height="4" rx="2" fill="var(--fill-0, white)"/>
+<circle id="Ellipse 14306" opacity="0.6" cx="22" cy="2" r="2" fill="var(--fill-0, white)"/>
+<circle id="Ellipse 14307" opacity="0.6" cx="30" cy="2" r="2" fill="var(--fill-0, white)"/>
+</g>
+</svg>

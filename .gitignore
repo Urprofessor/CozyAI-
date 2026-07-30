@@ -1,0 +1,15 @@
+# deps / build
+/node_modules
+/.next
+/out
+tsconfig.tsbuildinfo
+
+# env
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+
+# Momcozy demo reference project — internal-use fonts, do not push to GitHub
+/momcozy-demo/
