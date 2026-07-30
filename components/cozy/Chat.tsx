@@ -10,6 +10,9 @@ import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
+import { WelcomeGate } from './WelcomeGate';
+
+const WELCOMED_KEY = 'cozyWelcomed';
 
 /** Cozy AI tab — the AI home IS the conversation. The greeting is the stream's
  *  opening element and scrolls away with it. */
@@ -17,7 +20,13 @@ export function CozyChat() {
   const chat = useCozyChat();
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // null = localStorage not read yet; true/false once known.
+  const [welcomed, setWelcomed] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setWelcomed(localStorage.getItem(WELCOMED_KEY) === '1');
+  }, []);
 
   // Auto-scroll to bottom as messages grow.
   useEffect(() => {
@@ -30,6 +39,22 @@ export function CozyChat() {
     if (introQueuedRef.current) return;
     introQueuedRef.current = true;
     chat.appendAssistant(SARAH_INTRO, 'support');
+  }
+
+  // Wait until we know both the welcomed flag and the loaded history before
+  // choosing a view, so neither the welcome nor the chat flashes first.
+  const decided = welcomed !== null && chat.hydrated;
+  if (!decided) return <div className="cozy-page" />;
+
+  if (!welcomed && chat.sessions.length === 0) {
+    return (
+      <WelcomeGate
+        onStart={() => {
+          localStorage.setItem(WELCOMED_KEY, '1');
+          setWelcomed(true);
+        }}
+      />
+    );
   }
 
   return (

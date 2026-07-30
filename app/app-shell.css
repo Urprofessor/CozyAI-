@@ -1734,6 +1734,153 @@
   line-height: 1.4;
 }
 
+.mc-button:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ---------- Cozy AI first-run welcome ---------- */
+
+.cozy-welcome {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    180deg,
+    var(--colors-brands-mom-75) 0%,
+    var(--colors-backgrouds-primary) 42%
+  );
+}
+
+.cozy-welcome__top {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tokens-56);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.cozy-welcome__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--colors-brands-mom-700);
+  font-size: var(--type-title-m-medium-font-size);
+  font-weight: var(--type-title-m-medium-font-weight-emphasized);
+  line-height: var(--type-title-m-medium-line-height);
+  letter-spacing: 0;
+}
+
+.cozy-welcome__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-2) var(--space-5) var(--space-4);
+  scrollbar-width: none;
+}
+
+.cozy-welcome__body::-webkit-scrollbar {
+  display: none;
+}
+
+.cozy-welcome__mascot {
+  width: 42%;
+  max-width: var(--tokens-160);
+  height: auto;
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.cozy-welcome__title {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-brand);
+  font-size: var(--type-heading-l-font-size);
+  font-weight: var(--type-heading-m-font-weight);
+  line-height: var(--type-heading-l-line-height);
+  letter-spacing: 0;
+  color: var(--colors-text-color-text-primary);
+}
+
+.cozy-welcome__subtitle {
+  margin: 0 0 var(--space-6);
+  max-width: var(--tokens-320, 320px);
+  font-family: var(--font-brand);
+  font-size: var(--type-heading-m-font-size);
+  font-weight: var(--type-heading-m-font-weight);
+  line-height: var(--type-heading-m-line-height);
+  letter-spacing: 0;
+  color: var(--colors-text-color-text-primary);
+}
+
+.cozy-welcome__cards {
+  width: calc(100% + var(--space-10));
+  margin-left: calc(var(--space-5) * -1);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--tokens-132, 132px);
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding: var(--space-1) var(--space-5) var(--space-2);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.cozy-welcome__cards::-webkit-scrollbar {
+  display: none;
+}
+
+.cozy-welcome__cards img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-2xl);
+  scroll-snap-align: start;
+}
+
+.cozy-welcome__foot {
+  flex-shrink: 0;
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+.cozy-welcome__agree {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-body-s-medium-font-size);
+  font-weight: var(--type-body-s-medium-font-weight);
+  line-height: var(--type-body-s-medium-line-height);
+  letter-spacing: 0;
+}
+
+.cozy-welcome__agree input {
+  width: var(--tokens-18, 18px);
+  height: var(--tokens-18, 18px);
+  accent-color: var(--colors-brands-mom-700);
+  flex-shrink: 0;
+}
+
+.cozy-welcome__agree a {
+  font-weight: var(--type-body-s-medium-font-weight-emphasized, 600);
+  color: var(--colors-text-color-text-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cozy-welcome__start {
+  width: 100%;
+}
+
 /* ---------- mobile: fullscreen, no frame ---------- */
 
 @media (max-width: 480px) {

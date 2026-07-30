@@ -38,6 +38,7 @@ export function useCozyChat(opts: Options = {}) {
   const [handoffState, setHandoffState] = useState<HandoffState>('idle');
   const [supportAvatar, setSupportAvatar] = useState<string | null>(null);
   const [inQueue, setInQueue] = useState(false);
+  const [hydrated, setHydrated] = useState(false); // sessions loaded from server yet?
 
   const abortRef = useRef<AbortController | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +88,7 @@ export function useCozyChat(opts: Options = {}) {
         setMessages([]);
       }
       loadedRef.current = true;
+      setHydrated(true);
     })();
   }, [deviceId]);
 
@@ -420,6 +422,7 @@ export function useCozyChat(opts: Options = {}) {
     // state
     messages,
     sessions,
+    hydrated,
     currentSessionId,
     persona,
     streaming,
