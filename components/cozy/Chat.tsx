@@ -32,14 +32,19 @@ export function CozyChat() {
     const vv = window.visualViewport;
     if (!vv) return;
     const onResize = () => {
-      const kbOpen = window.innerHeight - vv.height > 150;
+      const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const kbOpen = kbHeight > 150;
       document.documentElement.classList.toggle('kb-open', kbOpen);
+      document.documentElement.style.setProperty('--kb-height', kbOpen ? `${kbHeight}px` : '0px');
     };
     vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
     onResize();
     return () => {
       vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
       document.documentElement.classList.remove('kb-open');
+      document.documentElement.style.removeProperty('--kb-height');
     };
   }, []);
 

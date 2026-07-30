@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { COZY_MAX_IMAGE_MB, COZY_MAX_IMAGES_PER_MSG } from '@/lib/cozy/constants';
+import {
+  COZY_MAX_IMAGE_MB,
+  COZY_MAX_IMAGES_PER_MSG,
+  COZY_SUGGESTED_QUESTIONS,
+} from '@/lib/cozy/constants';
 
 interface Props {
   streaming: boolean;
@@ -94,6 +98,22 @@ export function InputBar({
       )}
 
       <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onFile} />
+
+      {/* High-frequency question chips — CSS reveals these only while the
+          keyboard is up (.kb-open). */}
+      <div className="cozy-suggestions">
+        {COZY_SUGGESTED_QUESTIONS.map((q) => (
+          <button
+            key={q}
+            type="button"
+            className="cozy-suggestion"
+            disabled={streaming}
+            onClick={() => onSend(q)}
+          >
+            {q}
+          </button>
+        ))}
+      </div>
 
       {/* Glass input pill */}
       <div className="cozy-input-glass">

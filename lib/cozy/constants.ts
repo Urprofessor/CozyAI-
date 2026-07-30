@@ -12,6 +12,12 @@ export const COZY_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 export const COZY_MAX_SESSIONS = 30;
 export const COZY_MAX_MSGS_PER_SESSION = 80;
 
+// High-frequency question chips shown above the composer when the keyboard is up.
+export const COZY_SUGGESTED_QUESTIONS = [
+  'How often should I pump?',
+  'Is my baby eating enough?',
+] as const;
+
 // QA thinking loading pool — rotates every 1s with a subtle opacity swap.
 export const COZY_THINKING_TEXTS = [
   'Thinking...',

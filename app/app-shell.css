@@ -1452,11 +1452,54 @@
   transform: translateY(var(--tokens-1));
 }
 
-/* When the mobile keyboard is up, hide the tab bar + disclaimer so the
-   composer has room. Toggled by the visualViewport listener in Chat.tsx. */
+/* When the mobile keyboard is up: hide the tab bar + disclaimer + bottom fade,
+   drop the composer flush against the keyboard, and reveal the suggestion
+   chips. --kb-height is set by the visualViewport listener in Chat.tsx. */
 .kb-open .glass-tab-bar,
-.kb-open .cozy-disclaimer {
+.kb-open .cozy-disclaimer,
+.kb-open .cozy-fade {
   display: none;
+}
+
+.kb-open .cozy-input-dock {
+  bottom: calc(var(--kb-height, 0px) + var(--space-2));
+}
+
+.cozy-suggestions {
+  display: none;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: 0 var(--space-1);
+  scrollbar-width: none;
+}
+
+.cozy-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.kb-open .cozy-suggestions {
+  display: flex;
+}
+
+.cozy-suggestion {
+  flex: 0 0 auto;
+  max-width: 100%;
+  border: var(--colors-border-width-primary) solid var(--colors-border-primary);
+  border-radius: var(--radius-full);
+  background: var(--colors-backgrouds-secondary);
+  color: var(--colors-text-color-text-primary);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--type-body-s-medium-font-size);
+  font-weight: var(--type-body-s-medium-font-weight);
+  line-height: var(--type-body-s-medium-line-height);
+  letter-spacing: 0;
+  white-space: nowrap;
+  box-shadow: 0 var(--tokens-4) var(--tokens-12)
+    color-mix(in srgb, var(--colors-grays-900) 6%, transparent);
+}
+
+.cozy-suggestion:disabled {
+  opacity: 0.5;
 }
 
 /* ---------- history drawer (right side) ---------- */
