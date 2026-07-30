@@ -8,6 +8,10 @@ export const COZY_MAX_IMAGES_PER_MSG = 4;
 // starts a fresh session (user can also start one manually from the topbar).
 export const COZY_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
+// History caps to keep the persisted payload bounded.
+export const COZY_MAX_SESSIONS = 30;
+export const COZY_MAX_MSGS_PER_SESSION = 80;
+
 // QA thinking loading pool — rotates every 1s with a subtle opacity swap.
 export const COZY_THINKING_TEXTS = [
   'Thinking...',

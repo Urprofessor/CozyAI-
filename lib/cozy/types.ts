@@ -14,3 +14,11 @@ export interface CozyMessage {
 }
 
 export type HandoffState = 'idle' | 'connecting' | 'queuing' | 'assigning' | 'joined';
+
+export interface CozySession {
+  id: string;
+  title: string; // first user message, truncated
+  createdAt: number;
+  updatedAt: number;
+  messages: CozyMessage[];
+}

@@ -1427,14 +1427,15 @@
   letter-spacing: 0;
 }
 
-.cozy-topbar__identity .beta {
-  height: var(--tokens-18, 18px);
-  width: auto;
-}
-
-.cozy-topbar__new {
+.cozy-topbar__actions {
   grid-column: 3;
   justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cozy-topbar__btn {
   width: var(--tokens-36);
   height: var(--tokens-36);
   display: grid;
@@ -1445,6 +1446,169 @@
   color: var(--colors-text-color-text-primary);
   box-shadow: 0 var(--tokens-4) var(--tokens-12)
     color-mix(in srgb, var(--colors-grays-900) 7%, transparent);
+}
+
+.cozy-topbar__btn:active {
+  transform: translateY(var(--tokens-1));
+}
+
+/* ---------- history drawer (right side) ---------- */
+
+.cozy-history-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--colors-grays-1000) 32%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+
+.cozy-history-scrim.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cozy-history-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  width: 82%;
+  max-width: var(--tokens-360, 360px);
+  display: flex;
+  flex-direction: column;
+  background: var(--colors-backgrouds-secondary);
+  border-left: var(--colors-border-width-primary) solid var(--colors-border-primary);
+  box-shadow: calc(var(--tokens-16) * -1) 0 var(--tokens-48)
+    color-mix(in srgb, var(--colors-grays-900) 16%, transparent);
+  transform: translateX(100%);
+  transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cozy-history-drawer.is-open {
+  transform: translateX(0);
+}
+
+.cozy-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-4) var(--space-3);
+  flex-shrink: 0;
+}
+
+.cozy-history-head strong {
+  font-family: var(--type-title-l-medium-font-family);
+  font-size: var(--type-title-l-medium-font-size);
+  font-weight: var(--type-title-l-medium-font-weight-emphasized);
+  line-height: var(--type-title-l-medium-line-height);
+  letter-spacing: 0;
+  color: var(--colors-text-color-text-primary);
+}
+
+.cozy-history-head button {
+  width: var(--tokens-32);
+  height: var(--tokens-32);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--colors-grays-100);
+  color: var(--colors-text-color-text-secondary);
+}
+
+.cozy-history-empty {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+}
+
+.cozy-history-empty p {
+  margin: 0;
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-title-m-medium-font-size);
+  font-weight: var(--type-title-m-medium-font-weight);
+  line-height: var(--type-title-m-medium-line-height);
+}
+
+.cozy-history-empty span {
+  color: var(--colors-text-color-text-tertiary);
+  font-size: var(--type-body-m-regular-font-size);
+  line-height: var(--type-body-m-regular-line-height);
+}
+
+.cozy-history-list {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-6);
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.cozy-history-list::-webkit-scrollbar {
+  display: none;
+}
+
+.cozy-history-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border-radius: var(--radius-2xl);
+}
+
+.cozy-history-row.is-active {
+  background: var(--colors-brands-mom-50);
+}
+
+.cozy-history-open {
+  min-width: 0;
+  display: grid;
+  gap: var(--tokens-2);
+  padding: var(--space-3);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.cozy-history-open strong {
+  overflow: hidden;
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-body-m-medium-font-size);
+  font-weight: var(--type-body-m-medium-font-weight);
+  line-height: var(--type-body-m-medium-line-height);
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cozy-history-open span {
+  color: var(--colors-text-color-text-tertiary);
+  font-size: var(--type-caption-m-regular-font-size);
+  line-height: var(--type-caption-m-regular-line-height);
+  letter-spacing: 0;
+}
+
+.cozy-history-del {
+  width: var(--tokens-36);
+  height: var(--tokens-36);
+  margin-right: var(--space-1);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--colors-text-color-text-tertiary);
+}
+
+.cozy-history-del:active {
+  background: var(--colors-grays-100);
+  color: var(--status-danger-base);
 }
 
 .cozy-stream {

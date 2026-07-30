@@ -1,23 +1,27 @@
 'use client';
 
-// Central chat controller, ported from COZYAI_next with one addition: a
-// 30-minute inactivity session boundary. If the last activity is older than
-// COZY_SESSION_TIMEOUT_MS the next visit starts a fresh conversation instead
-// of loading history; the topbar's "new chat" button calls newSession().
+// Central chat controller. Conversations are grouped into sessions:
+//   • a session boundary occurs after 30 min of inactivity, or when the user
+//     taps "new chat" in the topbar
+//   • only sessions with at least one message get archived into history
+//   • the history drawer lists archived sessions (newest first), titled from
+//     the first user message
+//
+// Persistence: one array of sessions per device in Upstash (see /api/history).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   COZY_MAX_IMAGES_PER_MSG,
+  COZY_MAX_MSGS_PER_SESSION,
+  COZY_MAX_SESSIONS,
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
 import { HANDOFF_TAG, EXIT_TAG } from '@/lib/cozy/prompts';
 import { detectHandoffTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
-import type { CozyMessage, HandoffState, Persona } from '@/lib/cozy/types';
+import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
 import { useDeviceId } from './useDeviceId';
-
-const LAST_ACTIVE_KEY = 'cozyLastActiveAt';
 
 interface Options {
   initialPersona?: Persona;
@@ -26,6 +30,8 @@ interface Options {
 export function useCozyChat(opts: Options = {}) {
   const deviceId = useDeviceId();
   const [messages, setMessages] = useState<CozyMessage[]>([]);
+  const [sessions, setSessions] = useState<CozySession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [persona, setPersona] = useState<Persona>(opts.initialPersona ?? 'qa');
   const [streaming, setStreaming] = useState(false);
   const [pendingImages, setPendingImages] = useState<string[]>([]);
@@ -35,82 +41,145 @@ export function useCozyChat(opts: Options = {}) {
 
   const abortRef = useRef<AbortController | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const historyLoadedRef = useRef(false);
-
-  // ---------- session boundary + history ----------
+  const loadedRef = useRef(false);
+  const currentIdRef = useRef<string | null>(null);
+  const sessionsRef = useRef<CozySession[]>([]);
+  const deviceIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!deviceId || historyLoadedRef.current) return;
+    sessionsRef.current = sessions;
+  }, [sessions]);
+  useEffect(() => {
+    currentIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+  useEffect(() => {
+    deviceIdRef.current = deviceId;
+  }, [deviceId]);
 
-    // 30-min inactivity → fresh session; skip loading old history.
-    const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || 0);
-    const stale = !lastActive || Date.now() - lastActive > COZY_SESSION_TIMEOUT_MS;
-    if (stale) {
-      historyLoadedRef.current = true;
-      return;
-    }
+  // ---------- load sessions + resume active one ----------
 
+  useEffect(() => {
+    if (!deviceId || loadedRef.current) return;
     (async () => {
+      let loaded: CozySession[] = [];
       try {
         const res = await fetch('/api/history?deviceId=' + encodeURIComponent(deviceId));
-        if (!res.ok) return;
-        const data = (await res.json()) as { messages?: CozyMessage[] };
-        if (Array.isArray(data.messages) && data.messages.length) {
-          setMessages(data.messages);
+        if (res.ok) {
+          const data = (await res.json()) as { sessions?: CozySession[] };
+          if (Array.isArray(data.sessions)) loaded = data.sessions;
         }
       } catch {
         /* offline / not configured — silent */
-      } finally {
-        historyLoadedRef.current = true;
       }
+      loaded.sort((a, b) => b.updatedAt - a.updatedAt);
+      setSessions(loaded);
+      sessionsRef.current = loaded;
+
+      // Resume the latest session only if it's still within the 30-min window.
+      const latest = loaded[0];
+      if (latest && Date.now() - latest.updatedAt <= COZY_SESSION_TIMEOUT_MS) {
+        currentIdRef.current = latest.id;
+        setCurrentSessionId(latest.id);
+        setMessages(latest.messages || []);
+      } else {
+        currentIdRef.current = null;
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+      loadedRef.current = true;
     })();
   }, [deviceId]);
 
-  const persistHistory = useCallback(
-    (nextMessages: CozyMessage[]) => {
-      if (!deviceId) return;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(async () => {
-        // Strip base64 image data before persisting — session only.
-        const sanitized = nextMessages.map((m) => {
-          if (!m.images?.length) return m;
-          const { images, ...rest } = m;
-          return { ...rest, imageCount: images.length } as CozyMessage & {
-            imageCount: number;
-          };
-        });
-        try {
-          await fetch('/api/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deviceId, messages: sanitized.slice(-100) }),
-          });
-        } catch {
-          /* best-effort */
-        }
-      }, 400);
-    },
-    [deviceId]
-  );
-
-  // Persist + refresh the activity stamp whenever messages change.
+  // Upsert the current session whenever messages change, then persist.
   useEffect(() => {
-    if (!historyLoadedRef.current) return;
-    if (messages.length) localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
-    persistHistory(messages);
-  }, [messages, persistHistory]);
+    if (!loadedRef.current || !messages.length) return;
 
-  /** Manual restart from the topbar — clears the stream and the stale stamp. */
+    let id = currentIdRef.current;
+    if (!id) {
+      id = newId();
+      currentIdRef.current = id;
+      setCurrentSessionId(id);
+    }
+
+    const now = Date.now();
+    const prev = sessionsRef.current;
+    const existing = prev.find((s) => s.id === id);
+    const updated: CozySession = {
+      id,
+      title: existing?.title || deriveTitle(messages),
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      messages,
+    };
+    const next = [updated, ...prev.filter((s) => s.id !== id)]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, COZY_MAX_SESSIONS);
+
+    sessionsRef.current = next;
+    setSessions(next);
+    persistSessions(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  const persistSessions = useCallback((list: CozySession[]) => {
+    const id = deviceIdRef.current;
+    if (!id) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: id, sessions: sanitizeSessions(list) }),
+        });
+      } catch {
+        /* best-effort */
+      }
+    }, 400);
+  }, []);
+
+  /** Manual restart from the topbar — the current session is already archived. */
   const newSession = useCallback(() => {
     stopInternal(abortRef);
+    currentIdRef.current = null;
+    setCurrentSessionId(null);
     setMessages([]);
     setPersona('qa');
     setSupportAvatar(null);
     setInQueue(false);
     setHandoffState('idle');
     setPendingImages([]);
-    localStorage.removeItem(LAST_ACTIVE_KEY);
   }, []);
+
+  /** Load an archived session from the history drawer. */
+  const loadSession = useCallback((id: string) => {
+    const s = sessionsRef.current.find((x) => x.id === id);
+    if (!s) return;
+    stopInternal(abortRef);
+    currentIdRef.current = id;
+    setCurrentSessionId(id);
+    setMessages(s.messages || []);
+    setPersona('qa');
+    setSupportAvatar(null);
+    setInQueue(false);
+    setHandoffState('idle');
+    setPendingImages([]);
+  }, []);
+
+  const deleteSession = useCallback(
+    (id: string) => {
+      const next = sessionsRef.current.filter((s) => s.id !== id);
+      sessionsRef.current = next;
+      setSessions(next);
+      persistSessions(next);
+      if (currentIdRef.current === id) {
+        currentIdRef.current = null;
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+    },
+    [persistSessions]
+  );
 
   // ---------- image pool ----------
 
@@ -161,12 +230,10 @@ export function useCozyChat(opts: Options = {}) {
       setMessages((prev) => [...prev, userMsg]);
       setPendingImages([]);
 
-      // If we're queued for handoff, mute AI. Message is preserved as context.
       if (inQueue) {
         return;
       }
 
-      // QA fast-path: keyword hit → handoff card, no LLM call.
       if (persona === 'qa' && cleaned && detectHandoffTrigger(cleaned)) {
         beginHandoffCard();
         return;
@@ -220,7 +287,6 @@ export function useCozyChat(opts: Options = {}) {
         const { value, done } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        // AI SDK data stream: each line is `<type_prefix>:<json>\n`.
         for (const line of chunk.split('\n')) {
           if (!line) continue;
           const colon = line.indexOf(':');
@@ -267,7 +333,6 @@ export function useCozyChat(opts: Options = {}) {
       abortRef.current = null;
     }
 
-    // Post-stream: strip tags, decide handoff/exit.
     const hasHandoff = text.includes(HANDOFF_TAG);
     const hasExit = text.includes(EXIT_TAG);
     const clean = text.replaceAll(HANDOFF_TAG, '').replaceAll(EXIT_TAG, '').trim();
@@ -354,6 +419,8 @@ export function useCozyChat(opts: Options = {}) {
   return {
     // state
     messages,
+    sessions,
+    currentSessionId,
     persona,
     streaming,
     pendingImages,
@@ -364,6 +431,8 @@ export function useCozyChat(opts: Options = {}) {
     send,
     stop,
     newSession,
+    loadSession,
+    deleteSession,
     addImages,
     removeImage,
     confirmHandoff,
@@ -374,6 +443,30 @@ export function useCozyChat(opts: Options = {}) {
     appendAssistant,
     pageSize: COZY_PAGE_SIZE,
   };
+}
+
+// ---------- helpers ----------
+
+function deriveTitle(messages: CozyMessage[]): string {
+  const firstUser = messages.find((m) => m.role === 'user');
+  const t = (firstUser?.content || '').trim();
+  if (t) return t.length > 30 ? t.slice(0, 30) + '…' : t;
+  if (firstUser?.images?.length) return 'Photo message';
+  return 'New chat';
+}
+
+/** Strip base64 image data and cap message count before persisting. */
+function sanitizeSessions(list: CozySession[]): CozySession[] {
+  return list.slice(0, COZY_MAX_SESSIONS).map((s) => ({
+    ...s,
+    messages: s.messages
+      .map((m) => {
+        if (!m.images?.length) return m;
+        const { images, ...rest } = m;
+        return { ...rest, imageCount: images.length } as CozyMessage & { imageCount: number };
+      })
+      .slice(-COZY_MAX_MSGS_PER_SESSION),
+  }));
 }
 
 function stopInternal(abortRef: React.MutableRefObject<AbortController | null>) {

@@ -1,16 +1,16 @@
-// GET  /api/history?deviceId=xxx  → { messages: CozyMessage[] }
-// POST /api/history  { deviceId, messages } → { ok, persisted }
+// GET  /api/history?deviceId=xxx  → { sessions: CozySession[] } (newest first)
+// POST /api/history  { deviceId, sessions } → { ok, persisted }
 //
-// Base64 image payloads should be stripped by the client before calling this
-// (see useCozyChat).
+// Sessions are stored as one array per device. Base64 image payloads are
+// stripped by the client before POSTing (session-only, see useCozyChat).
 
 import { redisConfigured, redisGet, redisSetJson } from '@/lib/redis';
-import type { CozyMessage } from '@/lib/cozy/types';
+import type { CozySession } from '@/lib/cozy/types';
 
 export const runtime = 'edge';
 
 function keyFor(deviceId: string) {
-  return `cozyai:history:${deviceId}`;
+  return `cozyai:sessions:${deviceId}`;
 }
 
 export async function GET(req: Request) {
@@ -18,34 +18,34 @@ export async function GET(req: Request) {
   const deviceId = searchParams.get('deviceId');
   if (!deviceId) return json({ error: 'Missing deviceId' }, 400);
 
-  if (!redisConfigured()) return json({ messages: [] });
+  if (!redisConfigured()) return json({ sessions: [] });
 
   try {
     const raw = await redisGet(keyFor(deviceId));
-    const messages: CozyMessage[] = raw ? (JSON.parse(raw) as CozyMessage[]) : [];
-    return json({ messages });
+    const sessions: CozySession[] = raw ? (JSON.parse(raw) as CozySession[]) : [];
+    return json({ sessions });
   } catch (e) {
-    return json({ messages: [], error: String(e) });
+    return json({ sessions: [], error: String(e) });
   }
 }
 
 export async function POST(req: Request) {
-  let body: { deviceId?: string; messages?: CozyMessage[] };
+  let body: { deviceId?: string; sessions?: CozySession[] };
   try {
     body = await req.json();
   } catch {
     return json({ error: 'Invalid JSON body' }, 400);
   }
 
-  const { deviceId, messages } = body;
-  if (!deviceId || !Array.isArray(messages)) {
-    return json({ error: 'Missing deviceId or messages' }, 400);
+  const { deviceId, sessions } = body;
+  if (!deviceId || !Array.isArray(sessions)) {
+    return json({ error: 'Missing deviceId or sessions' }, 400);
   }
 
   if (!redisConfigured()) return json({ ok: true, persisted: false });
 
   try {
-    await redisSetJson(keyFor(deviceId), messages.slice(-100));
+    await redisSetJson(keyFor(deviceId), sessions.slice(0, 30));
     return json({ ok: true, persisted: true });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 502);

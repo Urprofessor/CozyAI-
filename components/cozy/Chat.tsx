@@ -6,6 +6,7 @@ import { SARAH_INTRO } from '@/lib/cozy/constants';
 import { Bubble } from './Bubble';
 import { CozyTopbar } from './CozyTopbar';
 import { HandoffCard } from './HandoffCard';
+import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
@@ -15,6 +16,7 @@ import { LoadingIndicator } from './LoadingIndicator';
 export function CozyChat() {
   const chat = useCozyChat();
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom as messages grow.
@@ -32,7 +34,13 @@ export function CozyChat() {
 
   return (
     <div className="cozy-page">
-      <CozyTopbar onNewSession={chat.newSession} />
+      <CozyTopbar
+        onOpenHistory={() => setHistoryOpen(true)}
+        onNewSession={() => {
+          setHistoryOpen(false);
+          chat.newSession();
+        }}
+      />
 
       {/* Conversation stream — the only scroll area */}
       <div ref={scrollRef} className="cozy-stream">
@@ -71,6 +79,18 @@ export function CozyChat() {
         onRemoveImage={chat.removeImage}
         onSend={chat.send}
         onStop={chat.stop}
+      />
+
+      <HistoryDrawer
+        open={historyOpen}
+        sessions={chat.sessions}
+        currentSessionId={chat.currentSessionId}
+        onClose={() => setHistoryOpen(false)}
+        onSelect={(id) => {
+          chat.loadSession(id);
+          setHistoryOpen(false);
+        }}
+        onDelete={chat.deleteSession}
       />
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
