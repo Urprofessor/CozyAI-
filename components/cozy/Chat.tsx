@@ -25,6 +25,24 @@ export function CozyChat() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat.messages.length, chat.streaming]);
 
+  // Toggle a root class while the mobile keyboard is up so CSS can hide the
+  // tab bar + disclaimer. visualViewport only shrinks on real keyboards, so
+  // desktop (no keyboard) never triggers it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const kbOpen = window.innerHeight - vv.height > 150;
+      document.documentElement.classList.toggle('kb-open', kbOpen);
+    };
+    vv.addEventListener('resize', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      document.documentElement.classList.remove('kb-open');
+    };
+  }, []);
+
   const introQueuedRef = useRef(false);
   function handleSarahIntro() {
     if (introQueuedRef.current) return;

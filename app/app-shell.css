@@ -1452,6 +1452,13 @@
   transform: translateY(var(--tokens-1));
 }
 
+/* When the mobile keyboard is up, hide the tab bar + disclaimer so the
+   composer has room. Toggled by the visualViewport listener in Chat.tsx. */
+.kb-open .glass-tab-bar,
+.kb-open .cozy-disclaimer {
+  display: none;
+}
+
 /* ---------- history drawer (right side) ---------- */
 
 .cozy-history-scrim {
@@ -1481,14 +1488,16 @@
   flex-direction: column;
   background: var(--colors-backgrouds-secondary);
   border-left: var(--colors-border-width-primary) solid var(--colors-border-primary);
-  box-shadow: calc(var(--tokens-16) * -1) 0 var(--tokens-48)
-    color-mix(in srgb, var(--colors-grays-900) 16%, transparent);
   transform: translateX(100%);
   transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .cozy-history-drawer.is-open {
   transform: translateX(0);
+  /* Shadow only while open — otherwise the off-screen drawer's leftward
+     shadow bleeds a strip onto the right edge of the screen. */
+  box-shadow: calc(var(--tokens-16) * -1) 0 var(--tokens-48)
+    color-mix(in srgb, var(--colors-grays-900) 16%, transparent);
 }
 
 .cozy-history-head {
