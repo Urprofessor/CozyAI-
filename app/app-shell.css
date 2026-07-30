@@ -1395,10 +1395,10 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  /* Reserve room for the floating tab bar so the in-flow composer sits above
-     it. Removed while the keyboard is up (.kb-open) so the field drops flush
-     to the bottom and the browser lifts it above the keyboard. */
-  padding-bottom: calc(var(--tokens-96, 96px) + env(safe-area-inset-bottom, 0px));
+  /* Reserve room for the floating tab bar (16px offset + ~68px tall) so the
+     in-flow composer sits just above it. Removed while the keyboard is up
+     (.kb-open) so the field drops flush to the bottom. */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
 .kb-open .cozy-page {
