@@ -1462,9 +1462,10 @@
 }
 
 .kb-open .cozy-input-dock {
-  /* Sit just above the keyboard. min() is a safety net so a mis-measured
-     keyboard height on some device can never push the composer off-screen. */
-  bottom: min(calc(var(--kb-height, 0px) + var(--space-2)), 68%);
+  /* The app container already shrank to the visible viewport (--app-h), so the
+     composer just needs a small offset off the bottom — it's above the keyboard
+     with no keyboard-height math. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
 }
 
 .cozy-suggestions {
@@ -1757,12 +1758,18 @@
   .demo-stage {
     min-height: 100svh;
     padding: 0;
+    /* Pin the frame to the top so that when it shrinks to --app-h (keyboard
+       open) its bottom edge lands at the top of the keyboard, not centered. */
+    align-items: start;
   }
 
   .phone-screen {
     width: 100vw;
-    height: 100svh;
-    min-height: 100svh;
+    /* Follow the visible viewport (set by Chat.tsx) so the container shrinks
+       when the keyboard opens and bottom-docked UI stays above it. Falls back
+       to 100svh before the script runs / on non-chat tabs. */
+    height: var(--app-h, 100svh);
+    min-height: 0;
     border: 0;
     border-radius: 0;
   }

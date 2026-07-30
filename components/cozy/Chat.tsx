@@ -38,11 +38,11 @@ export function CozyChat() {
     let baseline = vv.height;
     const apply = () => {
       if (vv.height > baseline) baseline = vv.height;
-      const kbHeight = Math.max(0, Math.round(baseline - vv.height));
-      const kbOpen = kbHeight > 150;
       const root = document.documentElement;
-      root.classList.toggle('kb-open', kbOpen);
-      root.style.setProperty('--kb-height', kbOpen ? `${kbHeight}px` : '0px');
+      // Track the visible height so the app container can shrink to it — the
+      // composer then naturally sits above the keyboard with no px math.
+      root.style.setProperty('--app-h', `${Math.round(vv.height)}px`);
+      root.classList.toggle('kb-open', baseline - vv.height > 150);
     };
     vv.addEventListener('resize', apply);
     vv.addEventListener('scroll', apply);
@@ -51,7 +51,7 @@ export function CozyChat() {
       vv.removeEventListener('resize', apply);
       vv.removeEventListener('scroll', apply);
       document.documentElement.classList.remove('kb-open');
-      document.documentElement.style.removeProperty('--kb-height');
+      document.documentElement.style.removeProperty('--app-h');
     };
   }, []);
 
