@@ -1414,6 +1414,11 @@
   padding: var(--space-2) var(--space-4) 0;
 }
 
+.cozy-topbar__profile {
+  grid-column: 1;
+  justify-self: start;
+}
+
 .cozy-topbar__identity {
   grid-column: 2;
   display: inline-flex;

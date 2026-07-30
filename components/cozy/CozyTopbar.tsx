@@ -12,6 +12,12 @@ interface Props {
 export function CozyTopbar({ onOpenHistory, onNewSession }: Props) {
   return (
     <div className="cozy-topbar">
+      {/* User profile — reused from the Community header (avatar + badge). */}
+      <button className="avatar-button cozy-topbar__profile" type="button" aria-label="Profile">
+        <img src="/figma/community-avatar.png" alt="" />
+        <span>2</span>
+      </button>
+
       <div className="cozy-topbar__identity">
         <img src="/images/IP_%E9%AB%98%E5%85%B4.png" alt="" draggable={false} />
         <strong>Cozy AI</strong>
