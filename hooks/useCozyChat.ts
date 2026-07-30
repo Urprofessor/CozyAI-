@@ -304,7 +304,13 @@ export function useCozyChat(opts: Options = {}) {
                 bubbleAdded = true;
                 setMessages((prev) => [
                   ...prev,
-                  { id: assistantId, role: 'assistant', content: stripped, persona: personaAtStart },
+                  {
+                    id: assistantId,
+                    role: 'assistant',
+                    content: stripped,
+                    persona: personaAtStart,
+                    createdAt: Date.now(),
+                  },
                 ]);
               } else if (bubbleAdded) {
                 setMessages((prev) =>
@@ -327,6 +333,7 @@ export function useCozyChat(opts: Options = {}) {
             role: 'assistant',
             content: "Sorry, I couldn't reach the assistant right now. Please try again.",
             persona: personaAtStart,
+            createdAt: Date.now(),
           },
         ]);
       }
@@ -411,6 +418,7 @@ export function useCozyChat(opts: Options = {}) {
           role: 'assistant',
           content,
           persona: personaOverride ?? persona,
+          createdAt: Date.now(),
           ...(personaOverride === 'support' && supportAvatar ? { avatar: supportAvatar } : {}),
         },
       ]);

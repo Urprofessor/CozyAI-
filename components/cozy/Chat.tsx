@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useCozyChat } from '@/hooks/useCozyChat';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
 import { Bubble } from './Bubble';
@@ -71,25 +71,8 @@ export function CozyChat() {
       <div ref={scrollRef} className="cozy-stream">
         <Greeting />
 
-        {chat.messages.map((m) =>
-          m.content === '__HANDOFF_CARD__' ? (
-            <HandoffCard
-              key={m.id}
-              state={chat.handoffState}
-              supportAvatar={chat.supportAvatar}
-              onConfirm={chat.confirmHandoff}
-              onCancel={chat.cancelHandoff}
-              onAdvance={chat.advanceHandoff}
-              onJoined={() => {
-                chat.finishHandoff();
-                chat.appendSystem('Sarah joined the conversation.');
-              }}
-              onSarahIntro={handleSarahIntro}
-            />
-          ) : (
-            <Bubble key={m.id} msg={m} onOpenImage={setLightboxSrc} />
-          )
-        )}
+        {renderStream(chat, setLightboxSrc, handleSarahIntro)}
+
         {chat.streaming && (
           <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
         )}
@@ -119,6 +102,65 @@ export function CozyChat() {
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
+}
+
+/** Render the message stream, inserting a system-style timestamp divider
+ *  whenever more than a minute passes between consecutive messages. */
+function renderStream(
+  chat: ReturnType<typeof useCozyChat>,
+  onOpenImage: (src: string) => void,
+  onSarahIntro: () => void
+): ReactNode[] {
+  const out: ReactNode[] = [];
+  let lastTs: number | null = null;
+  const GAP_MS = 60_000;
+
+  for (const m of chat.messages) {
+    if (m.content === '__HANDOFF_CARD__') {
+      out.push(
+        <HandoffCard
+          key={m.id}
+          state={chat.handoffState}
+          supportAvatar={chat.supportAvatar}
+          onConfirm={chat.confirmHandoff}
+          onCancel={chat.cancelHandoff}
+          onAdvance={chat.advanceHandoff}
+          onJoined={() => {
+            chat.finishHandoff();
+            chat.appendSystem('Sarah joined the conversation.');
+          }}
+          onSarahIntro={onSarahIntro}
+        />
+      );
+      continue;
+    }
+
+    const ts = m.role === 'user' || m.role === 'assistant' ? m.createdAt : undefined;
+    if (ts) {
+      if (lastTs === null || ts - lastTs > GAP_MS) {
+        out.push(
+          <div
+            key={`ts-${m.id}`}
+            className="cozy-tier-3 self-center max-w-[90%] px-3 py-0.5 my-1"
+          >
+            {formatTimestamp(ts)}
+          </div>
+        );
+      }
+      lastTs = ts;
+    }
+
+    out.push(<Bubble key={m.id} msg={m} onOpenImage={onOpenImage} />);
+  }
+
+  return out;
+}
+
+function formatTimestamp(ts: number): string {
+  const d = new Date(ts);
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  if (d.toDateString() === new Date().toDateString()) return time;
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${time}`;
 }
 
 function Greeting() {
