@@ -31,18 +31,25 @@ export function CozyChat() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const onResize = () => {
-      const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    // Keyboard height derived purely from visualViewport: the tallest height
+    // we've seen is the keyboard-closed baseline; any shrink from it is the
+    // keyboard. Using window.innerHeight here is unreliable on mobile because
+    // browser toolbars make it disagree with the visual viewport.
+    let baseline = vv.height;
+    const apply = () => {
+      if (vv.height > baseline) baseline = vv.height;
+      const kbHeight = Math.max(0, Math.round(baseline - vv.height));
       const kbOpen = kbHeight > 150;
-      document.documentElement.classList.toggle('kb-open', kbOpen);
-      document.documentElement.style.setProperty('--kb-height', kbOpen ? `${kbHeight}px` : '0px');
+      const root = document.documentElement;
+      root.classList.toggle('kb-open', kbOpen);
+      root.style.setProperty('--kb-height', kbOpen ? `${kbHeight}px` : '0px');
     };
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    onResize();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    apply();
     return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
       document.documentElement.classList.remove('kb-open');
       document.documentElement.style.removeProperty('--kb-height');
     };

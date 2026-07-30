@@ -1462,7 +1462,9 @@
 }
 
 .kb-open .cozy-input-dock {
-  bottom: calc(var(--kb-height, 0px) + var(--space-2));
+  /* Sit just above the keyboard. min() is a safety net so a mis-measured
+     keyboard height on some device can never push the composer off-screen. */
+  bottom: min(calc(var(--kb-height, 0px) + var(--space-2)), 68%);
 }
 
 .cozy-suggestions {
