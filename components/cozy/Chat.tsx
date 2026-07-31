@@ -16,6 +16,7 @@ import { LoadingIndicator } from './LoadingIndicator';
 import { NextUpBar } from './NextUpBar';
 import { WelcomeGate } from './WelcomeGate';
 import { LactationSkillMessage } from './skill/LactationSkillMessage';
+import { PlanCard } from './skill/PlanCard';
 import { LactationDashboard } from './skill/LactationDashboard';
 
 interface SkillHandlers {
@@ -65,6 +66,15 @@ export function CozyChat() {
     onStartTracking: () => profile.applyPatch({ lactationPlan: { trackingStarted: true } }),
     onViewDetail: chat.showDashboard,
   };
+
+  // Surface the generated plan card once the questionnaire completes (the
+  // offer card above stays initial so the user can re-make a plan). Wait for
+  // history hydration so the load doesn't wipe the inserted card.
+  const planStatus = profile.profile.lactationPlan?.status;
+  useEffect(() => {
+    if (chat.hydrated && planStatus === 'completed') chat.showPlanCard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.hydrated, planStatus]);
 
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
@@ -146,15 +156,21 @@ function renderStream(
 
   for (const m of chat.messages) {
     if (m.content === '__SKILL_LACTATION__') {
-      out.push(
-        <LactationSkillMessage
-          key={m.id}
-          plan={skill.plan}
-          onStart={skill.onStart}
-          onStartTracking={skill.onStartTracking}
-          onViewDetail={skill.onViewDetail}
-        />
-      );
+      out.push(<LactationSkillMessage key={m.id} onStart={skill.onStart} />);
+      continue;
+    }
+    if (m.content === '__PLAN_LACTATION__') {
+      if (skill.plan) {
+        out.push(
+          <div key={m.id} className="self-start w-[92%] max-w-[92%]">
+            <PlanCard
+              plan={skill.plan}
+              onStartTracking={skill.onStartTracking}
+              onViewDetail={skill.onViewDetail}
+            />
+          </div>
+        );
+      }
       continue;
     }
     if (m.content === '__DASHBOARD_LACTATION__') {

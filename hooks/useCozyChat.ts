@@ -457,6 +457,17 @@ export function useCozyChat(opts: Options = {}) {
 
   const startSkill = useCallback((skill: string) => insertSkillMessage(skill), []);
 
+  // Surface the generated plan card (deduped) — inserted once the questionnaire
+  // completes. Distinct from the always-initial offer card.
+  const showPlanCard = useCallback(() => {
+    const sentinel = '__PLAN_LACTATION__';
+    setMessages((prev) =>
+      prev.some((m) => m.content === sentinel)
+        ? prev
+        : [...prev, { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() }]
+    );
+  }, []);
+
   // Append the tracking dashboard inline in the chat (deduped) — "查看详情".
   const showDashboard = useCallback(() => {
     const sentinel = '__DASHBOARD_LACTATION__';
@@ -511,6 +522,7 @@ export function useCozyChat(opts: Options = {}) {
     appendSystem,
     appendAssistant,
     startSkill,
+    showPlanCard,
     showDashboard,
     pageSize: COZY_PAGE_SIZE,
   };
