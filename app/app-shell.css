@@ -1511,6 +1511,12 @@
   opacity: 0.5;
 }
 
+.cozy-suggestion--skill {
+  border-color: var(--colors-brands-mom-300);
+  background: var(--colors-brands-mom-50);
+  color: var(--colors-brands-mom-700);
+}
+
 /* ---------- history drawer (right side) ---------- */
 
 .cozy-history-scrim {
@@ -1742,6 +1748,35 @@
 .mc-button:disabled {
   opacity: 0.4;
   pointer-events: none;
+}
+
+/* Alias vars so ported skill components (colleague's --color-* names) resolve
+   to Momcozy tokens without rewriting every Tailwind arbitrary value. */
+:root {
+  --color-line: var(--colors-border-primary);
+  --color-surface: var(--colors-backgrouds-secondary);
+  --color-canvas: var(--colors-backgrouds-primary);
+  --color-ink: var(--colors-text-color-text-primary);
+  --color-muted: var(--colors-text-color-text-secondary);
+  --color-mom-50: var(--colors-brands-mom-50);
+  --color-mom-500: var(--colors-brands-mom-500);
+  --color-mom-700: var(--colors-semantic-fills-mom-primary);
+  --color-mom-900: var(--colors-brands-mom-900);
+}
+
+@keyframes cozyRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: cozyRise 260ms ease both;
 }
 
 /* ---------- Next-up briefing (sticky, collapsible) ---------- */
@@ -2068,6 +2103,111 @@
 
 .cozy-welcome__start {
   width: 100%;
+}
+
+/* ---------- Lactation questionnaire (full-screen) ---------- */
+
+.lac-q {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  background: var(--colors-backgrouds-primary);
+}
+
+.lac-q__top {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tokens-56);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.lac-q__top strong {
+  grid-column: 2;
+  text-align: center;
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-title-m-medium-font-size);
+  font-weight: var(--type-title-m-medium-font-weight-emphasized);
+  line-height: var(--type-title-m-medium-line-height);
+  letter-spacing: 0;
+}
+
+.lac-q__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+  scrollbar-width: none;
+}
+
+.lac-q__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.lac-q__prefill {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--colors-brands-mom-50);
+  color: var(--colors-brands-mom-700);
+  font-size: var(--type-body-s-regular-font-size);
+  line-height: var(--type-body-s-regular-line-height);
+}
+
+.lac-q__section {
+  margin-bottom: var(--space-6);
+}
+
+.lac-q__section h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-title-m-medium-font-size);
+  font-weight: var(--type-title-m-medium-font-weight-emphasized);
+  line-height: var(--type-title-m-medium-line-height);
+  letter-spacing: 0;
+}
+
+.lac-q__opts {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lac-q__opts--row {
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+.lac-q__opt,
+.lac-q__chip {
+  min-height: var(--tokens-44);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  border: var(--colors-border-width-primary) solid var(--colors-border-primary);
+  border-radius: var(--radius-xl);
+  background: var(--colors-backgrouds-secondary);
+  color: var(--colors-text-color-text-primary);
+  font-size: var(--type-body-m-medium-font-size);
+  font-weight: var(--type-body-m-medium-font-weight);
+  line-height: var(--type-body-m-medium-line-height);
+  letter-spacing: 0;
+}
+
+.lac-q__opt.is-on,
+.lac-q__chip.is-on {
+  border-color: var(--colors-brands-mom-700);
+  background: var(--colors-brands-mom-50);
+  color: var(--colors-brands-mom-700);
+}
+
+.lac-q__foot {
+  flex-shrink: 0;
+  padding: 0 var(--space-4);
 }
 
 /* ---------- mobile: fullscreen, no frame ---------- */

@@ -8,6 +8,32 @@
 
 export type FeedingType = 'breast' | 'bottle' | 'mixed';
 
+export type LactationGoal = 'increase' | 'maintain' | 'wean';
+
+export interface LactationSession {
+  time: string; // "12:00"
+  volumeOz?: number;
+  state: 'done' | 'edit' | 'upcoming';
+}
+
+/** First "skill" module. Others will follow the same shape: their own data,
+ *  an inline chat card, and a summary contributed to the top NextUp bar. */
+export interface LactationPlan {
+  // questionnaire answers
+  goal?: LactationGoal;
+  goalLabel?: string;
+  dailyFreq?: number; // sessions per day
+  durationMin?: number; // minutes per session
+  applyTo?: string; // e.g. "全天" / "白天" / "夜间"
+  // lifecycle
+  status?: 'idle' | 'in_progress' | 'completed';
+  trackingStarted?: boolean;
+  // tracking data (seeded fake, later updated by chat + manual input)
+  sessions?: LactationSession[];
+  todayVolumeOz?: number;
+  createdAt?: number;
+}
+
 export interface CozyProfile {
   name?: string; // mom's name
   momAge?: number;
@@ -29,10 +55,38 @@ export interface CozyProfile {
     note?: string;
   };
   reminders?: Array<{ label: string; when?: string }>;
+  lactationPlan?: LactationPlan;
   updatedAt?: number;
 }
 
-const NESTED_KEYS: Array<keyof CozyProfile> = ['baby', 'feeding', 'pumping', 'sleep'];
+const NESTED_KEYS: Array<keyof CozyProfile> = [
+  'baby',
+  'feeding',
+  'pumping',
+  'sleep',
+  'lactationPlan',
+];
+
+export const LACTATION_GOAL_LABELS: Record<LactationGoal, string> = {
+  increase: '追奶 · 增加奶量',
+  maintain: '维持奶量',
+  wean: '逐步离乳',
+};
+
+export function isPlanComplete(p: CozyProfile): boolean {
+  return p.lactationPlan?.status === 'completed';
+}
+
+/** Seed tracking data for a freshly generated plan (later updated for real). */
+export function seedLactationSessions(): LactationSession[] {
+  return [
+    { time: '12:00', volumeOz: 20, state: 'done' },
+    { time: '15:00', state: 'edit' },
+    { time: '17:00', volumeOz: 20, state: 'done' },
+    { time: '21:00', state: 'upcoming' },
+    { time: '22:00', state: 'upcoming' },
+  ];
+}
 
 /** The single merge entry point. Overlays a patch onto the current profile:
  *  scalars replace, known nested objects shallow-merge, reminders upsert by
@@ -84,6 +138,16 @@ export interface NextUpItem {
  *  routine summary derived from the known profile. */
 export function deriveNextUp(p: CozyProfile): NextUpItem[] {
   const items: NextUpItem[] = [];
+
+  // Active-skill summaries aggregate here first (the pumping plan is skill #1).
+  const plan = p.lactationPlan;
+  if (plan?.trackingStarted) {
+    const next = (plan.sessions ?? []).find((s) => s.state === 'upcoming');
+    if (next) items.push({ key: 'lac-next', label: 'Next pump', detail: next.time });
+    if (plan.todayVolumeOz != null) {
+      items.push({ key: 'lac-vol', label: 'Today', detail: `${plan.todayVolumeOz} oz` });
+    }
+  }
 
   for (const r of p.reminders ?? []) {
     items.push({ key: `rem-${r.label}`, label: r.label, detail: r.when ?? 'Today' });

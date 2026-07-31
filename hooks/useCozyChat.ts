@@ -17,7 +17,7 @@ import {
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
-import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE } from '@/lib/cozy/prompts';
+import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
 import { detectHandoffTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
@@ -361,6 +361,10 @@ export function useCozyChat(opts: Options = {}) {
       }
     }
 
+    // Skill offer: append a skill card message (deduped) if the model asked.
+    const skillMatch = text.match(SKILL_TAG_RE);
+    if (skillMatch) insertSkillMessage(skillMatch[1]);
+
     const hasHandoff = text.includes(HANDOFF_TAG);
     const hasExit = text.includes(EXIT_TAG);
     const clean = cleanForDisplay(text).trim();
@@ -428,6 +432,20 @@ export function useCozyChat(opts: Options = {}) {
     setMessages((prev) => [...prev, { id: newId(), role: 'system', content }]);
   }, []);
 
+  // Insert a skill-card sentinel message (deduped). Shared by the AI-tag path
+  // and the composer chip (startSkill).
+  function insertSkillMessage(skill: string) {
+    if (skill !== 'lactation') return;
+    const sentinel = '__SKILL_LACTATION__';
+    setMessages((prev) =>
+      prev.some((m) => m.content === sentinel)
+        ? prev
+        : [...prev, { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() }]
+    );
+  }
+
+  const startSkill = useCallback((skill: string) => insertSkillMessage(skill), []);
+
   const appendAssistant = useCallback(
     (content: string, personaOverride?: Persona) => {
       setMessages((prev) => [
@@ -471,6 +489,7 @@ export function useCozyChat(opts: Options = {}) {
     finishHandoff,
     appendSystem,
     appendAssistant,
+    startSkill,
     pageSize: COZY_PAGE_SIZE,
   };
 }
@@ -518,6 +537,7 @@ function newId() {
 function cleanForDisplay(text: string): string {
   let t = text
     .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
+    .replace(/\[\[SKILL:[a-z_]+\]\]/g, '')
     .replaceAll(HANDOFF_TAG, '')
     .replaceAll(EXIT_TAG, '');
   const open = t.lastIndexOf('[[');

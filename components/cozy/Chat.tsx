@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCozyChat } from '@/hooks/useCozyChat';
 import { useProfile } from '@/hooks/useProfile';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
+import type { CozyProfile } from '@/lib/cozy/profile';
 import { Bubble } from './Bubble';
 import { CozyTopbar } from './CozyTopbar';
 import { HandoffCard } from './HandoffCard';
@@ -13,12 +15,20 @@ import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
 import { NextUpBar } from './NextUpBar';
 import { WelcomeGate } from './WelcomeGate';
+import { LactationSkillMessage } from './skill/LactationSkillMessage';
+
+interface SkillHandlers {
+  plan: CozyProfile['lactationPlan'];
+  onStart: () => void;
+  onStartTracking: () => void;
+}
 
 const WELCOMED_KEY = 'cozyWelcomed';
 
 /** Cozy AI tab — the AI home IS the conversation. The greeting is the stream's
  *  opening element and scrolls away with it. */
 export function CozyChat() {
+  const router = useRouter();
   const profile = useProfile();
   const chat = useCozyChat({ onProfilePatch: profile.applyPatch });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -43,6 +53,12 @@ export function CozyChat() {
     introQueuedRef.current = true;
     chat.appendAssistant(SARAH_INTRO, 'support');
   }
+
+  const skill: SkillHandlers = {
+    plan: profile.profile.lactationPlan,
+    onStart: () => router.push('/cozy/lactation'),
+    onStartTracking: () => profile.applyPatch({ lactationPlan: { trackingStarted: true } }),
+  };
 
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
@@ -76,7 +92,7 @@ export function CozyChat() {
       <div ref={scrollRef} className="cozy-stream">
         <Greeting />
 
-        {renderStream(chat, setLightboxSrc, handleSarahIntro)}
+        {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}
 
         {chat.streaming && (
           <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
@@ -90,6 +106,7 @@ export function CozyChat() {
         onRemoveImage={chat.removeImage}
         onSend={chat.send}
         onStop={chat.stop}
+        onSkill={chat.startSkill}
       />
 
       <HistoryDrawer
@@ -114,13 +131,25 @@ export function CozyChat() {
 function renderStream(
   chat: ReturnType<typeof useCozyChat>,
   onOpenImage: (src: string) => void,
-  onSarahIntro: () => void
+  onSarahIntro: () => void,
+  skill: SkillHandlers
 ): ReactNode[] {
   const out: ReactNode[] = [];
   let lastTs: number | null = null;
   const GAP_MS = 60_000;
 
   for (const m of chat.messages) {
+    if (m.content === '__SKILL_LACTATION__') {
+      out.push(
+        <LactationSkillMessage
+          key={m.id}
+          plan={skill.plan}
+          onStart={skill.onStart}
+          onStartTracking={skill.onStartTracking}
+        />
+      );
+      continue;
+    }
     if (m.content === '__HANDOFF_CARD__') {
       out.push(
         <HandoffCard

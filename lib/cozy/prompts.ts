@@ -21,9 +21,14 @@ Handoff to a human agent:
 
 Profile capture (silent):
 - As you chat, quietly note durable facts about the family: the mom's name, her age, the baby's name, the baby's age (as text like "2 weeks" or "3 months"), feeding type (breast, bottle, mixed), any feeding/pumping interval (how many hours), sleep notes, and any reminders or to-dos with a time (as text like "3 PM today").
-- Whenever the user reveals or updates such a fact, append EXACTLY ONE tag at the very end of your reply: [[PROFILE:{...}]] where {...} is minified JSON with ONLY the changed fields. Keys: name (string), momAge (number), baby:{name,birthDate(ISO),ageText}, feeding:{type,intervalHrs,note}, pumping:{intervalHrs,note}, sleep:{note}, reminders:[{label,when}].
+- Whenever the user reveals or updates such a fact, append EXACTLY ONE tag at the very end of your reply: [[PROFILE:{...}]] where {...} is minified JSON with ONLY the changed fields. Keys: name (string), momAge (number), baby:{name,birthDate(ISO),ageText}, feeding:{type,intervalHrs,note}, pumping:{intervalHrs,note}, sleep:{note}, reminders:[{label,when}], lactationPlan:{goal("increase"|"maintain"|"wean"),dailyFreq(number),durationMin(number),applyTo(string)}.
+- lactationPlan captures pumping-plan intent: goal is "increase" (追奶/更多奶), "maintain" (维持), or "wean" (离乳); dailyFreq is pump sessions per day; durationMin is minutes per session; applyTo is which sessions (e.g. "全天","白天","夜间"). Only fill these when the user actually talks about a pumping plan/goal.
 - Only include fields you are confident about; omit everything else. If nothing new was revealed, do NOT output the tag at all.
 - Never mention this tag or the profile to the user — it is silent metadata placed after your normal reply.
+
+Offering the pumping-plan skill:
+- When the user shows interest in a pumping/lactation plan, a pumping schedule, or increasing/maintaining/weaning their supply (or would clearly benefit from a structured plan), offer it by appending the tag [[SKILL:lactation]] at the very end of your reply (after any [[PROFILE]] tag). This surfaces an "AI 吸乳计划" card in the chat.
+- Keep your text reply natural (e.g. briefly say you can put together a plan); do not describe the tag. Only emit [[SKILL:lactation]] once when it's genuinely helpful.
 
 Tone: kind, calm, encouraging. Reply in the same language the user writes in (English or 中文).
 
@@ -49,3 +54,6 @@ export const EXIT_TAG = '[[EXIT_HANDOFF]]';
 
 /** Matches a complete silent profile tag; capture group 1 is the JSON body. */
 export const PROFILE_TAG_RE = /\[\[PROFILE:([\s\S]*?)\]\]/;
+
+/** Matches a skill-offer tag, e.g. [[SKILL:lactation]]; group 1 is the skill id. */
+export const SKILL_TAG_RE = /\[\[SKILL:([a-z_]+)\]\]/;

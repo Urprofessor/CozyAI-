@@ -15,7 +15,7 @@ interface Props {
  *  jumps to the full schedule page. */
 export function NextUpBar({ profile }: Props) {
   const [open, setOpen] = useState(true);
-  const sufficient = isProfileSufficient(profile);
+  const sufficient = isProfileSufficient(profile) || !!profile.lactationPlan?.trackingStarted;
   const items = sufficient ? deriveNextUp(profile) : [];
 
   return (

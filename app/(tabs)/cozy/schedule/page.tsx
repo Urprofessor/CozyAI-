@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { useProfile } from '@/hooks/useProfile';
+import { LactationDashboard } from '@/components/cozy/skill/LactationDashboard';
 
 export default function SchedulePage() {
+  const { profile } = useProfile();
+  const plan = profile.lactationPlan;
+  const showDashboard = !!plan?.trackingStarted;
+
   return (
     <div className="schedule-page">
       <div className="schedule-page__top">
@@ -14,7 +20,11 @@ export default function SchedulePage() {
       </div>
 
       <div className="schedule-page__scroll">
-        <img src="/images/schedule.png" alt="Your schedule" draggable={false} />
+        {showDashboard && plan ? (
+          <LactationDashboard plan={plan} />
+        ) : (
+          <img src="/images/schedule.png" alt="Your schedule" draggable={false} />
+        )}
       </div>
     </div>
   );

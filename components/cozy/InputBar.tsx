@@ -15,6 +15,7 @@ interface Props {
   onRemoveImage: (idx: number) => void;
   onSend: (text: string) => void;
   onStop: () => void;
+  onSkill?: (skill: string) => void;
 }
 
 /** Floating liquid-glass input pill (sits above the tab bar). */
@@ -25,6 +26,7 @@ export function InputBar({
   onRemoveImage,
   onSend,
   onStop,
+  onSkill,
 }: Props) {
   const [text, setText] = useState('');
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -120,6 +122,16 @@ export function InputBar({
       {/* High-frequency question chips — CSS reveals these only while the
           keyboard is up (.kb-open). */}
       <div className="cozy-suggestions">
+        {onSkill && (
+          <button
+            type="button"
+            className="cozy-suggestion cozy-suggestion--skill"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onSkill('lactation')}
+          >
+            ✦ 制定吸乳计划
+          </button>
+        )}
         {COZY_SUGGESTED_QUESTIONS.map((q) => (
           <button
             key={q}
