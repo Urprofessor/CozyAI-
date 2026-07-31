@@ -14,14 +14,15 @@ interface Props {
   plan?: LactationPlan;
   onStart: () => void;
   onStartTracking: () => void;
+  onViewDetail: () => void;
 }
 
-/** One chat message that reflects the pumping-plan skill's current state:
- *  offer card until the questionnaire is done, then the generated plan card. */
-export function LactationSkillMessage({ plan, onStart, onStartTracking }: Props) {
-  const completed = plan?.status === 'completed';
+/** One chat message reflecting the pumping-plan skill's current state:
+ *  offer → in-progress "继续填写" → generated plan card. */
+export function LactationSkillMessage({ plan, onStart, onStartTracking, onViewDetail }: Props) {
+  const status = plan?.status;
 
-  if (completed && plan) {
+  if (status === 'completed' && plan) {
     return (
       <div className="flex flex-col self-start w-full gap-2">
         <SkillCard
@@ -32,7 +33,7 @@ export function LactationSkillMessage({ plan, onStart, onStartTracking }: Props)
           completed
           onStart={onStart}
         />
-        <PlanCard plan={plan} onStartTracking={onStartTracking} />
+        <PlanCard plan={plan} onStartTracking={onStartTracking} onViewDetail={onViewDetail} />
       </div>
     );
   }
@@ -43,7 +44,8 @@ export function LactationSkillMessage({ plan, onStart, onStartTracking }: Props)
       subtitle="为你量身定制的科学吸奶节奏。"
       highlights={HIGHLIGHTS}
       cta="制定我的吸乳计划"
-      started={plan?.status === 'in_progress'}
+      paused={status === 'in_progress'}
+      progress={status === 'in_progress' ? plan?.progress : undefined}
       onStart={onStart}
     />
   );

@@ -2136,6 +2136,30 @@
   letter-spacing: 0;
 }
 
+.lac-q__count {
+  grid-column: 3;
+  justify-self: end;
+  color: var(--colors-text-color-text-tertiary);
+  font-size: var(--type-body-s-medium-font-size);
+  line-height: 1;
+}
+
+.lac-q__progress {
+  flex-shrink: 0;
+  height: var(--tokens-4);
+  margin: var(--space-3) var(--space-4) 0;
+  border-radius: var(--radius-full);
+  background: var(--colors-grays-100);
+  overflow: hidden;
+}
+
+.lac-q__progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--colors-brands-mom-700);
+  transition: width 240ms ease;
+}
+
 .lac-q__scroll {
   flex: 1;
   min-height: 0;

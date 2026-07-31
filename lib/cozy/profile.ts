@@ -27,6 +27,7 @@ export interface LactationPlan {
   applyTo?: string; // e.g. "全天" / "白天" / "夜间"
   // lifecycle
   status?: 'idle' | 'in_progress' | 'completed';
+  progress?: { current: number; total: number };
   trackingStarted?: boolean;
   // tracking data (seeded fake, later updated by chat + manual input)
   sessions?: LactationSession[];

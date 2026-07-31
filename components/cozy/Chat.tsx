@@ -16,11 +16,13 @@ import { LoadingIndicator } from './LoadingIndicator';
 import { NextUpBar } from './NextUpBar';
 import { WelcomeGate } from './WelcomeGate';
 import { LactationSkillMessage } from './skill/LactationSkillMessage';
+import { LactationDashboard } from './skill/LactationDashboard';
 
 interface SkillHandlers {
   plan: CozyProfile['lactationPlan'];
   onStart: () => void;
   onStartTracking: () => void;
+  onViewDetail: () => void;
 }
 
 const WELCOMED_KEY = 'cozyWelcomed';
@@ -58,7 +60,18 @@ export function CozyChat() {
     plan: profile.profile.lactationPlan,
     onStart: () => router.push('/cozy/lactation'),
     onStartTracking: () => profile.applyPatch({ lactationPlan: { trackingStarted: true } }),
+    onViewDetail: chat.showDashboard,
   };
+
+  // Surface the skill card in the stream whenever a plan is being made or is
+  // ready (deduped) — so completing/pausing the questionnaire shows up in chat.
+  const planStatus = profile.profile.lactationPlan?.status;
+  useEffect(() => {
+    if (planStatus === 'in_progress' || planStatus === 'completed') {
+      chat.startSkill('lactation');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planStatus]);
 
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
@@ -106,7 +119,7 @@ export function CozyChat() {
         onRemoveImage={chat.removeImage}
         onSend={chat.send}
         onStop={chat.stop}
-        onSkill={chat.startSkill}
+        onSkill={() => router.push('/cozy/lactation')}
       />
 
       <HistoryDrawer
@@ -146,8 +159,19 @@ function renderStream(
           plan={skill.plan}
           onStart={skill.onStart}
           onStartTracking={skill.onStartTracking}
+          onViewDetail={skill.onViewDetail}
         />
       );
+      continue;
+    }
+    if (m.content === '__DASHBOARD_LACTATION__') {
+      if (skill.plan) {
+        out.push(
+          <div key={m.id} className="self-start w-[92%] max-w-[92%]">
+            <LactationDashboard plan={skill.plan} />
+          </div>
+        );
+      }
       continue;
     }
     if (m.content === '__HANDOFF_CARD__') {

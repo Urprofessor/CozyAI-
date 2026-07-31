@@ -10,34 +10,94 @@ import {
   type LactationGoal,
 } from '@/lib/cozy/profile';
 
-const GOALS: LactationGoal[] = ['increase', 'maintain', 'wean'];
-const FREQS = [5, 6, 7, 8];
-const DURATIONS = [15, 20, 25, 30];
-const APPLY = ['全天', '白天', '夜间'];
+type Answers = {
+  goal?: LactationGoal;
+  dailyFreq?: number;
+  durationMin?: number;
+  applyTo?: string;
+};
+
+const STEPS = [
+  {
+    key: 'goal' as const,
+    title: '你的目标是？',
+    layout: 'col' as const,
+    options: (['increase', 'maintain', 'wean'] as LactationGoal[]).map((g) => ({
+      value: g,
+      label: LACTATION_GOAL_LABELS[g],
+    })),
+  },
+  {
+    key: 'dailyFreq' as const,
+    title: '每天泵奶几次？',
+    layout: 'row' as const,
+    options: [5, 6, 7, 8].map((f) => ({ value: f, label: `${f} 次` })),
+  },
+  {
+    key: 'durationMin' as const,
+    title: '单次时长？',
+    layout: 'row' as const,
+    options: [15, 20, 25, 30].map((d) => ({ value: d, label: `${d} min` })),
+  },
+  {
+    key: 'applyTo' as const,
+    title: '应用到哪些时段？',
+    layout: 'row' as const,
+    options: ['全天', '白天', '夜间'].map((a) => ({ value: a, label: a })),
+  },
+];
+
+const TOTAL = STEPS.length;
 
 export default function LactationQuestionnaire() {
   const router = useRouter();
   const { profile, applyPatch } = useProfile();
   const seed = profile.lactationPlan; // pre-filled from conversation extraction
 
-  const [goal, setGoal] = useState<LactationGoal | undefined>(seed?.goal);
-  const [dailyFreq, setDailyFreq] = useState<number | undefined>(seed?.dailyFreq);
-  const [durationMin, setDurationMin] = useState<number | undefined>(seed?.durationMin);
-  const [applyTo, setApplyTo] = useState<string | undefined>(seed?.applyTo);
+  const [answers, setAnswers] = useState<Answers>({
+    goal: seed?.goal,
+    dailyFreq: seed?.dailyFreq,
+    durationMin: seed?.durationMin,
+    applyTo: seed?.applyTo,
+  });
+  // Resume where they left off, if paused mid-flow.
+  const [step, setStep] = useState(() => Math.min(seed?.progress?.current ?? 0, TOTAL - 1));
 
-  const ready = goal && dailyFreq && durationMin && applyTo;
+  const current = STEPS[step];
+  const currentValue = answers[current.key];
+  const isLast = step === TOTAL - 1;
 
-  function generate() {
-    if (!ready) return;
+  function select(value: string | number) {
+    setAnswers((a) => ({ ...a, [current.key]: value }));
+  }
+
+  function next() {
+    if (currentValue == null) return;
+    if (isLast) {
+      finish();
+      return;
+    }
+    // Save partial progress so the chat card can offer "继续填写".
     applyPatch({
       lactationPlan: {
-        goal,
+        ...answers,
+        [current.key]: currentValue,
+        status: 'in_progress',
+        progress: { current: step + 1, total: TOTAL },
+      },
+    });
+    setStep((s) => s + 1);
+  }
+
+  function finish() {
+    const goal = answers.goal!;
+    applyPatch({
+      lactationPlan: {
+        ...answers,
         goalLabel: LACTATION_GOAL_LABELS[goal],
-        dailyFreq,
-        durationMin,
-        applyTo,
         status: 'completed',
         trackingStarted: false,
+        progress: { current: TOTAL, total: TOTAL },
         sessions: seedLactationSessions(),
         todayVolumeOz: 32,
         createdAt: Date.now(),
@@ -52,99 +112,55 @@ export default function LactationQuestionnaire() {
         <button
           type="button"
           className="schedule-page__back"
-          onClick={() => router.push('/cozy')}
-          aria-label="Back to Cozy AI"
+          onClick={() => (step === 0 ? router.push('/cozy') : setStep((s) => s - 1))}
+          aria-label="Back"
         >
           <ChevronLeft size={20} strokeWidth={2} />
         </button>
         <strong>AI 吸乳计划</strong>
+        <span className="lac-q__count">
+          {step + 1}/{TOTAL}
+        </span>
+      </div>
+
+      <div className="lac-q__progress">
+        <div className="lac-q__progress-fill" style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
       </div>
 
       <div className="lac-q__scroll">
-        {seed?.goal || seed?.dailyFreq ? (
+        {(seed?.goal || seed?.dailyFreq) && step === 0 ? (
           <p className="lac-q__prefill">已根据你的对话预填，确认或修改即可。</p>
         ) : null}
 
-        <Section title="你的目标是？">
-          <div className="lac-q__opts">
-            {GOALS.map((g) => (
+        <section className="lac-q__section">
+          <h2>{current.title}</h2>
+          <div className={`lac-q__opts ${current.layout === 'row' ? 'lac-q__opts--row' : ''}`}>
+            {current.options.map((o) => (
               <button
-                key={g}
+                key={String(o.value)}
                 type="button"
-                className={`lac-q__opt ${goal === g ? 'is-on' : ''}`}
-                onClick={() => setGoal(g)}
+                className={`${current.layout === 'row' ? 'lac-q__chip' : 'lac-q__opt'} ${
+                  currentValue === o.value ? 'is-on' : ''
+                }`}
+                onClick={() => select(o.value)}
               >
-                {LACTATION_GOAL_LABELS[g]}
+                {o.label}
               </button>
             ))}
           </div>
-        </Section>
-
-        <Section title="每天泵奶几次？">
-          <div className="lac-q__opts lac-q__opts--row">
-            {FREQS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={`lac-q__chip ${dailyFreq === f ? 'is-on' : ''}`}
-                onClick={() => setDailyFreq(f)}
-              >
-                {f} 次
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="单次时长？">
-          <div className="lac-q__opts lac-q__opts--row">
-            {DURATIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`lac-q__chip ${durationMin === d ? 'is-on' : ''}`}
-                onClick={() => setDurationMin(d)}
-              >
-                {d} min
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="应用到哪些时段？">
-          <div className="lac-q__opts lac-q__opts--row">
-            {APPLY.map((a) => (
-              <button
-                key={a}
-                type="button"
-                className={`lac-q__chip ${applyTo === a ? 'is-on' : ''}`}
-                onClick={() => setApplyTo(a)}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </Section>
+        </section>
       </div>
 
       <div className="lac-q__foot">
         <button
           type="button"
           className="mc-button mc-button--lg cozy-welcome__start"
-          disabled={!ready}
-          onClick={generate}
+          disabled={currentValue == null}
+          onClick={next}
         >
-          生成我的计划
+          {isLast ? '生成我的计划' : '下一步'}
         </button>
       </div>
     </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="lac-q__section">
-      <h2>{title}</h2>
-      {children}
-    </section>
   );
 }
