@@ -17,14 +17,18 @@ import {
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
-import { HANDOFF_TAG, EXIT_TAG } from '@/lib/cozy/prompts';
+import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE } from '@/lib/cozy/prompts';
 import { detectHandoffTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
+import type { CozyProfile } from '@/lib/cozy/profile';
 import { useDeviceId } from './useDeviceId';
 
 interface Options {
   initialPersona?: Persona;
+  /** Extraction seam: called post-stream with any profile facts the model
+   *  emitted via a [[PROFILE:{...}]] tag. Swappable for a dedicated call later. */
+  onProfilePatch?: (patch: Partial<CozyProfile>) => void;
 }
 
 export function useCozyChat(opts: Options = {}) {
@@ -46,7 +50,11 @@ export function useCozyChat(opts: Options = {}) {
   const currentIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CozySession[]>([]);
   const deviceIdRef = useRef<string | null>(null);
+  const onProfilePatchRef = useRef(opts.onProfilePatch);
 
+  useEffect(() => {
+    onProfilePatchRef.current = opts.onProfilePatch;
+  });
   useEffect(() => {
     sessionsRef.current = sessions;
   }, [sessions]);
@@ -299,7 +307,7 @@ export function useCozyChat(opts: Options = {}) {
             try {
               const t = JSON.parse(raw) as string;
               text += t;
-              const stripped = text.replaceAll(HANDOFF_TAG, '').replaceAll(EXIT_TAG, '');
+              const stripped = cleanForDisplay(text);
               if (!bubbleAdded && stripped.trim()) {
                 bubbleAdded = true;
                 setMessages((prev) => [
@@ -342,9 +350,20 @@ export function useCozyChat(opts: Options = {}) {
       abortRef.current = null;
     }
 
+    // Extract the silent profile tag (if any) and hand the patch to the store.
+    const profileMatch = text.match(PROFILE_TAG_RE);
+    if (profileMatch) {
+      try {
+        const patch = JSON.parse(profileMatch[1]) as Partial<CozyProfile>;
+        onProfilePatchRef.current?.(patch);
+      } catch {
+        /* malformed tag — ignore */
+      }
+    }
+
     const hasHandoff = text.includes(HANDOFF_TAG);
     const hasExit = text.includes(EXIT_TAG);
-    const clean = text.replaceAll(HANDOFF_TAG, '').replaceAll(EXIT_TAG, '').trim();
+    const clean = cleanForDisplay(text).trim();
 
     if (personaAtStart === 'qa' && hasHandoff) {
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
@@ -492,4 +511,16 @@ function stopInternal(abortRef: React.MutableRefObject<AbortController | null>) 
 
 function newId() {
   return 'm_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/** Remove silent tags for display, including a trailing partial tag still being
+ *  streamed (so half-written JSON never flashes on screen). */
+function cleanForDisplay(text: string): string {
+  let t = text
+    .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
+    .replaceAll(HANDOFF_TAG, '')
+    .replaceAll(EXIT_TAG, '');
+  const open = t.lastIndexOf('[[');
+  if (open !== -1 && t.indexOf(']]', open) === -1) t = t.slice(0, open);
+  return t;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useCozyChat } from '@/hooks/useCozyChat';
+import { useProfile } from '@/hooks/useProfile';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
 import { Bubble } from './Bubble';
 import { CozyTopbar } from './CozyTopbar';
@@ -10,6 +11,7 @@ import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
+import { NextUpBar } from './NextUpBar';
 import { WelcomeGate } from './WelcomeGate';
 
 const WELCOMED_KEY = 'cozyWelcomed';
@@ -17,7 +19,8 @@ const WELCOMED_KEY = 'cozyWelcomed';
 /** Cozy AI tab — the AI home IS the conversation. The greeting is the stream's
  *  opening element and scrolls away with it. */
 export function CozyChat() {
-  const chat = useCozyChat();
+  const profile = useProfile();
+  const chat = useCozyChat({ onProfilePatch: profile.applyPatch });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   // null = localStorage not read yet; true/false once known.
@@ -66,6 +69,8 @@ export function CozyChat() {
           chat.newSession();
         }}
       />
+
+      <NextUpBar profile={profile.profile} />
 
       {/* Conversation stream — the only scroll area */}
       <div ref={scrollRef} className="cozy-stream">
