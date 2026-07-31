@@ -43,11 +43,14 @@ export function CozyChat() {
     setWelcomed(localStorage.getItem(WELCOMED_KEY) === '1');
   }, []);
 
-  // Auto-scroll to bottom as messages grow.
+  // Follow the bottom as the conversation updates (including when the skill
+  // card re-anchors below a new reply), unless the user scrolled up to read.
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.messages.length, chat.streaming]);
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 160) el.scrollTop = el.scrollHeight;
+  }, [chat.messages, chat.streaming]);
 
   const introQueuedRef = useRef(false);
   function handleSarahIntro() {

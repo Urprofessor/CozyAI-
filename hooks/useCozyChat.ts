@@ -251,11 +251,17 @@ export function useCozyChat(opts: Options = {}) {
 
       await streamReply(persona, [...messages, userMsg]);
 
-      // Keyword surfaces the pumping-plan skill card — only after the AI reply
-      // has finished streaming, so the card lands below the answer.
-      if (cleaned && detectSkillTrigger(cleaned)) {
-        insertSkillMessage('lactation');
-      }
+      // Keep the pumping-plan skill card anchored to the bottom of the
+      // conversation: surface it on keyword, and once present always re-anchor
+      // it below the latest reply so it stays visible instead of scrolling away.
+      const wantSkill = cleaned && detectSkillTrigger(cleaned) !== null;
+      setMessages((prev) => {
+        if (!wantSkill && !prev.some((m) => m.content === '__SKILL_LACTATION__')) return prev;
+        return [
+          ...prev.filter((m) => m.content !== '__SKILL_LACTATION__'),
+          { id: newId(), role: 'system', content: '__SKILL_LACTATION__', createdAt: Date.now() },
+        ];
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pendingImages, streaming, persona, inQueue, messages]
