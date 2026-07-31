@@ -18,7 +18,7 @@ import {
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
 import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
-import { detectHandoffTrigger } from '@/lib/cozy/keywords';
+import { detectHandoffTrigger, detectSkillTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
 import type { CozyProfile } from '@/lib/cozy/profile';
@@ -240,6 +240,12 @@ export function useCozyChat(opts: Options = {}) {
       setMessages((prev) => [...prev, userMsg]);
       setPendingImages([]);
 
+      // Keyword surfaces the pumping-plan skill card (in addition to the reply).
+      if (cleaned) {
+        const skill = detectSkillTrigger(cleaned);
+        if (skill) insertSkillMessage(skill);
+      }
+
       if (inQueue) {
         return;
       }
@@ -432,16 +438,15 @@ export function useCozyChat(opts: Options = {}) {
     setMessages((prev) => [...prev, { id: newId(), role: 'system', content }]);
   }, []);
 
-  // Insert a skill-card sentinel message (deduped). Shared by the AI-tag path
-  // and the composer chip (startSkill).
+  // Surface the skill card in the chat. Re-poppable: any existing card is
+  // moved to the bottom so chips / keyword / AI-tag always pop a fresh one.
   function insertSkillMessage(skill: string) {
     if (skill !== 'lactation') return;
     const sentinel = '__SKILL_LACTATION__';
-    setMessages((prev) =>
-      prev.some((m) => m.content === sentinel)
-        ? prev
-        : [...prev, { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() }]
-    );
+    setMessages((prev) => [
+      ...prev.filter((m) => m.content !== sentinel),
+      { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() },
+    ]);
   }
 
   const startSkill = useCallback((skill: string) => insertSkillMessage(skill), []);

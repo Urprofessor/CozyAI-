@@ -13,3 +13,12 @@ export function detectHandoffTrigger(text: string): boolean {
   const low = text.toLowerCase();
   return COZY_HANDOFF_KEYWORDS.some((k) => low.includes(k.toLowerCase()));
 }
+
+// Keywords that surface the pumping-plan skill card in the chat.
+export const COZY_SKILL_KEYWORDS = ['奶量变化', '吸乳计划', '追奶计划'] as const;
+
+/** Returns the skill id to surface, or null. Only lactation for now. */
+export function detectSkillTrigger(text: string): string | null {
+  if (!text) return null;
+  return COZY_SKILL_KEYWORDS.some((k) => text.includes(k)) ? 'lactation' : null;
+}

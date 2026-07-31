@@ -63,16 +63,6 @@ export function CozyChat() {
     onViewDetail: chat.showDashboard,
   };
 
-  // Surface the skill card in the stream whenever a plan is being made or is
-  // ready (deduped) — so completing/pausing the questionnaire shows up in chat.
-  const planStatus = profile.profile.lactationPlan?.status;
-  useEffect(() => {
-    if (planStatus === 'in_progress' || planStatus === 'completed') {
-      chat.startSkill('lactation');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planStatus]);
-
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
   const decided = welcomed !== null && chat.hydrated;
@@ -119,7 +109,7 @@ export function CozyChat() {
         onRemoveImage={chat.removeImage}
         onSend={chat.send}
         onStop={chat.stop}
-        onSkill={() => router.push('/cozy/lactation')}
+        onSkill={chat.startSkill}
       />
 
       <HistoryDrawer
