@@ -240,12 +240,6 @@ export function useCozyChat(opts: Options = {}) {
       setMessages((prev) => [...prev, userMsg]);
       setPendingImages([]);
 
-      // Keyword surfaces the pumping-plan skill card (in addition to the reply).
-      if (cleaned) {
-        const skill = detectSkillTrigger(cleaned);
-        if (skill) insertSkillMessage(skill);
-      }
-
       if (inQueue) {
         return;
       }
@@ -256,6 +250,12 @@ export function useCozyChat(opts: Options = {}) {
       }
 
       await streamReply(persona, [...messages, userMsg]);
+
+      // Keyword surfaces the pumping-plan skill card — only after the AI reply
+      // has finished streaming, so the card lands below the answer.
+      if (cleaned && detectSkillTrigger(cleaned)) {
+        insertSkillMessage('lactation');
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pendingImages, streaming, persona, inQueue, messages]
