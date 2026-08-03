@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  COZY_DEFAULT_FOLLOWUPS,
   COZY_MAX_IMAGES_PER_MSG,
   COZY_MAX_MSGS_PER_SESSION,
   COZY_MAX_SESSIONS,
@@ -395,22 +396,20 @@ export function useCozyChat(opts: Options = {}) {
 
     if (clean && personaAtStart === 'qa') {
       const suggestMatch = text.match(SUGGEST_TAG_RE);
-      const suggestions = suggestMatch
+      const parsed = suggestMatch
         ? suggestMatch[1]
             .split('|')
             .map((s) => s.trim())
             .filter(Boolean)
             .slice(0, 2)
-        : undefined;
+        : [];
+      // Every QA answer must carry follow-up chips — fall back to defaults when
+      // the model didn't emit a [[SUGGEST]] tag (or emitted an empty one).
+      const suggestions = parsed.length ? parsed : [...COZY_DEFAULT_FOLLOWUPS];
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? {
-                ...m,
-                content: clean,
-                reference: 'From Professional literature',
-                ...(suggestions?.length ? { suggestions } : {}),
-              }
+            ? { ...m, content: clean, reference: 'From Professional literature', suggestions }
             : m
         )
       );

@@ -18,6 +18,13 @@ export const COZY_SUGGESTED_QUESTIONS = [
   'Is my baby eating enough?',
 ] as const;
 
+// Fallback follow-up chips, used when the model reply carries no [[SUGGEST]]
+// tag — so every AI answer still gets a pair of "猜你想问" pills.
+export const COZY_DEFAULT_FOLLOWUPS = [
+  'Tell me more about this',
+  'What should I watch out for?',
+] as const;
+
 // QA thinking loading pool — rotates every 1s with a subtle opacity swap.
 export const COZY_THINKING_TEXTS = [
   'Thinking...',

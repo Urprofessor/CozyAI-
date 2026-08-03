@@ -161,8 +161,8 @@ function renderStream(
   const GAP_MS = 60_000;
 
   // Follow-up chips ride only on the newest reply: the last user-or-assistant
-  // message. Once the user sends anything after it, that reply is no longer the
-  // latest turn and its chips drop away.
+  // message. Older replies keep their chips collapsed (not rendered), and the
+  // chips drop away the moment the user sends anything after the reply.
   let lastTurnId: string | null = null;
   for (const m of chat.messages) {
     if (m.role === 'user' || m.role === 'assistant') lastTurnId = m.id;
@@ -233,9 +233,10 @@ function renderStream(
 
     // Hide the action row on the reply that's still streaming in.
     const isLast = m.id === chat.messages[chat.messages.length - 1]?.id;
-    const showActions = !(chat.streaming && isLast && m.role === 'assistant');
+    const midStream = chat.streaming && isLast && m.role === 'assistant';
+    const showActions = !midStream;
     // Follow-up chips only on the latest turn's reply, and never mid-stream.
-    const showSuggestions = m.id === lastTurnId && !chat.streaming;
+    const showSuggestions = m.id === lastTurnId && !midStream;
     out.push(
       <Bubble
         key={m.id}
