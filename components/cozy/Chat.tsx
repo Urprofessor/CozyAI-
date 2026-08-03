@@ -160,6 +160,14 @@ function renderStream(
   let lastTs: number | null = null;
   const GAP_MS = 60_000;
 
+  // Follow-up chips ride only on the newest reply: the last user-or-assistant
+  // message. Once the user sends anything after it, that reply is no longer the
+  // latest turn and its chips drop away.
+  let lastTurnId: string | null = null;
+  for (const m of chat.messages) {
+    if (m.role === 'user' || m.role === 'assistant') lastTurnId = m.id;
+  }
+
   for (const m of chat.messages) {
     if (m.content === '__SKILL_LACTATION__') {
       out.push(<LactationSkillMessage key={m.id} onStart={skill.onStart} />);
@@ -226,8 +234,17 @@ function renderStream(
     // Hide the action row on the reply that's still streaming in.
     const isLast = m.id === chat.messages[chat.messages.length - 1]?.id;
     const showActions = !(chat.streaming && isLast && m.role === 'assistant');
+    // Follow-up chips only on the latest turn's reply, and never mid-stream.
+    const showSuggestions = m.id === lastTurnId && !chat.streaming;
     out.push(
-      <Bubble key={m.id} msg={m} onOpenImage={onOpenImage} showActions={showActions} />
+      <Bubble
+        key={m.id}
+        msg={m}
+        onOpenImage={onOpenImage}
+        showActions={showActions}
+        showSuggestions={showSuggestions}
+        onSuggest={chat.send}
+      />
     );
   }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, Check, Share2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, Check, Share2, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CozyMessage } from '@/lib/cozy/types';
 import { ImageGrid } from './ImageGrid';
@@ -14,6 +14,10 @@ interface Props {
   /** Show the like / dislike / copy / share row under the reply. Suppressed
    *  while a reply is still streaming. */
   showActions?: boolean;
+  /** Show the follow-up ("猜你想问") chips — only on the latest turn's reply. */
+  showSuggestions?: boolean;
+  /** Send a tapped follow-up as the next user message. */
+  onSuggest?: (text: string) => void;
 }
 
 /** One rendered chat message. Delegates to sub-forms by role. */
@@ -23,6 +27,8 @@ export function Bubble({
   agentName = 'Cozy AI',
   agentAvatar,
   showActions = true,
+  showSuggestions = false,
+  onSuggest,
 }: Props) {
   if (msg.role === 'system') {
     return <SystemMessage content={msg.content} />;
@@ -67,6 +73,21 @@ export function Bubble({
       )}
       {showActions && msg.content && (
         <MessageActions content={msg.content} rateable={msg.persona !== 'support'} />
+      )}
+      {showSuggestions && msg.suggestions && msg.suggestions.length > 0 && onSuggest && (
+        <div className="cozy-followups">
+          {msg.suggestions.map((q) => (
+            <button
+              key={q}
+              type="button"
+              className="cozy-followup"
+              onClick={() => onSuggest(q)}
+            >
+              <ArrowUpRight size={13} strokeWidth={2} />
+              <span>{q}</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

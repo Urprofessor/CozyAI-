@@ -10,6 +10,7 @@ export interface CozyMessage {
   images?: string[]; // data URLs while in session; stripped before persist
   avatar?: string; // support persona: which agent avatar was picked
   reference?: string; // QA reply footer (e.g. "From Professional literature")
+  suggestions?: string[]; // QA follow-up chips ("猜你想问"), from a [[SUGGEST]] tag
   createdAt?: number;
 }
 

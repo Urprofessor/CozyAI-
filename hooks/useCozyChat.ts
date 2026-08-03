@@ -17,7 +17,13 @@ import {
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
-import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
+import {
+  HANDOFF_TAG,
+  EXIT_TAG,
+  PROFILE_TAG_RE,
+  SKILL_TAG_RE,
+  SUGGEST_TAG_RE,
+} from '@/lib/cozy/prompts';
 import { detectHandoffTrigger, detectSkillTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
@@ -388,10 +394,23 @@ export function useCozyChat(opts: Options = {}) {
     }
 
     if (clean && personaAtStart === 'qa') {
+      const suggestMatch = text.match(SUGGEST_TAG_RE);
+      const suggestions = suggestMatch
+        ? suggestMatch[1]
+            .split('|')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .slice(0, 2)
+        : undefined;
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: clean, reference: 'From Professional literature' }
+            ? {
+                ...m,
+                content: clean,
+                reference: 'From Professional literature',
+                ...(suggestions?.length ? { suggestions } : {}),
+              }
             : m
         )
       );
@@ -572,6 +591,7 @@ function cleanForDisplay(text: string): string {
   let t = text
     .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
     .replace(/\[\[SKILL:[a-z_]+\]\]/g, '')
+    .replace(/\[\[SUGGEST:[\s\S]*?\]\]/g, '')
     .replaceAll(HANDOFF_TAG, '')
     .replaceAll(EXIT_TAG, '');
   const open = t.lastIndexOf('[[');

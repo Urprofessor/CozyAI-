@@ -1520,6 +1520,41 @@
   color: var(--colors-brands-mom-700);
 }
 
+/* Follow-up ("猜你想问") chips under the latest AI reply. Wrap under the message,
+   lighter than the composer's suggestion pills. */
+.cozy-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.cozy-followup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  border: var(--colors-border-width-primary) solid var(--colors-brands-mom-200);
+  border-radius: var(--radius-full);
+  background: var(--colors-brands-mom-50);
+  color: var(--colors-brands-mom-700);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--type-body-s-medium-font-size);
+  font-weight: var(--type-body-s-medium-font-weight);
+  line-height: var(--type-body-s-medium-line-height);
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.cozy-followup svg {
+  flex-shrink: 0;
+  color: var(--colors-brands-mom-700);
+}
+
+.cozy-followup:active {
+  background: var(--colors-brands-mom-100);
+}
+
 /* ---------- history drawer (right side) ---------- */
 
 .cozy-history-scrim {
