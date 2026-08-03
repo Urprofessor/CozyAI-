@@ -38,6 +38,8 @@ export function CozyChat() {
   const [historyOpen, setHistoryOpen] = useState(false);
   // null = localStorage not read yet; true/false once known.
   const [welcomed, setWelcomed] = useState<boolean | null>(null);
+  // Scrolled down past the top — drives NextUpBar auto-collapse.
+  const [scrolled, setScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -102,10 +104,14 @@ export function CozyChat() {
         }}
       />
 
-      <NextUpBar profile={profile.profile} />
+      <NextUpBar profile={profile.profile} scrolled={scrolled} />
 
       {/* Conversation stream — the only scroll area */}
-      <div ref={scrollRef} className="cozy-stream">
+      <div
+        ref={scrollRef}
+        className="cozy-stream"
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 48)}
+      >
         <Greeting />
 
         {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}

@@ -1801,6 +1801,20 @@
   padding: 0 var(--space-2) 0 var(--space-3);
 }
 
+/* Collapsible body — smooth height/opacity so scroll-driven collapse doesn't
+   flash. .nextup already clips overflow. */
+.nextup__body {
+  max-height: 320px;
+  opacity: 1;
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+
+.nextup__body--collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .nextup__label {
   display: inline-flex;
   align-items: center;
