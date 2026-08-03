@@ -18,13 +18,7 @@ import {
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
-import {
-  HANDOFF_TAG,
-  EXIT_TAG,
-  PROFILE_TAG_RE,
-  SKILL_TAG_RE,
-  SUGGEST_TAG_RE,
-} from '@/lib/cozy/prompts';
+import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
 import { detectHandoffTrigger, detectSkillTrigger } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
@@ -395,24 +389,16 @@ export function useCozyChat(opts: Options = {}) {
     }
 
     if (clean && personaAtStart === 'qa') {
-      const suggestMatch = text.match(SUGGEST_TAG_RE);
-      const parsed = suggestMatch
-        ? suggestMatch[1]
-            .split('|')
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .slice(0, 2)
-        : [];
-      // Every QA answer must carry follow-up chips — fall back to defaults when
-      // the model didn't emit a [[SUGGEST]] tag (or emitted an empty one).
-      const suggestions = parsed.length ? parsed : [...COZY_DEFAULT_FOLLOWUPS];
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: clean, reference: 'From Professional literature', suggestions }
+            ? { ...m, content: clean, reference: 'From Professional literature' }
             : m
         )
       );
+      // Generate the follow-up chips in a separate call so they're contextual
+      // and reliable (see /api/suggest). Fire-and-forget; attaches when ready.
+      void fetchSuggestions([...history, { id: assistantId, role: 'assistant', content: clean }], assistantId);
     }
 
     if (personaAtStart === 'support' && hasExit) {
@@ -423,6 +409,36 @@ export function useCozyChat(opts: Options = {}) {
         { id: newId(), role: 'system', content: 'Conversation ended' },
       ]);
     }
+  }
+
+  /** Ask /api/suggest for two contextual follow-up chips and attach them to the
+   *  reply once they arrive. Falls back to a fixed pair on any failure so every
+   *  QA reply ends up with chips. */
+  async function fetchSuggestions(history: CozyMessage[], msgId: string) {
+    let suggestions: string[] = [];
+    try {
+      const res = await fetch('/api/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history
+            .filter((m) => m.role === 'user' || m.role === 'assistant')
+            .map((m) => ({ role: m.role, content: m.content || '' })),
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { suggestions?: unknown };
+        if (Array.isArray(data.suggestions)) {
+          suggestions = data.suggestions
+            .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+            .slice(0, 2);
+        }
+      }
+    } catch {
+      /* offline / not configured — fall through to defaults */
+    }
+    if (!suggestions.length) suggestions = [...COZY_DEFAULT_FOLLOWUPS];
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, suggestions } : m)));
   }
 
   // ---------- handoff flow ----------
@@ -590,7 +606,6 @@ function cleanForDisplay(text: string): string {
   let t = text
     .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
     .replace(/\[\[SKILL:[a-z_]+\]\]/g, '')
-    .replace(/\[\[SUGGEST:[\s\S]*?\]\]/g, '')
     .replaceAll(HANDOFF_TAG, '')
     .replaceAll(EXIT_TAG, '');
   const open = t.lastIndexOf('[[');
