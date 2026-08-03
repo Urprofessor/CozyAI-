@@ -148,8 +148,7 @@ export function CozyChat() {
   );
 }
 
-/** Render the message stream, inserting a system-style timestamp divider
- *  whenever more than a minute passes between consecutive messages. */
+/** Render the message stream. */
 function renderStream(
   chat: ReturnType<typeof useCozyChat>,
   onOpenImage: (src: string) => void,
@@ -157,8 +156,6 @@ function renderStream(
   skill: SkillHandlers
 ): ReactNode[] {
   const out: ReactNode[] = [];
-  let lastTs: number | null = null;
-  const GAP_MS = 60_000;
 
   // Follow-up chips ride only on the newest reply: the last user-or-assistant
   // message. Older replies keep their chips collapsed (not rendered), and the
@@ -216,21 +213,6 @@ function renderStream(
       continue;
     }
 
-    const ts = m.role === 'user' || m.role === 'assistant' ? m.createdAt : undefined;
-    if (ts) {
-      if (lastTs === null || ts - lastTs > GAP_MS) {
-        out.push(
-          <div
-            key={`ts-${m.id}`}
-            className="cozy-tier-3 self-center max-w-[90%] px-3 py-0.5 my-1"
-          >
-            {formatTimestamp(ts)}
-          </div>
-        );
-      }
-      lastTs = ts;
-    }
-
     // Hide the action row on the reply that's still streaming in.
     const isLast = m.id === chat.messages[chat.messages.length - 1]?.id;
     const midStream = chat.streaming && isLast && m.role === 'assistant';
@@ -250,13 +232,6 @@ function renderStream(
   }
 
   return out;
-}
-
-function formatTimestamp(ts: number): string {
-  const d = new Date(ts);
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  if (d.toDateString() === new Date().toDateString()) return time;
-  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${time}`;
 }
 
 function Greeting() {
