@@ -29,6 +29,7 @@ export function InputBar({
   onSkill,
 }: Props) {
   const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -60,9 +61,11 @@ export function InputBar({
     return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   }
   function onFocus() {
+    setFocused(true);
     if (isTouch()) document.documentElement.classList.add('kb-open');
   }
   function onBlur() {
+    setFocused(false);
     document.documentElement.classList.remove('kb-open');
   }
 
@@ -94,7 +97,7 @@ export function InputBar({
   }
 
   return (
-    <div className="cozy-input-dock">
+    <div className={cn('cozy-input-dock', focused && 'cozy-input-dock--focused')}>
       {/* Attachment strip */}
       {pendingImages.length > 0 && (
         <div className="flex gap-2 px-1 overflow-x-auto">
@@ -119,8 +122,8 @@ export function InputBar({
 
       <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onFile} />
 
-      {/* High-frequency question chips — CSS reveals these only while the
-          keyboard is up (.kb-open). */}
+      {/* High-frequency question chips — CSS reveals these while the composer is
+          focused (.cozy-input-dock--focused), on desktop and mobile alike. */}
       <div className="cozy-suggestions">
         {onSkill && (
           <button

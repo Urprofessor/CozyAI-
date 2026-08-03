@@ -1486,7 +1486,10 @@
   display: none;
 }
 
-.kb-open .cozy-suggestions {
+/* Reveal the chips whenever the composer is focused — mobile (keyboard up) and
+   desktop (which keeps the tab bar, so it never gets .kb-open). */
+.kb-open .cozy-suggestions,
+.cozy-input-dock--focused .cozy-suggestions {
   display: flex;
 }
 
@@ -1921,7 +1924,9 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  /* No floating tab bar on this page (see GlassTabBar) — just a little breathing
+     room at the bottom instead of the ~88px the bar would occupy. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
   background: var(--colors-backgrouds-primary);
 }
 

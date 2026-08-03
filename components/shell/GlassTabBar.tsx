@@ -14,10 +14,16 @@ const SIDE_TABS_RIGHT = [
   { href: '/me', label: 'Me', icon: UserRound },
 ] as const;
 
+// Full-screen detail pages that have their own back nav — the floating tab bar
+// doesn't belong under them.
+const HIDE_TAB_BAR_ON = ['/cozy/schedule'];
+
 /** iOS 26-style floating liquid-glass tab bar with the Cozy AI center slot. */
 export function GlassTabBar() {
   const pathname = usePathname();
   const cozyActive = pathname.startsWith('/cozy');
+
+  if (HIDE_TAB_BAR_ON.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav className="glass-tab-bar" aria-label="Primary navigation">
