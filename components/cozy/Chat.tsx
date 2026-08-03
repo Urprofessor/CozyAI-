@@ -217,7 +217,12 @@ function renderStream(
       lastTs = ts;
     }
 
-    out.push(<Bubble key={m.id} msg={m} onOpenImage={onOpenImage} />);
+    // Hide the action row on the reply that's still streaming in.
+    const isLast = m.id === chat.messages[chat.messages.length - 1]?.id;
+    const showActions = !(chat.streaming && isLast && m.role === 'assistant');
+    out.push(
+      <Bubble key={m.id} msg={m} onOpenImage={onOpenImage} showActions={showActions} />
+    );
   }
 
   return out;

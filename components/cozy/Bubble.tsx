@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, type ReactNode } from 'react';
+import { ThumbsUp, ThumbsDown, Copy, Check, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CozyMessage } from '@/lib/cozy/types';
 import { ImageGrid } from './ImageGrid';
@@ -9,10 +11,19 @@ interface Props {
   onOpenImage: (src: string) => void;
   agentName?: string;
   agentAvatar?: string;
+  /** Show the like / dislike / copy / share row under the reply. Suppressed
+   *  while a reply is still streaming. */
+  showActions?: boolean;
 }
 
 /** One rendered chat message. Delegates to sub-forms by role. */
-export function Bubble({ msg, onOpenImage, agentName = 'Cozy AI', agentAvatar }: Props) {
+export function Bubble({
+  msg,
+  onOpenImage,
+  agentName = 'Cozy AI',
+  agentAvatar,
+  showActions = true,
+}: Props) {
   if (msg.role === 'system') {
     return <SystemMessage content={msg.content} />;
   }
@@ -54,7 +65,96 @@ export function Bubble({ msg, onOpenImage, agentName = 'Cozy AI', agentAvatar }:
           {msg.reference}
         </div>
       )}
+      {showActions && msg.content && (
+        <MessageActions content={msg.content} rateable={msg.persona !== 'support'} />
+      )}
     </div>
+  );
+}
+
+/** Like / dislike / copy / forward row under an assistant reply. Ratings are
+ *  local-only (demo); copy and forward act on the reply text. */
+function MessageActions({ content, rateable }: { content: string; rateable: boolean }) {
+  const [vote, setVote] = useState<'up' | 'down' | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard blocked — no-op */
+    }
+  }
+
+  async function forward() {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text: content });
+        return;
+      } catch {
+        /* user cancelled or unsupported — fall through to copy */
+      }
+    }
+    copy();
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-0.5 -ml-1.5">
+      {rateable && (
+        <>
+          <ActionButton
+            label="Helpful"
+            active={vote === 'up'}
+            onClick={() => setVote((v) => (v === 'up' ? null : 'up'))}
+          >
+            <ThumbsUp size={15} strokeWidth={1.9} />
+          </ActionButton>
+          <ActionButton
+            label="Not helpful"
+            active={vote === 'down'}
+            onClick={() => setVote((v) => (v === 'down' ? null : 'down'))}
+          >
+            <ThumbsDown size={15} strokeWidth={1.9} />
+          </ActionButton>
+        </>
+      )}
+      <ActionButton label={copied ? 'Copied' : 'Copy'} onClick={copy}>
+        {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={1.9} />}
+      </ActionButton>
+      <ActionButton label="Forward" onClick={forward}>
+        <Share2 size={15} strokeWidth={1.9} />
+      </ActionButton>
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
+        'text-text-2 hover:bg-surface-bubble active:scale-95',
+        active && 'text-brand-rose-700 bg-surface-bubble'
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
