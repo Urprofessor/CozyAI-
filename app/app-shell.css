@@ -2097,29 +2097,30 @@
   color: var(--colors-text-color-text-primary);
 }
 
-.cozy-welcome__cards {
-  width: calc(100% + var(--space-10));
-  margin-left: calc(var(--space-5) * -1);
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: var(--tokens-132, 132px);
-  gap: var(--space-3);
-  overflow-x: auto;
-  padding: var(--space-1) var(--space-5) var(--space-2);
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
+/* Draggable stacked card deck */
+.widget-deck {
+  position: relative;
+  width: 64%;
+  margin: var(--space-2) auto var(--space-5);
+  aspect-ratio: 800 / 1040;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.cozy-welcome__cards::-webkit-scrollbar {
-  display: none;
-}
-
-.cozy-welcome__cards img {
+.widget-card {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  display: block;
-  border-radius: var(--radius-2xl);
-  scroll-snap-align: start;
+  height: 100%;
+  object-fit: contain;
+  cursor: grab;
+  will-change: transform;
+  filter: drop-shadow(0 10px 22px color-mix(in srgb, var(--colors-grays-900) 20%, transparent));
+}
+
+.widget-card:active {
+  cursor: grabbing;
 }
 
 .cozy-welcome__foot {
@@ -2129,10 +2130,16 @@
   padding: 0 var(--space-4);
 }
 
+.cozy-welcome__agreerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .cozy-welcome__agree {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2);
   color: var(--colors-text-color-text-primary);
   font-size: var(--type-body-s-medium-font-size);
@@ -2148,11 +2155,18 @@
   flex-shrink: 0;
 }
 
-.cozy-welcome__agree a {
+.cozy-welcome__agree a,
+.cozy-welcome__policy {
   font-weight: var(--type-body-s-medium-font-weight-emphasized, 600);
   color: var(--colors-text-color-text-primary);
   text-decoration: underline;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.cozy-welcome__policy {
+  font-size: var(--type-body-s-medium-font-size);
+  line-height: var(--type-body-s-medium-line-height);
 }
 
 .cozy-welcome__start {
