@@ -68,11 +68,13 @@ export function WelcomeGate({ onStart }: Props) {
   );
 }
 
-/** Draggable stacked card deck — press-drag left/right to cycle which widget is
- *  in front. */
-/** Auto-advance cadence before the user takes over. */
-const AUTO_MS = 1500;
+const AUTO_MS = 1000; // dwell per card before auto-advancing
+const AUTO_SWIPE_MS = 300; // how long the simulated left-swipe animates
+const AUTO_SWIPE_DX = -84; // how far the front card slides left before committing
 
+/** Draggable stacked card deck — press-drag left/right to cycle which widget is
+ *  in front. Auto-plays (simulated left-swipe every ~1s) until first touch, then
+ *  switches to manual for good. */
 function WidgetDeck() {
   const n = WIDGETS.length;
   const [front, setFront] = useState(0);
@@ -83,20 +85,30 @@ function WidgetDeck() {
   const startX = useRef<number | null>(null);
   const dxRef = useRef(0); // synchronous delta, read on release
 
-  // Auto-play: advance one card every AUTO_MS while in 'auto' mode. Skipped for
-  // reduced-motion users, and paused while the tab is hidden so we don't jump
-  // several cards at once after the phone unlocks.
+  // Auto-play while in 'auto' mode. Each tick mimics a real swipe: the front
+  // card first slides left (reusing the drag offset so the same 300ms easing
+  // applies), then we commit the advance and let it settle to the back. Skipped
+  // for reduced-motion users, and paused while the tab is hidden so we don't
+  // jump several cards at once after the phone unlocks.
   useEffect(() => {
     if (mode !== 'auto') return;
     if (typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
+    let commit: ReturnType<typeof setTimeout>;
     const id = setInterval(() => {
       if (document.hidden) return;
-      setFront((f) => (f + 1) % n);
-    }, AUTO_MS);
-    return () => clearInterval(id);
+      setDragDx(AUTO_SWIPE_DX); // slide the front card left (animated)
+      commit = setTimeout(() => {
+        setFront((f) => (f + 1) % n);
+        setDragDx(0); // outgoing card eases to the back, new front snaps in
+      }, AUTO_SWIPE_MS);
+    }, AUTO_MS + AUTO_SWIPE_MS);
+    return () => {
+      clearInterval(id);
+      clearTimeout(commit);
+    };
   }, [mode, n]);
 
   function onDown(e: React.PointerEvent) {
