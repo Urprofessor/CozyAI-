@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -70,15 +70,37 @@ export function WelcomeGate({ onStart }: Props) {
 
 /** Draggable stacked card deck — press-drag left/right to cycle which widget is
  *  in front. */
+/** Auto-advance cadence before the user takes over. */
+const AUTO_MS = 1500;
+
 function WidgetDeck() {
   const n = WIDGETS.length;
   const [front, setFront] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const [dragging, setDragging] = useState(false);
+  // 'auto' until the user first touches the deck; then permanently 'manual'.
+  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   const startX = useRef<number | null>(null);
   const dxRef = useRef(0); // synchronous delta, read on release
 
+  // Auto-play: advance one card every AUTO_MS while in 'auto' mode. Skipped for
+  // reduced-motion users, and paused while the tab is hidden so we don't jump
+  // several cards at once after the phone unlocks.
+  useEffect(() => {
+    if (mode !== 'auto') return;
+    if (typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      setFront((f) => (f + 1) % n);
+    }, AUTO_MS);
+    return () => clearInterval(id);
+  }, [mode, n]);
+
   function onDown(e: React.PointerEvent) {
+    setMode('manual'); // user took over — auto-play stops for good
     startX.current = e.clientX;
     dxRef.current = 0;
     setDragging(true);
