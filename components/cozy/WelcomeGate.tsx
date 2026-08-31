@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -68,98 +68,77 @@ export function WelcomeGate({ onStart }: Props) {
   );
 }
 
-const DWELL_MS = 1200; // pause on each card before the deck rotates one notch
-const EASE_TAU = 130; // easing time-constant (ms); smaller = snappier settle
+// Back-of-deck rest positions by depth (0 = front, then two peekers).
+const REST = [
+  'translate(0,0) rotate(0deg) scale(1)',
+  'translate(20%,-5%) rotate(6deg) scale(0.9)',
+  'translate(-20%,-2%) rotate(-6deg) scale(0.88)',
+];
 
-/** Cover-Flow card deck. A single continuous `pos` (float) is eased toward an
- *  integer target every frame with requestAnimationFrame; each card's
- *  transform / opacity / z-index is derived from its cyclic distance to `pos`,
- *  so the front card recedes side-and-back while shrinking as the next grows
- *  into place — one seamless loop, no snap. Press-drag scrubs `pos` directly
- *  and hands back to auto-play on release. */
+const FLING_MS = 320; // how long the top card takes to fly off
+const THRESHOLD_RATIO = 0.28; // fraction of deck width the drag must pass to commit
+
+/** Stacked card deck. The top card is draggable: drag it past the threshold to
+ *  either side and release, and it flies off in that direction and re-queues to
+ *  the back of the stack (revealing the next card). Release short of the
+ *  threshold and it springs back to the front. */
 function WidgetDeck() {
   const n = WIDGETS.length;
+  const [front, setFront] = useState(0);
+  const [dragDx, setDragDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  // The card currently flying off, and its direction (-1 left, +1 right).
+  const [leaving, setLeaving] = useState<{ index: number; dir: -1 | 1 } | null>(null);
+  // The just-requeued card, parked invisibly at the back for one frame so it
+  // doesn't visibly fly back in from the side before settling.
+  const [entering, setEntering] = useState<number | null>(null);
+
   const wrapRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLImageElement | null)[]>([]);
-  const posRef = useRef(0); // current position (float), driven every frame
-  const targetRef = useRef(0); // integer we're easing toward
-  const draggingRef = useRef(false);
-  const autoRef = useRef(true); // auto-play until the first touch
-  const startXRef = useRef(0);
-  const startPosRef = useRef(0);
-  const lastAdvanceRef = useRef(0);
-
-  // Write each card's transform from the current `pos`. Called every frame and
-  // on every pointer move — never triggers a React re-render.
-  function paint() {
-    const pos = posRef.current;
-    for (let i = 0; i < n; i++) {
-      const el = cardRefs.current[i];
-      if (!el) continue;
-      // Cyclic offset in (-n/2, n/2]: shortest way round the ring to the front.
-      let off = ((i - pos) % n + n) % n;
-      if (off > n / 2) off -= n;
-      const a = Math.abs(off);
-      const x = off * 20; // % — fan out to the sides
-      const y = -a * 4; // slight lift toward the back
-      const rot = off * 6;
-      const scale = 1 - 0.1 * a;
-      // Back cards stay readable (0.85 at rest); the one crossing the wrap
-      // boundary (a→n/2) fades fully so its horizontal jump is invisible.
-      const op = a <= 1 ? 1 - 0.15 * a : Math.max(0, 0.85 - (0.85 / (n / 2 - 1)) * (a - 1));
-      el.style.transform = `translate3d(${x}%, ${y}%, 0) rotate(${rot}deg) scale(${scale})`;
-      el.style.opacity = String(op);
-      // z from proximity to front; changes exactly at the crossover point, so
-      // layers swap when two cards are equidistant — no visible pop.
-      el.style.zIndex = String(Math.round((n / 2 - a) * 1000));
-    }
-  }
-
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      autoRef.current = false; // respect reduced-motion: rest, drag-only
-    }
-    let raf = 0;
-    let last = performance.now();
-    lastAdvanceRef.current = last;
-    const loop = (t: number) => {
-      const dt = Math.min(t - last, 64); // clamp after tab-switch stalls
-      last = t;
-      if (!draggingRef.current) {
-        const d = targetRef.current - posRef.current;
-        // Frame-rate-independent exponential ease toward the target.
-        posRef.current =
-          Math.abs(d) < 0.0005 ? targetRef.current : posRef.current + d * (1 - Math.exp(-dt / EASE_TAU));
-        if (autoRef.current && !document.hidden && Math.abs(d) < 0.01 && t - lastAdvanceRef.current > DWELL_MS) {
-          targetRef.current += 1;
-          lastAdvanceRef.current = t;
-        }
-      }
-      paint();
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [n]);
+  const startX = useRef<number | null>(null);
+  const dxRef = useRef(0); // synchronous delta, read on release
 
   function onDown(e: React.PointerEvent) {
-    autoRef.current = false; // user took over — auto-play stops for good
-    draggingRef.current = true;
-    startXRef.current = e.clientX;
-    startPosRef.current = posRef.current;
-    wrapRef.current?.setPointerCapture?.(e.pointerId);
+    if (leaving) return; // ignore new grabs while a card is flying off
+    startX.current = e.clientX;
+    dxRef.current = 0;
+    setDragging(true);
+    try {
+      wrapRef.current?.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* pointer already released / not capturable — safe to ignore */
+    }
   }
+
   function onMove(e: React.PointerEvent) {
-    if (!draggingRef.current) return;
-    const w = wrapRef.current?.clientWidth || 300;
-    posRef.current = startPosRef.current - (e.clientX - startXRef.current) / w;
-    paint();
+    if (startX.current == null) return;
+    dxRef.current = e.clientX - startX.current;
+    setDragDx(dxRef.current);
   }
+
   function onUp() {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    targetRef.current = Math.round(posRef.current); // ease to the nearest card
+    if (startX.current == null) return;
+    const dx = dxRef.current;
+    const w = wrapRef.current?.clientWidth || 300;
+    startX.current = null;
+    dxRef.current = 0;
+    setDragging(false);
+    setDragDx(0);
+
+    if (Math.abs(dx) <= w * THRESHOLD_RATIO) return; // short — springs back
+
+    const idx = front;
+    const dir: -1 | 1 = dx < 0 ? -1 : 1;
+    setLeaving({ index: idx, dir });
+    // After it has flown off: advance the stack (old front → back) and park the
+    // requeued card at the back for one frame, then let it settle in.
+    window.setTimeout(() => {
+      setEntering(idx);
+      setFront((f) => (f + 1) % n);
+      setLeaving(null);
+      // Clear on a timer (not rAF, which pauses while the tab is hidden) so the
+      // requeued card can never get stuck with its transition suppressed.
+      window.setTimeout(() => setEntering(null), 32);
+    }, FLING_MS);
   }
 
   return (
@@ -171,18 +150,47 @@ function WidgetDeck() {
       onPointerUp={onUp}
       onPointerCancel={onUp}
     >
-      {WIDGETS.map((src, i) => (
-        <img
-          key={src}
-          ref={(el) => {
-            cardRefs.current[i] = el;
-          }}
-          src={src}
-          alt=""
-          draggable={false}
-          className="widget-card"
-        />
-      ))}
+      {WIDGETS.map((src, i) => {
+        const depth = (i - front + n) % n;
+        const isFront = depth === 0;
+
+        let transform: string;
+        let opacity = 1;
+        let transition: string;
+        let zIndex = n - depth;
+
+        if (leaving && i === leaving.index) {
+          // Flying off to the side, fading out, above the rest of the stack.
+          transform = `translate(${leaving.dir * 140}%, 0) rotate(${leaving.dir * 18}deg) scale(0.96)`;
+          opacity = 0;
+          transition = `transform ${FLING_MS}ms cubic-bezier(0.4,0,0.2,1), opacity ${FLING_MS}ms ease-out`;
+          zIndex = n + 1;
+        } else if (entering === i) {
+          // Just requeued: snap straight to its back slot with no transition, so
+          // it doesn't visibly fly back in from the side. Stays fully visible.
+          transform = REST[depth];
+          transition = 'none';
+        } else if (isFront && dragging) {
+          transform = dragDx
+            ? `translate(${dragDx}px, 0) rotate(${dragDx / 26}deg)`
+            : REST[0];
+          transition = 'none';
+        } else {
+          transform = REST[depth];
+          transition = 'transform 300ms cubic-bezier(0.32,0.72,0,1), opacity 300ms ease-out';
+        }
+
+        return (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            draggable={false}
+            className="widget-card"
+            style={{ transform, opacity, zIndex, transition }}
+          />
+        );
+      })}
     </div>
   );
 }
