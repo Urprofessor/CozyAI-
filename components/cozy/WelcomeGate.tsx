@@ -207,13 +207,6 @@ function WidgetDeck() {
     idleRef.current = setTimeout(() => setMode('auto'), IDLE_RESUME_MS);
   }
 
-  // While the front card is sliding away (auto pull, or a drag past the commit
-  // point), the layers behind it ease forward one slot in sync — the back card
-  // rises to the middle's angle/position, the middle to the front's — so the
-  // whole deck advances together and the commit lands seamlessly.
-  const pulling =
-    autoDx != null || (dragging && Math.abs(dragDx) >= commitRef.current);
-
   return (
     <div
       ref={wrapRef}
@@ -239,11 +232,6 @@ function WidgetDeck() {
         } else if (isFront && autoDx != null) {
           // Auto swipe pulling the top card (animated, mimics a hand).
           transform = `translate(${autoDx}px, 0) rotate(${autoDx / 28}deg) scale(1)`;
-          transition = `transform ${AUTO_PULL_TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)`;
-        } else if (pulling && depth >= 1) {
-          // A layer behind the sliding front card — ease forward one slot so it
-          // gradually takes on the next layer's angle and position.
-          transform = REST[depth - 1];
           transition = `transform ${AUTO_PULL_TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)`;
         } else {
           // Rest — and the card just requeued eases here from its drag position.
