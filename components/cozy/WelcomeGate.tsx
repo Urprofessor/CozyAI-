@@ -72,8 +72,8 @@ export function WelcomeGate({ onStart }: Props) {
 // size — depth is shown by offset + tilt + stacking only, never by scale.
 const REST = [
   'translate(0, 2%) rotate(0deg)', // front: centered, nudged down so peekers show above
-  'translate(-28%, -3%) rotate(-8deg)', // middle: fanned left, tilted counter-clockwise
-  'translate(33%, -13%) rotate(9deg)', // back: fanned right and up, tilted clockwise
+  'translate(-22%, -3%) rotate(-8deg)', // middle: fanned left, tilted counter-clockwise
+  'translate(27%, -13%) rotate(9deg)', // back: fanned right and up, tilted clockwise
 ];
 
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
@@ -137,7 +137,7 @@ function WidgetDeck() {
         return;
       }
       const w = wrapRef.current?.clientWidth || 300;
-      setAutoDx(-w * AUTO_PULL_RATIO); // pull the top card left (animated)
+      setAutoDx(w * AUTO_PULL_RATIO); // pull the top card right (animated)
       wait(AUTO_PULL_MS, () => {
         setFront((f) => (f + 1) % n); // requeue: it slides into the back
         setAutoDx(null);
