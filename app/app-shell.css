@@ -2100,7 +2100,8 @@
 /* Draggable stacked card deck */
 .widget-deck {
   position: relative;
-  width: 64%;
+  width: 260px;
+  max-width: 72%;
   margin: var(--space-2) auto var(--space-5);
   aspect-ratio: 800 / 1040;
   touch-action: pan-y;

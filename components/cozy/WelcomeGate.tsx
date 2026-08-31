@@ -68,11 +68,12 @@ export function WelcomeGate({ onStart }: Props) {
   );
 }
 
-// Back-of-deck rest positions by depth (0 = front, then two peekers).
+// Rest positions by depth (0 = front, then two peekers). Every card is the SAME
+// size — depth is shown by offset + tilt + stacking only, never by scale.
 const REST = [
-  'translate(0,0) rotate(0deg) scale(1)',
-  'translate(20%,-5%) rotate(6deg) scale(0.9)',
-  'translate(-20%,-2%) rotate(-6deg) scale(0.88)',
+  'translate(0, 3%) rotate(0deg)', // front: centered, nudged down so peekers show above
+  'translate(-16%, 0%) rotate(-7deg)', // middle: fanned left, tilted counter-clockwise
+  'translate(14%, -9%) rotate(8deg)', // back: fanned right and up, tilted clockwise
 ];
 
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
