@@ -71,9 +71,9 @@ export function WelcomeGate({ onStart }: Props) {
 // Rest positions by depth (0 = front, then two peekers). Every card is the SAME
 // size — depth is shown by offset + tilt + stacking only, never by scale.
 const REST = [
-  'translate(0, 3%) rotate(0deg)', // front: centered, nudged down so peekers show above
-  'translate(-16%, 0%) rotate(-7deg)', // middle: fanned left, tilted counter-clockwise
-  'translate(14%, -9%) rotate(8deg)', // back: fanned right and up, tilted clockwise
+  'translate(0, 2%) rotate(0deg)', // front: centered, nudged down so peekers show above
+  'translate(-28%, -3%) rotate(-8deg)', // middle: fanned left, tilted counter-clockwise
+  'translate(33%, -13%) rotate(9deg)', // back: fanned right and up, tilted clockwise
 ];
 
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this

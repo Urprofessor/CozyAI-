@@ -2100,10 +2100,11 @@
 /* Draggable stacked card deck */
 .widget-deck {
   position: relative;
-  width: 260px;
-  max-width: 72%;
-  margin: var(--space-2) auto var(--space-5);
-  aspect-ratio: 800 / 1040;
+  /* Card is 200×260 on the 402-wide design; scales down on narrower phones. */
+  width: min(200px, 56%);
+  /* Extra top gap so the raised back card clears the subtitle above. */
+  margin: 2.25rem auto var(--space-5);
+  aspect-ratio: 200 / 260;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
