@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -78,6 +78,13 @@ const REST = [
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
 const COMMIT_RATIO = 0.32; // pulled at least this far on release → requeue to back
 
+// Auto-play (a simulated human swipe) timing.
+const AUTO_PULL_RATIO = 0.36; // how far the auto swipe pulls the top card (of deck width)
+const AUTO_START_MS = 1100; // delay before the first auto swipe after (re)entering auto
+const AUTO_PULL_MS = 460; // pull animation + brief hold before the card requeues
+const AUTO_DWELL_MS = 900; // rest on each card between auto swipes
+const IDLE_RESUME_MS = 2000; // no interaction for this long → resume auto-play
+
 /** Rubber-band clamp: free travel up to `max`, then stiff resistance so the
  *  card feels like it hits a wall rather than following the finger off-screen. */
 function clampDrag(raw: number, max: number) {
@@ -95,14 +102,63 @@ function WidgetDeck() {
   const [front, setFront] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const [dragging, setDragging] = useState(false);
+  // 'auto' = simulated swipe loop; 'manual' = user has the wheel. Flips to
+  // manual on touch and back to auto after IDLE_RESUME_MS of no interaction.
+  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
+  // Non-null while an auto swipe is pulling the front card (px offset).
+  const [autoDx, setAutoDx] = useState<number | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const startX = useRef<number | null>(null);
   const dxRef = useRef(0); // synchronous clamped delta, read on release
   const maxRef = useRef(120); // px drag limit, measured on grab
   const commitRef = useRef(96); // px commit point, measured on grab
+  const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-play: repeatedly mimic a human swipe (pull the top card to the limit,
+  // then let it requeue to the back). Runs only in 'auto' mode; skipped for
+  // reduced-motion users, and paused while the tab is hidden.
+  useEffect(() => {
+    if (mode !== 'auto') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let alive = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const wait = (ms: number, fn: () => void) => {
+      const t = setTimeout(() => {
+        if (alive) fn();
+      }, ms);
+      timers.push(t);
+    };
+    const cycle = () => {
+      if (!alive) return;
+      if (document.hidden) {
+        wait(400, cycle); // tab hidden — idle until it's back
+        return;
+      }
+      const w = wrapRef.current?.clientWidth || 300;
+      setAutoDx(-w * AUTO_PULL_RATIO); // pull the top card left (animated)
+      wait(AUTO_PULL_MS, () => {
+        setFront((f) => (f + 1) % n); // requeue: it slides into the back
+        setAutoDx(null);
+        wait(AUTO_DWELL_MS, cycle);
+      });
+    };
+    wait(AUTO_START_MS, cycle);
+    return () => {
+      alive = false;
+      timers.forEach(clearTimeout);
+    };
+  }, [mode, n]);
+
+  // On unmount, drop any pending idle-resume timer.
+  useEffect(() => () => {
+    if (idleRef.current) clearTimeout(idleRef.current);
+  }, []);
 
   function onDown(e: React.PointerEvent) {
+    if (idleRef.current) clearTimeout(idleRef.current);
+    setMode('manual'); // user took the wheel — stops the auto loop
+    setAutoDx(null); // cancel any in-flight auto pull
     const w = wrapRef.current?.clientWidth || 300;
     maxRef.current = w * MAX_RATIO;
     commitRef.current = w * COMMIT_RATIO;
@@ -135,6 +191,9 @@ function WidgetDeck() {
     if (Math.abs(dx) >= commitRef.current) {
       setFront((f) => (f + 1) % n);
     }
+    // Resume auto-play after a spell of no interaction.
+    if (idleRef.current) clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => setMode('auto'), IDLE_RESUME_MS);
   }
 
   return (
@@ -159,6 +218,10 @@ function WidgetDeck() {
             ? `translate(${dragDx}px, 0) rotate(${dragDx / 28}deg) scale(1)`
             : REST[0];
           transition = 'none';
+        } else if (isFront && autoDx != null) {
+          // Auto swipe pulling the top card (animated, mimics a hand).
+          transform = `translate(${autoDx}px, 0) rotate(${autoDx / 28}deg) scale(1)`;
+          transition = 'transform 380ms cubic-bezier(0.4,0,0.2,1)';
         } else {
           // Rest — and the card just requeued eases here from its drag position.
           transform = REST[depth];
