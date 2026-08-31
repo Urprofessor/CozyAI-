@@ -68,103 +68,121 @@ export function WelcomeGate({ onStart }: Props) {
   );
 }
 
-const AUTO_MS = 1000; // dwell per card before auto-advancing
-const AUTO_SWIPE_MS = 300; // how long the simulated left-swipe animates
-const AUTO_SWIPE_DX = -84; // how far the front card slides left before committing
+const DWELL_MS = 1200; // pause on each card before the deck rotates one notch
+const EASE_TAU = 130; // easing time-constant (ms); smaller = snappier settle
 
-/** Draggable stacked card deck — press-drag left/right to cycle which widget is
- *  in front. Auto-plays (simulated left-swipe every ~1s) until first touch, then
- *  switches to manual for good. */
+/** Cover-Flow card deck. A single continuous `pos` (float) is eased toward an
+ *  integer target every frame with requestAnimationFrame; each card's
+ *  transform / opacity / z-index is derived from its cyclic distance to `pos`,
+ *  so the front card recedes side-and-back while shrinking as the next grows
+ *  into place — one seamless loop, no snap. Press-drag scrubs `pos` directly
+ *  and hands back to auto-play on release. */
 function WidgetDeck() {
   const n = WIDGETS.length;
-  const [front, setFront] = useState(0);
-  const [dragDx, setDragDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  // 'auto' until the user first touches the deck; then permanently 'manual'.
-  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
-  const startX = useRef<number | null>(null);
-  const dxRef = useRef(0); // synchronous delta, read on release
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const posRef = useRef(0); // current position (float), driven every frame
+  const targetRef = useRef(0); // integer we're easing toward
+  const draggingRef = useRef(false);
+  const autoRef = useRef(true); // auto-play until the first touch
+  const startXRef = useRef(0);
+  const startPosRef = useRef(0);
+  const lastAdvanceRef = useRef(0);
 
-  // Auto-play while in 'auto' mode. Each tick mimics a real swipe: the front
-  // card first slides left (reusing the drag offset so the same 300ms easing
-  // applies), then we commit the advance and let it settle to the back. Skipped
-  // for reduced-motion users, and paused while the tab is hidden so we don't
-  // jump several cards at once after the phone unlocks.
-  useEffect(() => {
-    if (mode !== 'auto') return;
-    if (typeof window !== 'undefined' &&
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      return;
+  // Write each card's transform from the current `pos`. Called every frame and
+  // on every pointer move — never triggers a React re-render.
+  function paint() {
+    const pos = posRef.current;
+    for (let i = 0; i < n; i++) {
+      const el = cardRefs.current[i];
+      if (!el) continue;
+      // Cyclic offset in (-n/2, n/2]: shortest way round the ring to the front.
+      let off = ((i - pos) % n + n) % n;
+      if (off > n / 2) off -= n;
+      const a = Math.abs(off);
+      const x = off * 20; // % — fan out to the sides
+      const y = -a * 4; // slight lift toward the back
+      const rot = off * 6;
+      const scale = 1 - 0.1 * a;
+      // Back cards stay readable (0.85 at rest); the one crossing the wrap
+      // boundary (a→n/2) fades fully so its horizontal jump is invisible.
+      const op = a <= 1 ? 1 - 0.15 * a : Math.max(0, 0.85 - (0.85 / (n / 2 - 1)) * (a - 1));
+      el.style.transform = `translate3d(${x}%, ${y}%, 0) rotate(${rot}deg) scale(${scale})`;
+      el.style.opacity = String(op);
+      // z from proximity to front; changes exactly at the crossover point, so
+      // layers swap when two cards are equidistant — no visible pop.
+      el.style.zIndex = String(Math.round((n / 2 - a) * 1000));
     }
-    let commit: ReturnType<typeof setTimeout>;
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      setDragDx(AUTO_SWIPE_DX); // slide the front card left (animated)
-      commit = setTimeout(() => {
-        setFront((f) => (f + 1) % n);
-        setDragDx(0); // outgoing card eases to the back, new front snaps in
-      }, AUTO_SWIPE_MS);
-    }, AUTO_MS + AUTO_SWIPE_MS);
-    return () => {
-      clearInterval(id);
-      clearTimeout(commit);
+  }
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      autoRef.current = false; // respect reduced-motion: rest, drag-only
+    }
+    let raf = 0;
+    let last = performance.now();
+    lastAdvanceRef.current = last;
+    const loop = (t: number) => {
+      const dt = Math.min(t - last, 64); // clamp after tab-switch stalls
+      last = t;
+      if (!draggingRef.current) {
+        const d = targetRef.current - posRef.current;
+        // Frame-rate-independent exponential ease toward the target.
+        posRef.current =
+          Math.abs(d) < 0.0005 ? targetRef.current : posRef.current + d * (1 - Math.exp(-dt / EASE_TAU));
+        if (autoRef.current && !document.hidden && Math.abs(d) < 0.01 && t - lastAdvanceRef.current > DWELL_MS) {
+          targetRef.current += 1;
+          lastAdvanceRef.current = t;
+        }
+      }
+      paint();
+      raf = requestAnimationFrame(loop);
     };
-  }, [mode, n]);
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n]);
 
   function onDown(e: React.PointerEvent) {
-    setMode('manual'); // user took over — auto-play stops for good
-    startX.current = e.clientX;
-    dxRef.current = 0;
-    setDragging(true);
+    autoRef.current = false; // user took over — auto-play stops for good
+    draggingRef.current = true;
+    startXRef.current = e.clientX;
+    startPosRef.current = posRef.current;
+    wrapRef.current?.setPointerCapture?.(e.pointerId);
   }
   function onMove(e: React.PointerEvent) {
-    if (startX.current == null) return;
-    dxRef.current = e.clientX - startX.current;
-    setDragDx(dxRef.current);
+    if (!draggingRef.current) return;
+    const w = wrapRef.current?.clientWidth || 300;
+    posRef.current = startPosRef.current - (e.clientX - startXRef.current) / w;
+    paint();
   }
   function onUp() {
-    if (startX.current == null) return;
-    const dx = dxRef.current;
-    if (Math.abs(dx) > 48) {
-      setFront((f) => (dx < 0 ? (f + 1) % n : (f - 1 + n) % n));
-    }
-    startX.current = null;
-    dxRef.current = 0;
-    setDragging(false);
-    setDragDx(0);
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    targetRef.current = Math.round(posRef.current); // ease to the nearest card
   }
-
-  // Back-of-deck offsets by depth (0 = front).
-  const REST = ['translate(0,0) rotate(0deg) scale(1)', 'translate(20%,-5%) rotate(6deg) scale(0.9)', 'translate(-20%,-2%) rotate(-6deg) scale(0.88)'];
 
   return (
     <div
+      ref={wrapRef}
       className="widget-deck"
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
     >
-      {WIDGETS.map((src, i) => {
-        const depth = (i - front + n) % n;
-        const isFront = depth === 0;
-        const transform =
-          isFront && dragDx ? `translate(${dragDx}px,0) rotate(${dragDx / 26}deg)` : REST[depth];
-        return (
-          <img
-            key={src}
-            src={src}
-            alt=""
-            draggable={false}
-            className="widget-card"
-            style={{
-              transform,
-              zIndex: n - depth,
-              transition: dragging && isFront ? 'none' : 'transform 300ms cubic-bezier(0.32,0.72,0,1)',
-            }}
-          />
-        );
-      })}
+      {WIDGETS.map((src, i) => (
+        <img
+          key={src}
+          ref={(el) => {
+            cardRefs.current[i] = el;
+          }}
+          src={src}
+          alt=""
+          draggable={false}
+          className="widget-card"
+        />
+      ))}
     </div>
   );
 }

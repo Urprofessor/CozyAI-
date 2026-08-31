@@ -2115,7 +2115,9 @@
   height: 100%;
   object-fit: contain;
   cursor: grab;
-  will-change: transform;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-origin: 50% 60%;
   filter: drop-shadow(0 10px 22px color-mix(in srgb, var(--colors-grays-900) 20%, transparent));
 }
 
