@@ -75,30 +75,37 @@ const REST = [
   'translate(-20%,-2%) rotate(-6deg) scale(0.88)',
 ];
 
-const FLING_MS = 320; // how long the top card takes to fly off
-const THRESHOLD_RATIO = 0.28; // fraction of deck width the drag must pass to commit
+const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
+const COMMIT_RATIO = 0.32; // pulled at least this far on release → requeue to back
 
-/** Stacked card deck. The top card is draggable: drag it past the threshold to
- *  either side and release, and it flies off in that direction and re-queues to
- *  the back of the stack (revealing the next card). Release short of the
- *  threshold and it springs back to the front. */
+/** Rubber-band clamp: free travel up to `max`, then stiff resistance so the
+ *  card feels like it hits a wall rather than following the finger off-screen. */
+function clampDrag(raw: number, max: number) {
+  const a = Math.abs(raw);
+  if (a <= max) return raw;
+  return Math.sign(raw) * (max + (a - max) * 0.12);
+}
+
+/** Stacked card deck. The top card is draggable but can only be pulled so far
+ *  (it meets resistance at the limit — it does NOT fly off). Release past the
+ *  commit point and it slides from where it is straight into the back of the
+ *  stack, revealing the next card; release short and it springs back to front. */
 function WidgetDeck() {
   const n = WIDGETS.length;
   const [front, setFront] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const [dragging, setDragging] = useState(false);
-  // The card currently flying off, and its direction (-1 left, +1 right).
-  const [leaving, setLeaving] = useState<{ index: number; dir: -1 | 1 } | null>(null);
-  // The just-requeued card, parked invisibly at the back for one frame so it
-  // doesn't visibly fly back in from the side before settling.
-  const [entering, setEntering] = useState<number | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const startX = useRef<number | null>(null);
-  const dxRef = useRef(0); // synchronous delta, read on release
+  const dxRef = useRef(0); // synchronous clamped delta, read on release
+  const maxRef = useRef(120); // px drag limit, measured on grab
+  const commitRef = useRef(96); // px commit point, measured on grab
 
   function onDown(e: React.PointerEvent) {
-    if (leaving) return; // ignore new grabs while a card is flying off
+    const w = wrapRef.current?.clientWidth || 300;
+    maxRef.current = w * MAX_RATIO;
+    commitRef.current = w * COMMIT_RATIO;
     startX.current = e.clientX;
     dxRef.current = 0;
     setDragging(true);
@@ -111,34 +118,23 @@ function WidgetDeck() {
 
   function onMove(e: React.PointerEvent) {
     if (startX.current == null) return;
-    dxRef.current = e.clientX - startX.current;
+    dxRef.current = clampDrag(e.clientX - startX.current, maxRef.current);
     setDragDx(dxRef.current);
   }
 
   function onUp() {
     if (startX.current == null) return;
     const dx = dxRef.current;
-    const w = wrapRef.current?.clientWidth || 300;
     startX.current = null;
     dxRef.current = 0;
     setDragging(false);
     setDragDx(0);
-
-    if (Math.abs(dx) <= w * THRESHOLD_RATIO) return; // short — springs back
-
-    const idx = front;
-    const dir: -1 | 1 = dx < 0 ? -1 : 1;
-    setLeaving({ index: idx, dir });
-    // After it has flown off: advance the stack (old front → back) and park the
-    // requeued card at the back for one frame, then let it settle in.
-    window.setTimeout(() => {
-      setEntering(idx);
+    // Pulled to (or near) the limit → advance the stack: the old front card
+    // slides from its dragged position into the back slot. Otherwise it just
+    // springs back to the front. Both are driven by the CSS transition below.
+    if (Math.abs(dx) >= commitRef.current) {
       setFront((f) => (f + 1) % n);
-      setLeaving(null);
-      // Clear on a timer (not rAF, which pauses while the tab is hidden) so the
-      // requeued card can never get stuck with its transition suppressed.
-      window.setTimeout(() => setEntering(null), 32);
-    }, FLING_MS);
+    }
   }
 
   return (
@@ -155,29 +151,18 @@ function WidgetDeck() {
         const isFront = depth === 0;
 
         let transform: string;
-        let opacity = 1;
         let transition: string;
-        let zIndex = n - depth;
 
-        if (leaving && i === leaving.index) {
-          // Flying off to the side, fading out, above the rest of the stack.
-          transform = `translate(${leaving.dir * 140}%, 0) rotate(${leaving.dir * 18}deg) scale(0.96)`;
-          opacity = 0;
-          transition = `transform ${FLING_MS}ms cubic-bezier(0.4,0,0.2,1), opacity ${FLING_MS}ms ease-out`;
-          zIndex = n + 1;
-        } else if (entering === i) {
-          // Just requeued: snap straight to its back slot with no transition, so
-          // it doesn't visibly fly back in from the side. Stays fully visible.
-          transform = REST[depth];
-          transition = 'none';
-        } else if (isFront && dragging) {
+        if (isFront && dragging) {
+          // Follows the finger (within the clamp); no transition so it tracks 1:1.
           transform = dragDx
-            ? `translate(${dragDx}px, 0) rotate(${dragDx / 26}deg)`
+            ? `translate(${dragDx}px, 0) rotate(${dragDx / 28}deg) scale(1)`
             : REST[0];
           transition = 'none';
         } else {
+          // Rest — and the card just requeued eases here from its drag position.
           transform = REST[depth];
-          transition = 'transform 300ms cubic-bezier(0.32,0.72,0,1), opacity 300ms ease-out';
+          transition = 'transform 340ms cubic-bezier(0.32,0.72,0,1)';
         }
 
         return (
@@ -187,7 +172,7 @@ function WidgetDeck() {
             alt=""
             draggable={false}
             className="widget-card"
-            style={{ transform, opacity, zIndex, transition }}
+            style={{ transform, zIndex: n - depth, transition }}
           />
         );
       })}
