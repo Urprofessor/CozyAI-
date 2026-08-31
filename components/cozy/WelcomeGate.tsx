@@ -79,10 +79,14 @@ const REST = [
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
 const COMMIT_RATIO = 0.32; // pulled at least this far on release → requeue to back
 
+// How long a released card takes to settle into the back layer (slower = gentler).
+const REQUEUE_MS = 560;
+
 // Auto-play (a simulated human swipe) timing.
 const AUTO_PULL_RATIO = 0.36; // how far the auto swipe pulls the top card (of deck width)
+const AUTO_PULL_TRANSITION_MS = 560; // how slowly the front card slides to the limit in auto
 const AUTO_START_MS = 1100; // delay before the first auto swipe after (re)entering auto
-const AUTO_PULL_MS = 460; // pull animation + brief hold before the card requeues
+const AUTO_PULL_MS = 660; // pull animation + brief hold before the card requeues (≥ transition)
 const AUTO_DWELL_MS = 900; // rest on each card between auto swipes
 const IDLE_RESUME_MS = 2000; // no interaction for this long → resume auto-play
 
@@ -108,6 +112,8 @@ function WidgetDeck() {
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   // Non-null while an auto swipe is pulling the front card (px offset).
   const [autoDx, setAutoDx] = useState<number | null>(null);
+  // True during a requeue so the card's slide into the back layer eases slowly.
+  const [requeueSlow, setRequeueSlow] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const startX = useRef<number | null>(null);
@@ -136,9 +142,11 @@ function WidgetDeck() {
         wait(400, cycle); // tab hidden — idle until it's back
         return;
       }
+      setRequeueSlow(false); // reset before the next pull (snappy pull, slow settle)
       const w = wrapRef.current?.clientWidth || 300;
       setAutoDx(w * AUTO_PULL_RATIO); // pull the top card right (animated)
       wait(AUTO_PULL_MS, () => {
+        setRequeueSlow(true); // slow the slide into the back layer
         setFront((f) => (f + 1) % n); // requeue: it slides into the back
         setAutoDx(null);
         wait(AUTO_DWELL_MS, cycle);
@@ -160,6 +168,7 @@ function WidgetDeck() {
     if (idleRef.current) clearTimeout(idleRef.current);
     setMode('manual'); // user took the wheel — stops the auto loop
     setAutoDx(null); // cancel any in-flight auto pull
+    setRequeueSlow(false); // snappy while the finger is on it
     const w = wrapRef.current?.clientWidth || 300;
     maxRef.current = w * MAX_RATIO;
     commitRef.current = w * COMMIT_RATIO;
@@ -190,6 +199,7 @@ function WidgetDeck() {
     // slides from its dragged position into the back slot. Otherwise it just
     // springs back to the front. Both are driven by the CSS transition below.
     if (Math.abs(dx) >= commitRef.current) {
+      setRequeueSlow(true); // gentle slide into the back layer
       setFront((f) => (f + 1) % n);
     }
     // Resume auto-play after a spell of no interaction.
@@ -222,11 +232,13 @@ function WidgetDeck() {
         } else if (isFront && autoDx != null) {
           // Auto swipe pulling the top card (animated, mimics a hand).
           transform = `translate(${autoDx}px, 0) rotate(${autoDx / 28}deg) scale(1)`;
-          transition = 'transform 380ms cubic-bezier(0.4,0,0.2,1)';
+          transition = `transform ${AUTO_PULL_TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)`;
         } else {
           // Rest — and the card just requeued eases here from its drag position.
+          // A requeue slides in more slowly than an ordinary settle / spring-back.
           transform = REST[depth];
-          transition = 'transform 340ms cubic-bezier(0.32,0.72,0,1)';
+          const dur = requeueSlow ? REQUEUE_MS : 340;
+          transition = `transform ${dur}ms cubic-bezier(0.32,0.72,0,1)`;
         }
 
         return (
