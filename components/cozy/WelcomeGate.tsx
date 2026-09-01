@@ -77,10 +77,11 @@ const SLOTS = [
 // Farthest position of the outgoing front card: swung out to the right, clear of
 // the stack (~one card width) before it recycles into the back slot.
 const FAR = { x: 112, y: 0, rot: 5 };
+const FAR_LEFT_X = 117; // left-swipe swings a touch further → ~30px clearance (right is ~20px)
 
 const COMMIT_FINGER_RATIO = 0.5; // drag this fraction of deck width → reach farthest / commit
 const PHASE1_MS = 460; // front swings out to the farthest (ease-out)
-const PHASE2_MS = 520; // front recycles into the back, peekers finish (linear / constant speed)
+const PHASE2_MS = 680; // front recycles into the back, peekers finish (linear / constant speed) — gentler
 const SPRING_MS = 300; // release-short spring-back
 const HANDOFF_P = 0.75; // progress at which the outgoing card drops behind
 const AUTO_START_MS = 800; // delay before the first auto rotation
@@ -106,7 +107,8 @@ const NSLOTS = SLOTS.length;
 function slotAt(depth: number, p: number, swing: number): Slot {
   const target = (depth - 1 + NSLOTS) % NSLOTS; // one slot forward
   if (depth === 0) {
-    const far = { x: FAR.x * swing, y: FAR.y, rot: FAR.rot * swing };
+    const farX = swing < 0 ? FAR_LEFT_X : FAR.x; // left clears a bit more than right
+    const far = { x: farX * swing, y: FAR.y, rot: FAR.rot * swing };
     return p <= 0.5 ? mix(SLOTS[0], far, p / 0.5) : mix(far, SLOTS[target], (p - 0.5) / 0.5);
   }
   return mix(SLOTS[depth], SLOTS[target], p);
