@@ -96,20 +96,28 @@ const mix = (a: Slot, b: Slot, t: number): Slot => ({
   rot: lerp(a.rot, b.rot, t),
 });
 
+const NSLOTS = SLOTS.length;
+
 /** Transform of a card at `depth` (0 front, 1 middle, 2 back) at rotation
- *  progress p∈[0,1]. Front: SLOTS[0]→FAR for p≤0.5, then FAR→SLOTS[2]. Peekers
- *  advance linearly toward the next slot. */
-function slotAt(depth: number, p: number): Slot {
+ *  progress p∈[0,1], for direction `dir` (+1 forward / right-swipe, −1 reverse /
+ *  left-swipe). Each card interpolates SLOTS[depth] → SLOTS[target] where the
+ *  target is one slot round the ring in `dir`. The front card takes the swing-
+ *  out detour through FAR (mirrored left for reverse). */
+function slotAt(depth: number, p: number, dir: number): Slot {
+  const target = (depth - dir + NSLOTS) % NSLOTS;
   if (depth === 0) {
-    return p <= 0.5 ? mix(SLOTS[0], FAR, p / 0.5) : mix(FAR, SLOTS[2], (p - 0.5) / 0.5);
+    const far = { x: FAR.x * dir, y: FAR.y, rot: FAR.rot * dir };
+    return p <= 0.5 ? mix(SLOTS[0], far, p / 0.5) : mix(far, SLOTS[target], (p - 0.5) / 0.5);
   }
-  return mix(SLOTS[depth], SLOTS[depth - 1], p);
+  return mix(SLOTS[depth], SLOTS[target], p);
 }
 /** Layer order: the outgoing front card stays on top until the hand-off, then
- *  drops behind; the incoming card (depth 1) takes over the top. */
-function zAt(depth: number, p: number): number {
+ *  drops behind; the incoming card (the one heading to the front slot) takes
+ *  over the top. Which card is incoming depends on `dir`. */
+function zAt(depth: number, p: number, dir: number): number {
   if (depth === 0) return p < HANDOFF_P ? 40 : 5;
-  return depth === 1 ? 30 : 20;
+  const incoming = (dir + NSLOTS) % NSLOTS; // forward → depth 1, reverse → depth 2
+  return depth === incoming ? 30 : 20;
 }
 
 /** Card deck driven by a single rotation progress `p` (rAF), matching the mp4:
@@ -131,6 +139,8 @@ const WidgetDeck = memo(function WidgetDeck() {
   const committedRef = useRef(false); // crossed the farthest point mid-drag
   const startXRef = useRef(0);
   const commitPxRef = useRef(120); // finger px to reach the farthest, measured on grab
+  const dirRef = useRef(1); // rotation direction: +1 forward (right), −1 reverse (left)
+  const dirLockedRef = useRef(false); // has this drag committed to a direction yet
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anim = useRef<{ kind: string; t0: number; from?: number }>({ kind: 'rest', t0: 0 });
   const lastNow = useRef(0);
@@ -138,14 +148,15 @@ const WidgetDeck = memo(function WidgetDeck() {
   function paint() {
     const front = frontRef.current;
     const p = pRef.current;
+    const dir = dirRef.current;
     for (let i = 0; i < n; i++) {
       const img = cardRefs.current[i];
       const slot = slotRefs.current[i];
       if (!img || !slot) continue;
       const depth = (i - front + n) % n;
-      const s = slotAt(depth, p);
+      const s = slotAt(depth, p, dir);
       img.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
-      slot.style.zIndex = String(zAt(depth, p)); // z on the wrapper, not the transformed img
+      slot.style.zIndex = String(zAt(depth, p, dir)); // z on the wrapper, not the transformed img
     }
   }
 
@@ -177,6 +188,7 @@ const WidgetDeck = memo(function WidgetDeck() {
           a.t0 = now;
         }
       } else if (a.kind === 'autorun') {
+        dirRef.current = 1; // auto-play is always forward (right)
         const el = now - a.t0;
         if (el < PHASE1_MS) pRef.current = 0.5 * easeOut(el / PHASE1_MS);
         else if (el < PHASE1_MS + PHASE2_MS)
@@ -197,7 +209,7 @@ const WidgetDeck = memo(function WidgetDeck() {
         const frac = Math.min(1, (now - a.t0) / PHASE2_MS);
         pRef.current = 0.5 + 0.5 * frac; // constant-speed recycle from the farthest
         if (frac >= 1) {
-          frontRef.current = (frontRef.current + 1) % n;
+          frontRef.current = (frontRef.current + dirRef.current + n) % n; // forward or reverse
           pRef.current = 0;
           a.kind = 'rest';
           armIdleResume();
@@ -229,6 +241,7 @@ const WidgetDeck = memo(function WidgetDeck() {
     anim.current.kind = 'rest'; // cancel any in-flight auto rotation
     draggingRef.current = true;
     committedRef.current = false;
+    dirLockedRef.current = false; // decide right/left on the first real move
     startXRef.current = e.clientX;
     commitPxRef.current = COMMIT_FINGER_RATIO * (wrapRef.current?.clientWidth || 300);
     try {
@@ -240,7 +253,20 @@ const WidgetDeck = memo(function WidgetDeck() {
 
   function onMove(e: React.PointerEvent) {
     if (!draggingRef.current || committedRef.current) return;
-    const p = 0.5 * ((e.clientX - startXRef.current) / commitPxRef.current);
+    const dx = e.clientX - startXRef.current;
+    // Lock the direction on the first move past a small dead-zone: right → forward,
+    // left → reverse. Until then the deck stays at rest.
+    if (!dirLockedRef.current) {
+      if (Math.abs(dx) < 6) {
+        pRef.current = 0;
+        paint();
+        return;
+      }
+      dirRef.current = dx > 0 ? 1 : -1;
+      dirLockedRef.current = true;
+    }
+    // Progress is driven by how far the finger has moved in the locked direction.
+    const p = 0.5 * ((dirRef.current * dx) / commitPxRef.current);
     if (p >= 0.5) {
       // Crossed the farthest point → detach from the finger and recycle to back.
       committedRef.current = true;
@@ -249,7 +275,7 @@ const WidgetDeck = memo(function WidgetDeck() {
       paint(); // snap to the farthest immediately; the commit animation eases on from here
       anim.current = { kind: 'commit', t0: performance.now() };
     } else {
-      pRef.current = Math.max(0, p); // right-drag drives the swing-out; left does nothing
+      pRef.current = Math.max(0, p); // dragging back past the start just returns to rest
       paint();
     }
   }
