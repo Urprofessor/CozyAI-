@@ -99,14 +99,14 @@ const mix = (a: Slot, b: Slot, t: number): Slot => ({
 const NSLOTS = SLOTS.length;
 
 /** Transform of a card at `depth` (0 front, 1 middle, 2 back) at rotation
- *  progress p∈[0,1], for direction `dir` (+1 forward / right-swipe, −1 reverse /
- *  left-swipe). Each card interpolates SLOTS[depth] → SLOTS[target] where the
- *  target is one slot round the ring in `dir`. The front card takes the swing-
- *  out detour through FAR (mirrored left for reverse). */
-function slotAt(depth: number, p: number, dir: number): Slot {
-  const target = (depth - dir + NSLOTS) % NSLOTS;
+ *  progress p∈[0,1]. The rotation is ALWAYS forward (front → back, middle →
+ *  front, back → middle); `swing` (+1 right / −1 left) only flips which way the
+ *  outgoing front card swings out — right-swipe throws it right, left-swipe
+ *  throws it left — both landing in the same back slot. */
+function slotAt(depth: number, p: number, swing: number): Slot {
+  const target = (depth - 1 + NSLOTS) % NSLOTS; // one slot forward
   if (depth === 0) {
-    const far = { x: FAR.x * dir, y: FAR.y, rot: FAR.rot * dir };
+    const far = { x: FAR.x * swing, y: FAR.y, rot: FAR.rot * swing };
     return p <= 0.5 ? mix(SLOTS[0], far, p / 0.5) : mix(far, SLOTS[target], (p - 0.5) / 0.5);
   }
   return mix(SLOTS[depth], SLOTS[target], p);
@@ -114,14 +114,13 @@ function slotAt(depth: number, p: number, dir: number): Slot {
 const SLOT_Z = [40, 30, 20]; // canonical layer for slot 0 (front) / 1 (middle) / 2 (back)
 const TOP_Z = 45; // the outgoing card rides just above everything until the hand-off
 
-/** Layer order, by the card's DESTINATION slot so the settled stacking is always
- *  front > middle > back regardless of direction. The outgoing front card rides
- *  on top until the hand-off, then drops to its destination layer — the back for
- *  a right-swipe, the middle for a left-swipe. */
-function zAt(depth: number, p: number, dir: number): number {
-  const target = (depth - dir + NSLOTS) % NSLOTS;
-  const base = SLOT_Z[target];
-  return depth === 0 && p < HANDOFF_P ? TOP_Z : base;
+/** Layer order (always forward), by each card's DESTINATION slot so the settled
+ *  stacking is always front > middle > back. The outgoing front card rides on
+ *  top until the hand-off, then drops to the back — same for both swipe
+ *  directions, since the rotation itself is identical. */
+function zAt(depth: number, p: number): number {
+  const target = (depth - 1 + NSLOTS) % NSLOTS; // one slot forward
+  return depth === 0 && p < HANDOFF_P ? TOP_Z : SLOT_Z[target];
 }
 
 /** Card deck driven by a single rotation progress `p` (rAF), matching the mp4:
@@ -143,8 +142,8 @@ const WidgetDeck = memo(function WidgetDeck() {
   const committedRef = useRef(false); // crossed the farthest point mid-drag
   const startXRef = useRef(0);
   const commitPxRef = useRef(120); // finger px to reach the farthest, measured on grab
-  const dirRef = useRef(1); // rotation direction: +1 forward (right), −1 reverse (left)
-  const dirLockedRef = useRef(false); // has this drag committed to a direction yet
+  const dirRef = useRef(1); // swing direction of the outgoing card: +1 right, −1 left
+  const dirLockedRef = useRef(false); // has this drag committed to a swing direction yet
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anim = useRef<{ kind: string; t0: number; from?: number }>({ kind: 'rest', t0: 0 });
   const lastNow = useRef(0);
@@ -152,15 +151,15 @@ const WidgetDeck = memo(function WidgetDeck() {
   function paint() {
     const front = frontRef.current;
     const p = pRef.current;
-    const dir = dirRef.current;
+    const swing = dirRef.current;
     for (let i = 0; i < n; i++) {
       const img = cardRefs.current[i];
       const slot = slotRefs.current[i];
       if (!img || !slot) continue;
       const depth = (i - front + n) % n;
-      const s = slotAt(depth, p, dir);
+      const s = slotAt(depth, p, swing);
       img.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
-      slot.style.zIndex = String(zAt(depth, p, dir)); // z on the wrapper, not the transformed img
+      slot.style.zIndex = String(zAt(depth, p)); // z on the wrapper, not the transformed img
     }
   }
 
@@ -213,8 +212,7 @@ const WidgetDeck = memo(function WidgetDeck() {
         const frac = Math.min(1, (now - a.t0) / PHASE2_MS);
         pRef.current = 0.5 + 0.5 * frac; // constant-speed recycle from the farthest
         if (frac >= 1) {
-          frontRef.current = (frontRef.current + dirRef.current + n) % n; // forward or reverse
-          dirRef.current = 1; // settle back to canonical layering
+          frontRef.current = (frontRef.current + 1) % n; // always forward
           pRef.current = 0;
           a.kind = 'rest';
           armIdleResume();
@@ -223,7 +221,6 @@ const WidgetDeck = memo(function WidgetDeck() {
         const frac = Math.min(1, (now - a.t0) / SPRING_MS);
         pRef.current = (a.from ?? 0) * (1 - easeOut(frac));
         if (frac >= 1) {
-          dirRef.current = 1; // settle back to canonical layering
           pRef.current = 0;
           a.kind = 'rest';
           armIdleResume();
