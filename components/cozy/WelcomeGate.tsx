@@ -77,17 +77,15 @@ const REST = [
 ];
 
 const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
-const COMMIT_RATIO = 0.32; // pulled at least this far on release → requeue to back
+const COMMIT_RATIO = 0.32; // pulled at least this far on release → advance the deck
 
-// How long a released card takes to settle into the back layer (slower = gentler).
-const REQUEUE_MS = 560;
-
-// Auto-play (a simulated human swipe) timing.
-const AUTO_PULL_RATIO = 0.36; // how far the auto swipe pulls the top card (of deck width)
-const AUTO_PULL_TRANSITION_MS = 560; // how slowly the front card slides to the limit in auto
-const AUTO_START_MS = 1100; // delay before the first auto swipe after (re)entering auto
-const AUTO_PULL_MS = 660; // pull animation + brief hold before the card requeues (≥ transition)
-const AUTO_DWELL_MS = 900; // rest on each card between auto swipes
+// Coordinated rotation (matches the mp4): every card eases to its next slot at
+// once. The outgoing front card keeps the top layer for the first half of the
+// move, then drops behind (the "mid-transition hand-off").
+const ROTATE_MS = 700; // duration of one coordinated rotation
+const SPRING_MS = 340; // release-short spring-back of the front card
+const AUTO_START_MS = 800; // delay before the first auto rotation after entering auto
+const AUTO_DWELL_MS = 1300; // rest between auto rotations (≈ ROTATE + DWELL = 2s / card)
 const IDLE_RESUME_MS = 2000; // no interaction for this long → resume auto-play
 
 /** Rubber-band clamp: free travel up to `max`, then stiff resistance so the
@@ -98,22 +96,23 @@ function clampDrag(raw: number, max: number) {
   return Math.sign(raw) * (max + (a - max) * 0.12);
 }
 
-/** Stacked card deck. The top card is draggable but can only be pulled so far
- *  (it meets resistance at the limit — it does NOT fly off). Release past the
- *  commit point and it slides from where it is straight into the back of the
- *  stack, revealing the next card; release short and it springs back to front. */
+/** Stacked card deck. The front card is draggable (with resistance at the limit).
+ *  Auto-play, and a release past the commit point, both trigger a coordinated
+ *  rotation: all three cards ease to their next slot together — front → back-
+ *  right, back-left → front, back-right → back-left — with the outgoing card
+ *  staying on top until mid-transition. Release short and it springs back. */
 function WidgetDeck() {
   const n = WIDGETS.length;
   const [front, setFront] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const [dragging, setDragging] = useState(false);
-  // 'auto' = simulated swipe loop; 'manual' = user has the wheel. Flips to
-  // manual on touch and back to auto after IDLE_RESUME_MS of no interaction.
+  // 'auto' = rotation loop; 'manual' = user has the wheel. Flips to manual on
+  // touch and back to auto after IDLE_RESUME_MS of no interaction.
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
-  // Non-null while an auto swipe is pulling the front card (px offset).
-  const [autoDx, setAutoDx] = useState<number | null>(null);
-  // True during a requeue so the card's slide into the back layer eases slowly.
-  const [requeueSlow, setRequeueSlow] = useState(false);
+  // True for the duration of a rotation (so the settle uses ROTATE_MS easing).
+  const [rotating, setRotating] = useState(false);
+  // The card leaving the front slot — kept on top until mid-rotation.
+  const [crossing, setCrossing] = useState<number | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const startX = useRef<number | null>(null);
@@ -121,9 +120,26 @@ function WidgetDeck() {
   const maxRef = useRef(120); // px drag limit, measured on grab
   const commitRef = useRef(96); // px commit point, measured on grab
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frontRef = useRef(0); // synchronous mirror of `front`, for the auto loop
+  const rotTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Auto-play: repeatedly mimic a human swipe (pull the top card to the limit,
-  // then let it requeue to the back). Runs only in 'auto' mode; skipped for
+  // Advance one step with a coordinated rotation. All cards ease to their next
+  // slot via the CSS transition below; the outgoing front card is flagged as
+  // `crossing` (elevated z) and drops behind halfway through.
+  function advance() {
+    const leaving = frontRef.current;
+    frontRef.current = (leaving + 1) % n;
+    setFront(frontRef.current);
+    setRotating(true);
+    setCrossing(leaving);
+    rotTimers.current.forEach(clearTimeout);
+    rotTimers.current = [
+      setTimeout(() => setCrossing(null), Math.round(ROTATE_MS * 0.5)),
+      setTimeout(() => setRotating(false), ROTATE_MS + 40),
+    ];
+  }
+
+  // Auto-play: rotate one step every ~2s. Runs only in 'auto' mode; skipped for
   // reduced-motion users, and paused while the tab is hidden.
   useEffect(() => {
     if (mode !== 'auto') return;
@@ -136,39 +152,32 @@ function WidgetDeck() {
       }, ms);
       timers.push(t);
     };
-    const cycle = () => {
+    const tick = () => {
       if (!alive) return;
       if (document.hidden) {
-        wait(400, cycle); // tab hidden — idle until it's back
+        wait(400, tick); // tab hidden — idle until it's back
         return;
       }
-      setRequeueSlow(false); // reset before the next pull (snappy pull, slow settle)
-      const w = wrapRef.current?.clientWidth || 300;
-      setAutoDx(w * AUTO_PULL_RATIO); // pull the top card right (animated)
-      wait(AUTO_PULL_MS, () => {
-        setRequeueSlow(true); // slow the slide into the back layer
-        setFront((f) => (f + 1) % n); // requeue: it slides into the back
-        setAutoDx(null);
-        wait(AUTO_DWELL_MS, cycle);
-      });
+      advance();
+      wait(ROTATE_MS + AUTO_DWELL_MS, tick);
     };
-    wait(AUTO_START_MS, cycle);
+    wait(AUTO_START_MS, tick);
     return () => {
       alive = false;
       timers.forEach(clearTimeout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, n]);
 
-  // On unmount, drop any pending idle-resume timer.
+  // On unmount, drop pending timers.
   useEffect(() => () => {
     if (idleRef.current) clearTimeout(idleRef.current);
+    rotTimers.current.forEach(clearTimeout);
   }, []);
 
   function onDown(e: React.PointerEvent) {
     if (idleRef.current) clearTimeout(idleRef.current);
     setMode('manual'); // user took the wheel — stops the auto loop
-    setAutoDx(null); // cancel any in-flight auto pull
-    setRequeueSlow(false); // snappy while the finger is on it
     const w = wrapRef.current?.clientWidth || 300;
     maxRef.current = w * MAX_RATIO;
     commitRef.current = w * COMMIT_RATIO;
@@ -195,13 +204,8 @@ function WidgetDeck() {
     dxRef.current = 0;
     setDragging(false);
     setDragDx(0);
-    // Pulled to (or near) the limit → advance the stack: the old front card
-    // slides from its dragged position into the back slot. Otherwise it just
-    // springs back to the front. Both are driven by the CSS transition below.
-    if (Math.abs(dx) >= commitRef.current) {
-      setRequeueSlow(true); // gentle slide into the back layer
-      setFront((f) => (f + 1) % n);
-    }
+    // Past the commit point → coordinated rotation; otherwise spring back.
+    if (Math.abs(dx) >= commitRef.current) advance();
     // Resume auto-play after a spell of no interaction.
     if (idleRef.current) clearTimeout(idleRef.current);
     idleRef.current = setTimeout(() => setMode('auto'), IDLE_RESUME_MS);
@@ -222,6 +226,8 @@ function WidgetDeck() {
 
         let transform: string;
         let transition: string;
+        // The outgoing card stays on top (n + 1) until mid-rotation clears it.
+        const zIndex = crossing === i ? n + 1 : n - depth;
 
         if (isFront && dragging) {
           // Follows the finger (within the clamp); no transition so it tracks 1:1.
@@ -229,15 +235,11 @@ function WidgetDeck() {
             ? `translate(${dragDx}px, 0) rotate(${dragDx / 28}deg) scale(1)`
             : REST[0];
           transition = 'none';
-        } else if (isFront && autoDx != null) {
-          // Auto swipe pulling the top card (animated, mimics a hand).
-          transform = `translate(${autoDx}px, 0) rotate(${autoDx / 28}deg) scale(1)`;
-          transition = `transform ${AUTO_PULL_TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)`;
         } else {
-          // Rest — and the card just requeued eases here from its drag position.
-          // A requeue slides in more slowly than an ordinary settle / spring-back.
+          // Every card eases to its slot together — the coordinated rotation —
+          // or springs back faster when a drag was released short.
           transform = REST[depth];
-          const dur = requeueSlow ? REQUEUE_MS : 340;
+          const dur = rotating ? ROTATE_MS : SPRING_MS;
           transition = `transform ${dur}ms cubic-bezier(0.32,0.72,0,1)`;
         }
 
@@ -248,7 +250,7 @@ function WidgetDeck() {
             alt=""
             draggable={false}
             className="widget-card"
-            style={{ transform, zIndex: n - depth, transition }}
+            style={{ transform, zIndex, transition }}
           />
         );
       })}
