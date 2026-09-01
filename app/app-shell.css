@@ -2110,6 +2110,15 @@
   -webkit-user-select: none;
 }
 
+/* Non-transformed wrapper carries the z-index, so stacking order is decided in
+ * the main layer and never flickers when a card's transform layer promotes or
+ * demotes at the end of an animation (which would otherwise repaint one frame in
+ * DOM order). The transform lives on the inner .widget-card. */
+.widget-slot {
+  position: absolute;
+  inset: 0;
+}
+
 .widget-card {
   position: absolute;
   inset: 0;
@@ -2117,7 +2126,7 @@
   height: 100%;
   object-fit: contain;
   cursor: grab;
-  will-change: transform, opacity;
+  will-change: transform;
   backface-visibility: hidden;
   transform-origin: 50% 60%;
   filter: drop-shadow(0 10px 22px color-mix(in srgb, var(--colors-grays-900) 20%, transparent));

@@ -121,6 +121,7 @@ function zAt(depth: number, p: number): number {
 const WidgetDeck = memo(function WidgetDeck() {
   const n = WIDGETS.length;
   const wrapRef = useRef<HTMLDivElement>(null);
+  const slotRefs = useRef<(HTMLDivElement | null)[]>([]); // z-index carriers
   const cardRefs = useRef<(HTMLImageElement | null)[]>([]);
   const frontRef = useRef(0); // index of the current front card
   const pRef = useRef(0); // rotation progress 0..1
@@ -138,12 +139,13 @@ const WidgetDeck = memo(function WidgetDeck() {
     const front = frontRef.current;
     const p = pRef.current;
     for (let i = 0; i < n; i++) {
-      const el = cardRefs.current[i];
-      if (!el) continue;
+      const img = cardRefs.current[i];
+      const slot = slotRefs.current[i];
+      if (!img || !slot) continue;
       const depth = (i - front + n) % n;
       const s = slotAt(depth, p);
-      el.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
-      el.style.zIndex = String(zAt(depth, p));
+      img.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
+      slot.style.zIndex = String(zAt(depth, p)); // z on the wrapper, not the transformed img
     }
   }
 
@@ -274,21 +276,28 @@ const WidgetDeck = memo(function WidgetDeck() {
       {WIDGETS.map((src, i) => {
         const s = SLOTS[i]; // initial layout: front index 0 → card i sits at depth i
         return (
-          <img
+          <div
             key={src}
             ref={(el) => {
-              cardRefs.current[i] = el;
+              slotRefs.current[i] = el;
             }}
-            src={src}
-            alt=""
-            draggable={false}
-            className="widget-card"
-            style={{
-              transform: `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`,
-              zIndex: [40, 30, 20][i],
-              transition: 'none',
-            }}
-          />
+            className="widget-slot"
+            style={{ zIndex: [40, 30, 20][i] }}
+          >
+            <img
+              ref={(el) => {
+                cardRefs.current[i] = el;
+              }}
+              src={src}
+              alt=""
+              draggable={false}
+              className="widget-card"
+              style={{
+                transform: `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`,
+                transition: 'none',
+              }}
+            />
+          </div>
         );
       })}
     </div>
