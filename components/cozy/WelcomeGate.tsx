@@ -111,13 +111,17 @@ function slotAt(depth: number, p: number, dir: number): Slot {
   }
   return mix(SLOTS[depth], SLOTS[target], p);
 }
-/** Layer order: the outgoing front card stays on top until the hand-off, then
- *  drops behind; the incoming card (the one heading to the front slot) takes
- *  over the top. Which card is incoming depends on `dir`. */
+const SLOT_Z = [40, 30, 20]; // canonical layer for slot 0 (front) / 1 (middle) / 2 (back)
+const TOP_Z = 45; // the outgoing card rides just above everything until the hand-off
+
+/** Layer order, by the card's DESTINATION slot so the settled stacking is always
+ *  front > middle > back regardless of direction. The outgoing front card rides
+ *  on top until the hand-off, then drops to its destination layer — the back for
+ *  a right-swipe, the middle for a left-swipe. */
 function zAt(depth: number, p: number, dir: number): number {
-  if (depth === 0) return p < HANDOFF_P ? 40 : 5;
-  const incoming = (dir + NSLOTS) % NSLOTS; // forward → depth 1, reverse → depth 2
-  return depth === incoming ? 30 : 20;
+  const target = (depth - dir + NSLOTS) % NSLOTS;
+  const base = SLOT_Z[target];
+  return depth === 0 && p < HANDOFF_P ? TOP_Z : base;
 }
 
 /** Card deck driven by a single rotation progress `p` (rAF), matching the mp4:
@@ -210,6 +214,7 @@ const WidgetDeck = memo(function WidgetDeck() {
         pRef.current = 0.5 + 0.5 * frac; // constant-speed recycle from the farthest
         if (frac >= 1) {
           frontRef.current = (frontRef.current + dirRef.current + n) % n; // forward or reverse
+          dirRef.current = 1; // settle back to canonical layering
           pRef.current = 0;
           a.kind = 'rest';
           armIdleResume();
@@ -218,6 +223,7 @@ const WidgetDeck = memo(function WidgetDeck() {
         const frac = Math.min(1, (now - a.t0) / SPRING_MS);
         pRef.current = (a.from ?? 0) * (1 - easeOut(frac));
         if (frac >= 1) {
+          dirRef.current = 1; // settle back to canonical layering
           pRef.current = 0;
           a.kind = 'rest';
           armIdleResume();
