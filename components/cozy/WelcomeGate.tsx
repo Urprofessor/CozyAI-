@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -68,147 +68,198 @@ export function WelcomeGate({ onStart }: Props) {
   );
 }
 
-// Rest positions by depth (0 = front, then two peekers). Every card is the SAME
-// size — depth is shown by offset + tilt + stacking only, never by scale.
-const REST = [
-  'translate(0, 2%) rotate(0deg)', // front: centered, nudged down so peekers show above
-  'translate(-22%, -3%) rotate(-8deg)', // middle: fanned left, tilted counter-clockwise
-  'translate(27%, -13%) rotate(9deg)', // back: fanned right and up, tilted clockwise
+// Slot geometry by depth (0 = front, then two peekers): {x,y in % of card width, rot in deg}.
+const SLOTS = [
+  { x: 0, y: 2, rot: 0 }, // front — centered, nudged down so peekers show above
+  { x: -22, y: -3, rot: -8 }, // middle — back-left, tilted counter-clockwise
+  { x: 27, y: -13, rot: 9 }, // back — back-right and up, tilted clockwise
 ];
+// Farthest position of the outgoing front card: swung out to the right, clear of
+// the stack (~one card width) before it recycles into the back slot.
+const FAR = { x: 112, y: 0, rot: 5 };
 
-const MAX_RATIO = 0.4; // hard drag limit — the top card can't be pulled past this
-const COMMIT_RATIO = 0.32; // pulled at least this far on release → advance the deck
+const COMMIT_FINGER_RATIO = 0.5; // drag this fraction of deck width → reach farthest / commit
+const PHASE1_MS = 460; // front swings out to the farthest (ease-out)
+const PHASE2_MS = 520; // front recycles into the back, peekers finish (linear / constant speed)
+const SPRING_MS = 300; // release-short spring-back
+const HANDOFF_P = 0.75; // progress at which the outgoing card drops behind
+const AUTO_START_MS = 800; // delay before the first auto rotation
+const AUTO_DWELL_MS = 1300; // rest between auto rotations (≈ 2s / card)
+const IDLE_RESUME_MS = 2000; // no interaction this long → resume auto-play
 
-// Coordinated rotation (matches the mp4): every card eases to its next slot at
-// once. The outgoing front card keeps the top layer for the first half of the
-// move, then drops behind (the "mid-transition hand-off").
-const ROTATE_MS = 700; // duration of one coordinated rotation
-const SPRING_MS = 340; // release-short spring-back of the front card
-const AUTO_START_MS = 800; // delay before the first auto rotation after entering auto
-const AUTO_DWELL_MS = 1300; // rest between auto rotations (≈ ROTATE + DWELL = 2s / card)
-const IDLE_RESUME_MS = 2000; // no interaction for this long → resume auto-play
+type Slot = { x: number; y: number; rot: number };
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+const mix = (a: Slot, b: Slot, t: number): Slot => ({
+  x: lerp(a.x, b.x, t),
+  y: lerp(a.y, b.y, t),
+  rot: lerp(a.rot, b.rot, t),
+});
 
-/** Rubber-band clamp: free travel up to `max`, then stiff resistance so the
- *  card feels like it hits a wall rather than following the finger off-screen. */
-function clampDrag(raw: number, max: number) {
-  const a = Math.abs(raw);
-  if (a <= max) return raw;
-  return Math.sign(raw) * (max + (a - max) * 0.12);
+/** Transform of a card at `depth` (0 front, 1 middle, 2 back) at rotation
+ *  progress p∈[0,1]. Front: SLOTS[0]→FAR for p≤0.5, then FAR→SLOTS[2]. Peekers
+ *  advance linearly toward the next slot. */
+function slotAt(depth: number, p: number): Slot {
+  if (depth === 0) {
+    return p <= 0.5 ? mix(SLOTS[0], FAR, p / 0.5) : mix(FAR, SLOTS[2], (p - 0.5) / 0.5);
+  }
+  return mix(SLOTS[depth], SLOTS[depth - 1], p);
+}
+/** Layer order: the outgoing front card stays on top until the hand-off, then
+ *  drops behind; the incoming card (depth 1) takes over the top. */
+function zAt(depth: number, p: number): number {
+  if (depth === 0) return p < HANDOFF_P ? 40 : 5;
+  return depth === 1 ? 30 : 20;
 }
 
-/** Stacked card deck. The front card is draggable (with resistance at the limit).
- *  Auto-play, and a release past the commit point, both trigger a coordinated
- *  rotation: all three cards ease to their next slot together — front → back-
- *  right, back-left → front, back-right → back-left — with the outgoing card
- *  staying on top until mid-transition. Release short and it springs back. */
-function WidgetDeck() {
+/** Card deck driven by a single rotation progress `p` (rAF), matching the mp4:
+ *  the front card swings out to the right while the layers behind advance part-
+ *  way, then it recycles into the back (constant speed) as they finish. Manual:
+ *  the finger drives the swing-out; crossing the farthest point commits and the
+ *  card recycles on its own. Auto: the same rotation plays every ~2s. Memoized
+ *  (no props) so it renders once — all motion is imperative via refs + rAF. */
+const WidgetDeck = memo(function WidgetDeck() {
   const n = WIDGETS.length;
-  const [front, setFront] = useState(0);
-  const [dragDx, setDragDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  // 'auto' = rotation loop; 'manual' = user has the wheel. Flips to manual on
-  // touch and back to auto after IDLE_RESUME_MS of no interaction.
-  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
-  // True for the duration of a rotation (so the settle uses ROTATE_MS easing).
-  const [rotating, setRotating] = useState(false);
-  // The card leaving the front slot — kept on top until mid-rotation.
-  const [crossing, setCrossing] = useState<number | null>(null);
-
   const wrapRef = useRef<HTMLDivElement>(null);
-  const startX = useRef<number | null>(null);
-  const dxRef = useRef(0); // synchronous clamped delta, read on release
-  const maxRef = useRef(120); // px drag limit, measured on grab
-  const commitRef = useRef(96); // px commit point, measured on grab
+  const cardRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const frontRef = useRef(0); // index of the current front card
+  const pRef = useRef(0); // rotation progress 0..1
+  const modeRef = useRef<'auto' | 'manual'>('auto');
+  const noAutoRef = useRef(false); // reduced-motion → no auto-play
+  const draggingRef = useRef(false);
+  const committedRef = useRef(false); // crossed the farthest point mid-drag
+  const startXRef = useRef(0);
+  const commitPxRef = useRef(120); // finger px to reach the farthest, measured on grab
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const frontRef = useRef(0); // synchronous mirror of `front`, for the auto loop
-  const rotTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const anim = useRef<{ kind: string; t0: number; from?: number }>({ kind: 'rest', t0: 0 });
+  const lastNow = useRef(0);
 
-  // Advance one step with a coordinated rotation. All cards ease to their next
-  // slot via the CSS transition below; the outgoing front card is flagged as
-  // `crossing` (elevated z) and drops behind halfway through.
-  function advance() {
-    const leaving = frontRef.current;
-    frontRef.current = (leaving + 1) % n;
-    setFront(frontRef.current);
-    setRotating(true);
-    setCrossing(leaving);
-    rotTimers.current.forEach(clearTimeout);
-    rotTimers.current = [
-      setTimeout(() => setCrossing(null), Math.round(ROTATE_MS * 0.5)),
-      setTimeout(() => setRotating(false), ROTATE_MS + 40),
-    ];
+  function paint() {
+    const front = frontRef.current;
+    const p = pRef.current;
+    for (let i = 0; i < n; i++) {
+      const el = cardRefs.current[i];
+      if (!el) continue;
+      const depth = (i - front + n) % n;
+      const s = slotAt(depth, p);
+      el.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
+      el.style.zIndex = String(zAt(depth, p));
+    }
   }
 
-  // Auto-play: rotate one step every ~2s. Runs only in 'auto' mode; skipped for
-  // reduced-motion users, and paused while the tab is hidden.
+  function armIdleResume() {
+    if (idleRef.current) clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => {
+      modeRef.current = 'auto';
+    }, IDLE_RESUME_MS);
+  }
+
   useEffect(() => {
-    if (mode !== 'auto') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    let alive = true;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const wait = (ms: number, fn: () => void) => {
-      const t = setTimeout(() => {
-        if (alive) fn();
-      }, ms);
-      timers.push(t);
-    };
-    const tick = () => {
-      if (!alive) return;
-      if (document.hidden) {
-        wait(400, tick); // tab hidden — idle until it's back
-        return;
+    noAutoRef.current = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0;
+    const frame = (now: number) => {
+      const gap = now - (lastNow.current || now);
+      lastNow.current = now;
+      const a = anim.current;
+      if (gap > 250 && a.t0) a.t0 += gap; // absorb stalls (hidden tab) so nothing jumps
+
+      if (a.kind === 'rest') {
+        if (modeRef.current === 'auto' && !noAutoRef.current && !draggingRef.current) {
+          a.kind = 'autowait';
+          a.t0 = now;
+        }
+      } else if (a.kind === 'autowait') {
+        if (modeRef.current !== 'auto' || draggingRef.current) a.kind = 'rest';
+        else if (now - a.t0 >= AUTO_START_MS) {
+          a.kind = 'autorun';
+          a.t0 = now;
+        }
+      } else if (a.kind === 'autorun') {
+        const el = now - a.t0;
+        if (el < PHASE1_MS) pRef.current = 0.5 * easeOut(el / PHASE1_MS);
+        else if (el < PHASE1_MS + PHASE2_MS)
+          pRef.current = 0.5 + 0.5 * ((el - PHASE1_MS) / PHASE2_MS);
+        else {
+          frontRef.current = (frontRef.current + 1) % n;
+          pRef.current = 0;
+          a.kind = 'autodwell';
+          a.t0 = now;
+        }
+      } else if (a.kind === 'autodwell') {
+        if (modeRef.current !== 'auto' || draggingRef.current) a.kind = 'rest';
+        else if (now - a.t0 >= AUTO_DWELL_MS) {
+          a.kind = 'autorun';
+          a.t0 = now;
+        }
+      } else if (a.kind === 'commit') {
+        const frac = Math.min(1, (now - a.t0) / PHASE2_MS);
+        pRef.current = 0.5 + 0.5 * frac; // constant-speed recycle from the farthest
+        if (frac >= 1) {
+          frontRef.current = (frontRef.current + 1) % n;
+          pRef.current = 0;
+          a.kind = 'rest';
+          armIdleResume();
+        }
+      } else if (a.kind === 'spring') {
+        const frac = Math.min(1, (now - a.t0) / SPRING_MS);
+        pRef.current = (a.from ?? 0) * (1 - easeOut(frac));
+        if (frac >= 1) {
+          pRef.current = 0;
+          a.kind = 'rest';
+          armIdleResume();
+        }
       }
-      advance();
-      wait(ROTATE_MS + AUTO_DWELL_MS, tick);
+
+      paint();
+      raf = requestAnimationFrame(frame);
     };
-    wait(AUTO_START_MS, tick);
+    raf = requestAnimationFrame(frame);
     return () => {
-      alive = false;
-      timers.forEach(clearTimeout);
+      cancelAnimationFrame(raf);
+      if (idleRef.current) clearTimeout(idleRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, n]);
-
-  // On unmount, drop pending timers.
-  useEffect(() => () => {
-    if (idleRef.current) clearTimeout(idleRef.current);
-    rotTimers.current.forEach(clearTimeout);
-  }, []);
+  }, [n]);
 
   function onDown(e: React.PointerEvent) {
     if (idleRef.current) clearTimeout(idleRef.current);
-    setMode('manual'); // user took the wheel — stops the auto loop
-    const w = wrapRef.current?.clientWidth || 300;
-    maxRef.current = w * MAX_RATIO;
-    commitRef.current = w * COMMIT_RATIO;
-    startX.current = e.clientX;
-    dxRef.current = 0;
-    setDragging(true);
+    modeRef.current = 'manual'; // user took the wheel — stops the auto loop
+    anim.current.kind = 'rest'; // cancel any in-flight auto rotation
+    draggingRef.current = true;
+    committedRef.current = false;
+    startXRef.current = e.clientX;
+    commitPxRef.current = COMMIT_FINGER_RATIO * (wrapRef.current?.clientWidth || 300);
     try {
       wrapRef.current?.setPointerCapture?.(e.pointerId);
     } catch {
-      /* pointer already released / not capturable — safe to ignore */
+      /* pointer not capturable — safe to ignore */
     }
   }
 
   function onMove(e: React.PointerEvent) {
-    if (startX.current == null) return;
-    dxRef.current = clampDrag(e.clientX - startX.current, maxRef.current);
-    setDragDx(dxRef.current);
+    if (!draggingRef.current || committedRef.current) return;
+    const p = 0.5 * ((e.clientX - startXRef.current) / commitPxRef.current);
+    if (p >= 0.5) {
+      // Crossed the farthest point → detach from the finger and recycle to back.
+      committedRef.current = true;
+      draggingRef.current = false;
+      pRef.current = 0.5;
+      paint(); // snap to the farthest immediately; the commit animation eases on from here
+      anim.current = { kind: 'commit', t0: performance.now() };
+    } else {
+      pRef.current = Math.max(0, p); // right-drag drives the swing-out; left does nothing
+      paint();
+    }
   }
 
   function onUp() {
-    if (startX.current == null) return;
-    const dx = dxRef.current;
-    startX.current = null;
-    dxRef.current = 0;
-    setDragging(false);
-    setDragDx(0);
-    // Past the commit point → coordinated rotation; otherwise spring back.
-    if (Math.abs(dx) >= commitRef.current) advance();
-    // Resume auto-play after a spell of no interaction.
-    if (idleRef.current) clearTimeout(idleRef.current);
-    idleRef.current = setTimeout(() => setMode('auto'), IDLE_RESUME_MS);
+    if (committedRef.current) {
+      committedRef.current = false; // the commit animation finishes on its own
+      return;
+    }
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    anim.current = { kind: 'spring', t0: performance.now(), from: pRef.current };
   }
 
   return (
@@ -221,39 +272,25 @@ function WidgetDeck() {
       onPointerCancel={onUp}
     >
       {WIDGETS.map((src, i) => {
-        const depth = (i - front + n) % n;
-        const isFront = depth === 0;
-
-        let transform: string;
-        let transition: string;
-        // The outgoing card stays on top (n + 1) until mid-rotation clears it.
-        const zIndex = crossing === i ? n + 1 : n - depth;
-
-        if (isFront && dragging) {
-          // Follows the finger (within the clamp); no transition so it tracks 1:1.
-          transform = dragDx
-            ? `translate(${dragDx}px, 0) rotate(${dragDx / 28}deg) scale(1)`
-            : REST[0];
-          transition = 'none';
-        } else {
-          // Every card eases to its slot together — the coordinated rotation —
-          // or springs back faster when a drag was released short.
-          transform = REST[depth];
-          const dur = rotating ? ROTATE_MS : SPRING_MS;
-          transition = `transform ${dur}ms cubic-bezier(0.32,0.72,0,1)`;
-        }
-
+        const s = SLOTS[i]; // initial layout: front index 0 → card i sits at depth i
         return (
           <img
             key={src}
+            ref={(el) => {
+              cardRefs.current[i] = el;
+            }}
             src={src}
             alt=""
             draggable={false}
             className="widget-card"
-            style={{ transform, zIndex, transition }}
+            style={{
+              transform: `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`,
+              zIndex: [40, 30, 20][i],
+              transition: 'none',
+            }}
           />
         );
       })}
     </div>
   );
-}
+});
