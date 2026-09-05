@@ -13,7 +13,6 @@ import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
-import { NextUpBar } from './NextUpBar';
 import { WelcomeGate } from './WelcomeGate';
 import { LactationSkillMessage } from './skill/LactationSkillMessage';
 import { PlanCard } from './skill/PlanCard';
@@ -38,8 +37,6 @@ export function CozyChat() {
   const [historyOpen, setHistoryOpen] = useState(false);
   // null = localStorage not read yet; true/false once known.
   const [welcomed, setWelcomed] = useState<boolean | null>(null);
-  // Scrolled down past the top — drives NextUpBar auto-collapse.
-  const [scrolled, setScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,21 +101,18 @@ export function CozyChat() {
         }}
       />
 
-      <NextUpBar profile={profile.profile} scrolled={scrolled} />
-
       {/* Conversation stream — the only scroll area */}
-      <div
-        ref={scrollRef}
-        className="cozy-stream"
-        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 48)}
-      >
+      <div ref={scrollRef} className="cozy-stream">
         <Greeting />
 
         {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}
 
-        {chat.streaming && (
-          <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
-        )}
+        {/* Dots only for the pre-first-token gap; once the reply starts, the
+            streaming bunny caret trails the text instead. */}
+        {chat.streaming &&
+          chat.messages[chat.messages.length - 1]?.role !== 'assistant' && (
+            <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
+          )}
       </div>
 
       <InputBar
@@ -227,6 +221,7 @@ function renderStream(
         showActions={showActions}
         showSuggestions={showSuggestions}
         onSuggest={chat.send}
+        streaming={midStream}
       />
     );
   }

@@ -200,8 +200,6 @@ export function InputBar({
           />
         </button>
       </div>
-
-      <p className="cozy-disclaimer">AI-generated, not professional advice.</p>
     </div>
   );
 }

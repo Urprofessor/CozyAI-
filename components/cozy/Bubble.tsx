@@ -19,6 +19,8 @@ interface Props {
   showSuggestions?: boolean;
   /** Send a tapped follow-up as the next user message. */
   onSuggest?: (text: string) => void;
+  /** This reply is still streaming — trails a bunny caret after the text. */
+  streaming?: boolean;
 }
 
 /** One rendered chat message. Delegates to sub-forms by role. */
@@ -30,6 +32,7 @@ export function Bubble({
   showActions = true,
   showSuggestions = false,
   onSuggest,
+  streaming = false,
 }: Props) {
   if (msg.role === 'system') {
     return <SystemMessage content={msg.content} />;
@@ -60,7 +63,7 @@ export function Bubble({
         <span className="text-xs font-semibold text-brand-rose-700 opacity-80">{name}</span>
       </div>
       <div className="cozy-md px-0.5">
-        <MarkdownMessage content={msg.content} />
+        <MarkdownMessage content={msg.content} streaming={streaming} />
       </div>
       {msg.reference && (
         <div className="mt-2.5 text-[13px] leading-5 tracking-[0.28px] text-text-2 font-aeonik">

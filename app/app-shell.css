@@ -1414,9 +1414,26 @@
   padding: var(--space-2) var(--space-4) 0;
 }
 
-.cozy-topbar__profile {
+.cozy-topbar__iconbtn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.cozy-topbar__iconbtn:active {
+  transform: translateY(1px);
+}
+
+.cozy-topbar__history {
   grid-column: 1;
   justify-self: start;
+}
+.cozy-topbar__history img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .cozy-topbar__identity {
@@ -1440,29 +1457,17 @@
   letter-spacing: 0;
 }
 
-.cozy-topbar__actions {
+.cozy-topbar__new {
   grid-column: 3;
   justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
 }
-
-.cozy-topbar__btn {
-  width: var(--tokens-36);
-  height: var(--tokens-36);
-  display: grid;
-  place-items: center;
-  border: var(--colors-border-width-primary) solid var(--colors-border-secondary);
-  border-radius: var(--radius-full);
-  background: var(--colors-backgrouds-secondary);
-  color: var(--colors-text-color-text-primary);
-  box-shadow: 0 var(--tokens-4) var(--tokens-12)
-    color-mix(in srgb, var(--colors-grays-900) 7%, transparent);
-}
-
-.cozy-topbar__btn:active {
-  transform: translateY(var(--tokens-1));
+/* Trailing.png ships with transparent padding around the circle, so it's shown
+   larger and pulled in with a negative margin to keep the row height compact. */
+.cozy-topbar__new img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  margin: -11px;
 }
 
 /* When the composer's textarea is focused (mobile keyboard up), hide the tab
@@ -2447,3 +2452,17 @@
 .cozy-md-table th { font-weight: 500; white-space: nowrap; }
 .cozy-md-table th:last-child, .cozy-md-table td:last-child { border-right: 0; }
 .cozy-md-table tr:last-child td { border-bottom: 0; }
+
+/* Streaming caret — bunny trailing the latest text (like a typing cursor) */
+.cozy-cursor {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  vertical-align: -0.35em;
+  margin-left: 2px;
+  animation: cozyCursorBob 1.05s ease-in-out infinite;
+}
+@keyframes cozyCursorBob {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-2px); opacity: 0.72; }
+}
