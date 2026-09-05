@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Tag, Mic, Moon } from 'lucide-react';
 import { useCozyChat } from '@/hooks/useCozyChat';
 import { useProfile } from '@/hooks/useProfile';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
@@ -91,8 +92,11 @@ export function CozyChat() {
     );
   }
 
+  // Empty (first-entry) state: mascot + greeting + suggested chips + quick pills.
+  const isEmpty = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
+
   return (
-    <div className="cozy-page">
+    <div className={isEmpty ? 'cozy-page cozy-page--empty' : 'cozy-page'}>
       <CozyTopbar
         onOpenHistory={() => setHistoryOpen(true)}
         onNewSession={() => {
@@ -101,19 +105,21 @@ export function CozyChat() {
         }}
       />
 
-      {/* Conversation stream — the only scroll area */}
-      <div ref={scrollRef} className="cozy-stream">
-        <Greeting />
+      {isEmpty ? (
+        <EmptyHome onSend={chat.send} />
+      ) : (
+        /* Conversation stream — the only scroll area */
+        <div ref={scrollRef} className="cozy-stream">
+          {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}
 
-        {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}
-
-        {/* Dots only for the pre-first-token gap; once the reply starts, the
-            streaming bunny caret trails the text instead. */}
-        {chat.streaming &&
-          chat.messages[chat.messages.length - 1]?.role !== 'assistant' && (
-            <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
-          )}
-      </div>
+          {/* Dots only for the pre-first-token gap; once the reply starts, the
+              streaming bunny caret trails the text instead. */}
+          {chat.streaming &&
+            chat.messages[chat.messages.length - 1]?.role !== 'assistant' && (
+              <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
+            )}
+        </div>
+      )}
 
       <InputBar
         streaming={chat.streaming}
@@ -230,15 +236,57 @@ function renderStream(
   return out;
 }
 
-function Greeting() {
+// Demo content for the first-entry state (static for now; wired to logs later).
+const SUGGESTED = [
+  'Bonnie slept from 1:10 to 2:05 pm.',
+  'How much should my baby be eating?',
+  'I pumped 5 oz total just now.',
+];
+const QUICK_PILLS = [
+  { label: 'Lactation Plan', icon: <Tag size={15} strokeWidth={1.9} /> },
+  { label: 'Voice Log', icon: <Mic size={15} strokeWidth={1.9} /> },
+  { label: 'BB Sleep Forecast', icon: <Moon size={15} strokeWidth={1.9} /> },
+];
+
+/** First-entry / empty-conversation home: mascot + greeting, then a "Suggested
+ *  for you" list and quick-action pills above the composer. The hero collapses
+ *  and the pills hide when the keyboard is up (via the .kb-open root class). */
+function EmptyHome({ onSend }: { onSend: (text: string) => void }) {
   const [hour, setHour] = useState<number | null>(null);
   useEffect(() => setHour(new Date().getHours()), []);
-
-  const part = hour === null ? '' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const part = hour === null ? '' : hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
 
   return (
-    <h1 className="cozy-greeting">
-      Good {part || 'day'}, <em>Clare</em>
-    </h1>
+    <div className="cozy-empty">
+      <div className="cozy-empty__hero">
+        {/* TODO: swap for the new mascot asset when provided. */}
+        <img
+          className="cozy-empty__mascot"
+          src="/images/IP_%E9%AB%98%E5%85%B4.png"
+          alt=""
+          draggable={false}
+        />
+        <h1 className="cozy-greeting cozy-greeting--center">Good {part || 'Day'}</h1>
+      </div>
+
+      <div className="cozy-empty__suggest">
+        <p className="cozy-suggest-label">Suggested for you</p>
+        <div className="cozy-suggest-chips">
+          {SUGGESTED.map((q) => (
+            <button key={q} type="button" className="cozy-suggest-chip" onClick={() => onSend(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+        <div className="cozy-quick-pills">
+          {QUICK_PILLS.map((p) => (
+            <button key={p.label} type="button" className="cozy-quick-pill">
+              {p.icon}
+              <span>{p.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
