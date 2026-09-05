@@ -2331,3 +2331,119 @@
     border-radius: 0;
   }
 }
+
+/* ── AI reply Markdown (Figma "Markdown 元素" spec) ─────────────────────── */
+.cozy-md {
+  color: var(--colors-text-color-text-primary);
+  font-family: 'Aeonik Soft Pro', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 0.32px;
+  overflow-wrap: anywhere;
+}
+.cozy-md > :first-child { margin-top: 0; }
+.cozy-md > :last-child { margin-bottom: 0; }
+
+/* Headings: H1–H3 brand serif (Exposure), H4–H6 Aeonik medium */
+.cozy-md h1, .cozy-md h2, .cozy-md h3 {
+  font-family: var(--font-brand);
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--colors-text-color-text-primary);
+}
+.cozy-md h1 { font-size: 24px; line-height: 29px; margin: 0 0 8px; }
+.cozy-md h2 { font-size: 20px; line-height: 26px; margin: 24px 0 12px; }
+.cozy-md h3 { font-size: 18px; line-height: 22px; margin: 16px 0 8px; }
+.cozy-md h4, .cozy-md h5, .cozy-md h6 {
+  font-family: 'Aeonik Soft Pro', system-ui, sans-serif;
+  font-size: 16px; line-height: 22px; font-weight: 500; letter-spacing: 0.32px;
+  margin: 12px 0 8px;
+}
+
+.cozy-md p { margin: 8px 0; }
+
+/* Inline emphasis */
+.cozy-md strong { font-weight: 500; }
+.cozy-md em { font-style: italic; color: rgba(0, 0, 0, 0.6); }
+.cozy-md del { text-decoration: line-through; }
+
+/* Links (external gets a ↗) */
+.cozy-md a {
+  color: var(--colors-text-color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cozy-md a[target="_blank"]::after { content: '\2197'; margin-left: 1px; font-size: 0.9em; }
+
+/* Inline code — mono, brand maroon, no fill */
+.cozy-md code {
+  font-family: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--colors-brands-mom-700);
+}
+
+/* Code block */
+.cozy-md pre {
+  margin: 8px 0; padding: 12px 14px;
+  background: var(--colors-grays-100);
+  border-radius: 10px; overflow-x: auto;
+}
+.cozy-md pre code {
+  color: var(--colors-text-color-text-primary);
+  font-size: 14px; line-height: 20px; white-space: pre;
+}
+
+/* Lists */
+.cozy-md ul, .cozy-md ol { margin: 8px 0 12px; padding-left: 22px; }
+.cozy-md ul { list-style: disc; }
+.cozy-md ul ul { list-style: circle; }
+.cozy-md ol { list-style: decimal; }
+.cozy-md li { margin: 2px 0; }
+.cozy-md li > p { margin: 0; }
+
+/* Task list */
+.cozy-md .contains-task-list { list-style: none; padding-left: 2px; }
+.cozy-md .task-list-item { display: flex; align-items: flex-start; gap: 8px; }
+.cozy-md input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  flex-shrink: 0; width: 18px; height: 18px; margin: 2px 0 0;
+  border: 1.5px solid var(--colors-grays-200); border-radius: 5px; background: #fff;
+  position: relative; cursor: default;
+}
+.cozy-md input[type="checkbox"]:checked {
+  background: var(--colors-brands-mom-700); border-color: var(--colors-brands-mom-700);
+}
+.cozy-md input[type="checkbox"]:checked::after {
+  content: ''; position: absolute; left: 5px; top: 1.5px;
+  width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.cozy-md .task-list-item:has(input:checked) {
+  color: var(--colors-text-color-text-secondary); text-decoration: line-through;
+}
+
+/* Blockquote */
+.cozy-md blockquote {
+  margin: 8px 0; padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--colors-grays-200);
+  color: var(--colors-text-color-text-secondary);
+  font-size: 15px; line-height: 22px;
+}
+.cozy-md blockquote p { margin: 4px 0; }
+
+/* Divider */
+.cozy-md hr { border: 0; border-top: 1px solid var(--colors-grays-200); margin: 16px 0; }
+
+/* Table (wide tables scroll horizontally) */
+.cozy-md-table {
+  margin: 8px 0; max-width: 100%; overflow-x: auto;
+  border: 1px solid var(--colors-grays-200); border-radius: 10px;
+}
+.cozy-md-table table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 20px; }
+.cozy-md-table th, .cozy-md-table td {
+  padding: 8px 10px; text-align: left; vertical-align: top;
+  border-right: 1px solid var(--colors-grays-200);
+  border-bottom: 1px solid var(--colors-grays-200);
+}
+.cozy-md-table th { font-weight: 500; white-space: nowrap; }
+.cozy-md-table th:last-child, .cozy-md-table td:last-child { border-right: 0; }
+.cozy-md-table tr:last-child td { border-bottom: 0; }

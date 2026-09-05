@@ -5,6 +5,7 @@ import { ThumbsUp, ThumbsDown, Copy, Check, Share2, ArrowUpRight } from 'lucide-
 import { cn } from '@/lib/utils';
 import type { CozyMessage } from '@/lib/cozy/types';
 import { ImageGrid } from './ImageGrid';
+import { MarkdownMessage } from './MarkdownMessage';
 
 interface Props {
   msg: CozyMessage;
@@ -58,13 +59,8 @@ export function Bubble({
         <img src={avatarSrc} alt="" className="w-6 h-6 object-contain" />
         <span className="text-xs font-semibold text-brand-rose-700 opacity-80">{name}</span>
       </div>
-      <div
-        className={cn(
-          'text-text-1 px-0.5',
-          'font-aeonik text-[16px] leading-[150%] whitespace-pre-wrap break-words'
-        )}
-      >
-        {msg.content}
+      <div className="cozy-md px-0.5">
+        <MarkdownMessage content={msg.content} />
       </div>
       {msg.reference && (
         <div className="mt-2.5 text-[13px] leading-5 tracking-[0.28px] text-text-2 font-aeonik">
