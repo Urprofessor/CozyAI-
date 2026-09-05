@@ -422,11 +422,7 @@ export function useCozyChat(opts: Options = {}) {
 
     if (clean && personaAtStart === 'qa') {
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: clean, reference: 'From Professional literature' }
-            : m
-        )
+        prev.map((m) => (m.id === assistantId ? { ...m, content: clean } : m))
       );
       // Generate the follow-up chips in a separate call so they're contextual
       // and reliable (see /api/suggest). Fire-and-forget; attaches when ready.

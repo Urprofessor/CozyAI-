@@ -57,21 +57,26 @@ export function Bubble({
   // assistant — no header; markdown body, actions, then a bunny + disclaimer
   // footer once the reply has finished streaming.
   return (
-    <div className="flex flex-col self-start items-start max-w-[86%] gap-1.5">
-      <div className="cozy-md px-0.5">
+    <div className="flex flex-col self-start items-start w-full gap-1.5">
+      <div className="cozy-md px-0.5 max-w-[86%]">
         <MarkdownMessage content={msg.content} streaming={streaming} />
       </div>
-      {msg.reference && (
-        <div className="mt-2.5 text-[13px] leading-5 tracking-[0.28px] text-text-2 font-aeonik">
-          {msg.reference}
-        </div>
-      )}
       {showActions && msg.content && (
         <MessageActions
           content={msg.content}
           rateable={msg.persona !== 'support'}
           onRetry={onRetry}
         />
+      )}
+      {!streaming && msg.content && msg.persona !== 'support' && (
+        <div className="cozy-reply-foot">
+          <img src="/icon/Frame%202147240664.png" alt="" draggable={false} />
+          <span>
+            For information purpose only.
+            <br />
+            Not medical advice.
+          </span>
+        </div>
       )}
       {showSuggestions && msg.suggestions && msg.suggestions.length > 0 && onSuggest && (
         <div className="cozy-followups">
@@ -86,16 +91,6 @@ export function Bubble({
               <span>{q}</span>
             </button>
           ))}
-        </div>
-      )}
-      {!streaming && msg.content && msg.persona !== 'support' && (
-        <div className="cozy-reply-foot">
-          <img src="/icon/Frame%202147240664.png" alt="" draggable={false} />
-          <span>
-            For information purpose only.
-            <br />
-            Not medical advice.
-          </span>
         </div>
       )}
     </div>
