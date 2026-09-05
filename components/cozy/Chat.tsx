@@ -222,6 +222,7 @@ function renderStream(
         showSuggestions={showSuggestions}
         onSuggest={chat.send}
         streaming={midStream}
+        onRetry={() => chat.regenerate(m.id)}
       />
     );
   }

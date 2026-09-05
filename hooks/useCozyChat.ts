@@ -268,17 +268,44 @@ export function useCozyChat(opts: Options = {}) {
     [pendingImages, streaming, persona, inQueue, messages]
   );
 
+  // Re-generate an existing reply in place: re-run the model on the same prompt
+  // and stream the fresh answer back into the same message (never deleted).
+  const regenerate = useCallback(
+    (assistantId: string) => {
+      if (streaming) return;
+      const idx = messages.findIndex((m) => m.id === assistantId);
+      if (idx < 0 || messages[idx].role !== 'assistant') return;
+      const target = messages[idx];
+      const history = messages.slice(0, idx); // everything up to the prompting user message
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, content: '', reference: undefined, suggestions: undefined }
+            : m
+        )
+      );
+      void streamReply(target.persona ?? persona, history, assistantId);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [messages, streaming, persona]
+  );
+
   const stop = useCallback(() => {
     stopInternal(abortRef);
   }, []);
 
   // ---------- streaming to /api/chat ----------
 
-  async function streamReply(personaAtStart: Persona, history: CozyMessage[]) {
+  async function streamReply(
+    personaAtStart: Persona,
+    history: CozyMessage[],
+    targetId?: string
+  ) {
     setStreaming(true);
     abortRef.current = new AbortController();
     let text = '';
-    const assistantId = newId();
+    const isRegen = !!targetId; // rewrite an existing reply in place vs. append a new one
+    const assistantId = targetId ?? newId();
 
     try {
       const res = await fetch('/api/chat', {
@@ -304,7 +331,7 @@ export function useCozyChat(opts: Options = {}) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let bubbleAdded = false;
+      let bubbleAdded = isRegen; // regen updates the existing message instead of appending
 
       while (true) {
         const { value, done } = await reader.read();
@@ -347,16 +374,21 @@ export function useCozyChat(opts: Options = {}) {
     } catch (err: unknown) {
       const isAbort = err instanceof DOMException && err.name === 'AbortError';
       if (!isAbort) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantId,
-            role: 'assistant',
-            content: "Sorry, I couldn't reach the assistant right now. Please try again.",
-            persona: personaAtStart,
-            createdAt: Date.now(),
-          },
-        ]);
+        const errText = "Sorry, I couldn't reach the assistant right now. Please try again.";
+        setMessages((prev) =>
+          isRegen
+            ? prev.map((m) => (m.id === assistantId ? { ...m, content: errText } : m))
+            : [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: errText,
+                  persona: personaAtStart,
+                  createdAt: Date.now(),
+                },
+              ]
+        );
       }
     } finally {
       setStreaming(false);
@@ -543,6 +575,7 @@ export function useCozyChat(opts: Options = {}) {
     inQueue,
     // actions
     send,
+    regenerate,
     stop,
     newSession,
     loadSession,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, Check, Share2, ArrowUpRight } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CozyMessage } from '@/lib/cozy/types';
 import { ImageGrid } from './ImageGrid';
@@ -21,18 +21,19 @@ interface Props {
   onSuggest?: (text: string) => void;
   /** This reply is still streaming — trails a bunny caret after the text. */
   streaming?: boolean;
+  /** Re-generate this reply in place (retry button). */
+  onRetry?: () => void;
 }
 
 /** One rendered chat message. Delegates to sub-forms by role. */
 export function Bubble({
   msg,
   onOpenImage,
-  agentName = 'Cozy AI',
-  agentAvatar,
   showActions = true,
   showSuggestions = false,
   onSuggest,
   streaming = false,
+  onRetry,
 }: Props) {
   if (msg.role === 'system') {
     return <SystemMessage content={msg.content} />;
@@ -53,15 +54,10 @@ export function Bubble({
     );
   }
 
-  // assistant — no heavy bubble, avatar + name header, plain text body.
-  const avatarSrc = msg.avatar || agentAvatar || '/images/IP_%E9%AB%98%E5%85%B4.png';
-  const name = msg.persona === 'support' ? 'Sarah' : agentName;
+  // assistant — no header; markdown body, actions, then a bunny + disclaimer
+  // footer once the reply has finished streaming.
   return (
     <div className="flex flex-col self-start items-start max-w-[86%] gap-1.5">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <img src={avatarSrc} alt="" className="w-6 h-6 object-contain" />
-        <span className="text-xs font-semibold text-brand-rose-700 opacity-80">{name}</span>
-      </div>
       <div className="cozy-md px-0.5">
         <MarkdownMessage content={msg.content} streaming={streaming} />
       </div>
@@ -71,7 +67,11 @@ export function Bubble({
         </div>
       )}
       {showActions && msg.content && (
-        <MessageActions content={msg.content} rateable={msg.persona !== 'support'} />
+        <MessageActions
+          content={msg.content}
+          rateable={msg.persona !== 'support'}
+          onRetry={onRetry}
+        />
       )}
       {showSuggestions && msg.suggestions && msg.suggestions.length > 0 && onSuggest && (
         <div className="cozy-followups">
@@ -88,13 +88,31 @@ export function Bubble({
           ))}
         </div>
       )}
+      {!streaming && msg.content && msg.persona !== 'support' && (
+        <div className="cozy-reply-foot">
+          <img src="/icon/Frame%202147240664.png" alt="" draggable={false} />
+          <span>
+            For information purpose only.
+            <br />
+            Not medical advice.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Like / dislike / copy / forward row under an assistant reply. Ratings are
- *  local-only (demo); copy and forward act on the reply text. */
-function MessageActions({ content, rateable }: { content: string; rateable: boolean }) {
+/** Copy / like / dislike / retry row + a Sources placeholder, under a reply.
+ *  Ratings are local-only (demo); retry re-generates the reply in place. */
+function MessageActions({
+  content,
+  rateable,
+  onRetry,
+}: {
+  content: string;
+  rateable: boolean;
+  onRetry?: () => void;
+}) {
   const [vote, setVote] = useState<'up' | 'down' | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -108,44 +126,42 @@ function MessageActions({ content, rateable }: { content: string; rateable: bool
     }
   }
 
-  async function forward() {
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({ text: content });
-        return;
-      } catch {
-        /* user cancelled or unsupported — fall through to copy */
-      }
-    }
-    copy();
-  }
-
   return (
-    <div className="mt-2 flex items-center gap-0.5 -ml-1.5">
+    <div className="mt-2 flex w-full items-center justify-between">
+      <div className="flex items-center gap-0.5 -ml-1.5">
+        <ActionButton label={copied ? 'Copied' : 'Copy'} onClick={copy}>
+          {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={1.9} />}
+        </ActionButton>
+        {rateable && (
+          <>
+            <ActionButton
+              label="Helpful"
+              active={vote === 'up'}
+              onClick={() => setVote((v) => (v === 'up' ? null : 'up'))}
+            >
+              <ThumbsUp size={15} strokeWidth={1.9} />
+            </ActionButton>
+            <ActionButton
+              label="Not helpful"
+              active={vote === 'down'}
+              onClick={() => setVote((v) => (v === 'down' ? null : 'down'))}
+            >
+              <ThumbsDown size={15} strokeWidth={1.9} />
+            </ActionButton>
+            {onRetry && (
+              <ActionButton label="Regenerate" onClick={onRetry}>
+                <RotateCcw size={15} strokeWidth={1.9} />
+              </ActionButton>
+            )}
+          </>
+        )}
+      </div>
       {rateable && (
-        <>
-          <ActionButton
-            label="Helpful"
-            active={vote === 'up'}
-            onClick={() => setVote((v) => (v === 'up' ? null : 'up'))}
-          >
-            <ThumbsUp size={15} strokeWidth={1.9} />
-          </ActionButton>
-          <ActionButton
-            label="Not helpful"
-            active={vote === 'down'}
-            onClick={() => setVote((v) => (v === 'down' ? null : 'down'))}
-          >
-            <ThumbsDown size={15} strokeWidth={1.9} />
-          </ActionButton>
-        </>
+        <button type="button" className="cozy-sources" title="Sources (coming soon)">
+          Sources
+          <ArrowUpRight size={13} strokeWidth={2} />
+        </button>
       )}
-      <ActionButton label={copied ? 'Copied' : 'Copy'} onClick={copy}>
-        {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={1.9} />}
-      </ActionButton>
-      <ActionButton label="Forward" onClick={forward}>
-        <Share2 size={15} strokeWidth={1.9} />
-      </ActionButton>
     </div>
   );
 }

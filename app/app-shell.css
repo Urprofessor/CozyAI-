@@ -2466,3 +2466,42 @@
   0%, 100% { transform: translateY(0); opacity: 1; }
   50% { transform: translateY(-2px); opacity: 0.72; }
 }
+
+/* Completed AI reply footer — bunny signature + disclaimer */
+.cozy-reply-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  margin-top: 4px;
+}
+.cozy-reply-foot img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.cozy-reply-foot span {
+  font-family: 'Aeonik Soft Pro', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 17px;
+  text-align: right;
+  color: var(--colors-text-color-text-tertiary);
+}
+
+/* Sources pill (placeholder) in the reply action row */
+.cozy-sources {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--colors-grays-100);
+  color: var(--colors-text-color-text-tertiary);
+  font-family: 'Aeonik Soft Pro', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cozy-sources:active { transform: translateY(1px); }
