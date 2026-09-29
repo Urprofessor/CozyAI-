@@ -14,6 +14,8 @@ export interface LactationSession {
   time: string; // "12:00"
   volumeOz?: number;
   state: 'done' | 'edit' | 'upcoming';
+  durationMin?: number;
+  loggedAt?: string; // "HH:mm" the pump actually happened (for Last pump)
 }
 
 /** First "skill" module. Others will follow the same shape: their own data,
@@ -31,6 +33,7 @@ export interface LactationPlan {
   trackingStarted?: boolean;
   // tracking data (seeded fake, later updated by chat + manual input)
   sessions?: LactationSession[];
+  sessionsDate?: string; // local YYYY-MM-DD the sessions belong to
   todayVolumeOz?: number;
   createdAt?: number;
 }
@@ -76,17 +79,6 @@ export const LACTATION_GOAL_LABELS: Record<LactationGoal, string> = {
 
 export function isPlanComplete(p: CozyProfile): boolean {
   return p.lactationPlan?.status === 'completed';
-}
-
-/** Seed tracking data for a freshly generated plan (later updated for real). */
-export function seedLactationSessions(): LactationSession[] {
-  return [
-    { time: '12:00', volumeOz: 20, state: 'done' },
-    { time: '15:00', state: 'edit' },
-    { time: '17:00', volumeOz: 20, state: 'done' },
-    { time: '21:00', state: 'upcoming' },
-    { time: '22:00', state: 'upcoming' },
-  ];
 }
 
 /** The single merge entry point. Overlays a patch onto the current profile:

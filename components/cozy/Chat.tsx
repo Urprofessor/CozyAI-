@@ -21,15 +21,22 @@ import { SettingsSheet } from './SettingsSheet';
 import { SourcesSheet } from './SourcesSheet';
 import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
-import { LactationSkillMessage } from './skill/LactationSkillMessage';
-import { PlanCard } from './skill/PlanCard';
-import { LactationDashboard } from './skill/LactationDashboard';
+import { PlanCard, QuestionnaireCard, ScheduleCard } from './cards/LactationCards';
+import { logPump, toggleSession } from '@/lib/cozy/lactation';
+import type { CardSkill } from '@/lib/cozy/keywords';
+
+// Card messages in the stream (system messages with a sentinel body).
+const CARD = {
+  questionnaire: '__SKILL_LACTATION__',
+  plan: '__PLAN_LACTATION__',
+  schedule: '__SCHEDULE_LACTATION__',
+} as const;
 
 interface SkillHandlers {
   plan: CozyProfile['lactationPlan'];
-  onStart: () => void;
-  onStartTracking: () => void;
-  onViewDetail: () => void;
+  onOpenQuestionnaire: () => void;
+  onToggleSession: (index: number) => void;
+  onComingSoon: (label: string) => void;
 }
 
 interface RowHandlers {
@@ -50,7 +57,22 @@ const HISTORY_OPEN_CLASS = 'cz-history-open';
 export function CozyChat() {
   const router = useRouter();
   const profile = useProfile();
-  const chat = useCozyChat({ onProfilePatch: profile.applyPatch });
+  // Latest plan for the hook's post-stream callbacks.
+  const planRef = useRef(profile.profile.lactationPlan);
+  planRef.current = profile.profile.lactationPlan;
+  const chat = useCozyChat({
+    onProfilePatch: profile.applyPatch,
+    // Same request, different card by plan state — as the App's agent does.
+    resolveCard: (skill: CardSkill) => {
+      const hasPlan = planRef.current?.status === 'completed';
+      if (!hasPlan) return CARD.questionnaire;
+      return skill === 'schedule' ? CARD.schedule : CARD.plan;
+    },
+    onPumpLog: ({ oz, time }) => {
+      const plan = planRef.current;
+      if (plan?.status === 'completed') profile.applyPatch({ lactationPlan: logPump(plan, oz, time) });
+    },
+  });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -90,9 +112,12 @@ export function CozyChat() {
 
   const skill: SkillHandlers = {
     plan: profile.profile.lactationPlan,
-    onStart: () => router.push('/cozy/lactation'),
-    onStartTracking: () => profile.applyPatch({ lactationPlan: { trackingStarted: true } }),
-    onViewDetail: chat.showDashboard,
+    onOpenQuestionnaire: () => router.push('/cozy/lactation'),
+    onToggleSession: (index) => {
+      const plan = profile.profile.lactationPlan;
+      if (plan) profile.applyPatch({ lactationPlan: toggleSession(plan, index) });
+    },
+    onComingSoon: (label) => showToast(`${label} is coming soon.`),
   };
 
   // Surface the generated plan card once the questionnaire completes. Wait for
@@ -263,38 +288,43 @@ function renderStream(
       }
     }
 
-    if (m.content === '__SKILL_LACTATION__') {
+    if (m.content === CARD.questionnaire) {
+      const plan = skill.plan;
+      const inProgress = plan?.status === 'in_progress' && plan.progress;
       out.push(
         <div key={m.id} className="cz-row cz-row--card">
-          <LactationSkillMessage onStart={skill.onStart} />
+          <QuestionnaireCard
+            status={inProgress ? 'process' : 'start'}
+            completed={plan?.progress?.current}
+            total={plan?.progress?.total}
+            disabled={plan?.status === 'completed'}
+            onPrimary={skill.onOpenQuestionnaire}
+          />
         </div>
       );
       continue;
     }
-    if (m.content === '__PLAN_LACTATION__') {
-      if (skill.plan) {
+    if (m.content === CARD.plan || m.content === CARD.schedule) {
+      if (skill.plan?.status === 'completed') {
         out.push(
           <div key={m.id} className="cz-row cz-row--card">
-            <PlanCard
-              plan={skill.plan}
-              onStartTracking={skill.onStartTracking}
-              onViewDetail={skill.onViewDetail}
-            />
+            {m.content === CARD.plan ? (
+              <PlanCard
+                plan={skill.plan}
+                onHeader={() => skill.onComingSoon('Plan details')}
+                onViewData={() => skill.onComingSoon('Pumping data')}
+                onBar={() => skill.onComingSoon('Session logging')}
+              />
+            ) : (
+              <ScheduleCard plan={skill.plan} onToggle={skill.onToggleSession} />
+            )}
           </div>
         );
       }
       continue;
     }
-    if (m.content === '__DASHBOARD_LACTATION__') {
-      if (skill.plan) {
-        out.push(
-          <div key={m.id} className="cz-row cz-row--card">
-            <LactationDashboard plan={skill.plan} />
-          </div>
-        );
-      }
-      continue;
-    }
+    // Retired card from older histories.
+    if (m.content === '__DASHBOARD_LACTATION__') continue;
     if (m.content === '__HANDOFF_CARD__') {
       out.push(
         <div key={m.id} className="cz-row cz-row--card">

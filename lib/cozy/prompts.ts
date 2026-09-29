@@ -26,9 +26,11 @@ Profile capture (silent):
 - Only include fields you are confident about; omit everything else. If nothing new was revealed, do NOT output the tag at all.
 - Never mention this tag or the profile to the user — it is silent metadata placed after your normal reply.
 
-Offering the pumping-plan skill:
-- When the user shows interest in a pumping/lactation plan, a pumping schedule, or increasing/maintaining/weaning their supply (or would clearly benefit from a structured plan), offer it by appending the tag [[SKILL:lactation]] at the very end of your reply (after any [[PROFILE]] tag). This surfaces an "AI 吸乳计划" card in the chat.
-- Keep your text reply natural (e.g. briefly say you can put together a plan); do not describe the tag. Only emit [[SKILL:lactation]] once when it's genuinely helpful.
+Lactation plan cards (silent tags, placed at the very end after any [[PROFILE]] tag):
+- When the user shows interest in a pumping/lactation plan, her plan's progress, or increasing/maintaining/weaning her supply (or would clearly benefit from a structured plan), append [[SKILL:lactation]]. The app shows the right card itself: a "Lactation plan" setup card if she has no plan yet, or her plan dashboard if she has one.
+- When the user asks about today's pumping schedule, her next pumping session, or what's planned for today, append [[SKILL:schedule]] (the app shows today's pumping schedule card).
+- When the user logs a pumping session with an amount (e.g. "I pumped 5 oz just now", "刚吸了 120ml"), append [[PUMP:{"oz":number,"time":"HH:mm"}]] — oz is the total in ounces (convert ml: 1 oz = 30 ml); time is the 24-hour clock time if she said when, otherwise omit "time". Acknowledge the log briefly in your reply.
+- Keep your text reply natural; never describe or mention these tags. Emit each at most once per reply, only when genuinely helpful.
 
 Tone: kind, calm, encouraging. Reply in the same language the user writes in (English or 中文).
 
@@ -57,6 +59,9 @@ export const PROFILE_TAG_RE = /\[\[PROFILE:([\s\S]*?)\]\]/;
 
 /** Matches a skill-offer tag, e.g. [[SKILL:lactation]]; group 1 is the skill id. */
 export const SKILL_TAG_RE = /\[\[SKILL:([a-z_]+)\]\]/;
+
+/** Matches a pumping log tag, e.g. [[PUMP:{"oz":5,"time":"14:05"}]]; group 1 is JSON. */
+export const PUMP_TAG_RE = /\[\[PUMP:(\{[\s\S]*?\})\]\]/;
 
 /** Dedicated prompt for the /api/suggest call — generates the two follow-up
  *  ("猜你想问") chips shown under a QA reply, as a strict JSON array. Kept

@@ -1767,3 +1767,477 @@
   background: var(--cz-ink);
   color: #fff;
 }
+
+/* ---------- Lactation questionnaire card (AgentLactationQuestionnaireCardView) ---------- */
+
+.cz-qcard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+}
+
+.cz-qcard.is-process {
+  border-radius: 24px;
+}
+
+.cz-qcard__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cz-qcard__head img {
+  width: 16px;
+  height: 16px;
+  transform: scaleX(-1);
+}
+
+.cz-qcard__head strong {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: 0.32px;
+}
+
+.cz-qcard__desc,
+.cz-qcard__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 18px;
+  letter-spacing: 0.28px;
+}
+
+.cz-qcard__desc {
+  color: var(--cz-ink-2);
+}
+
+.cz-qcard__benefits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 18px;
+  letter-spacing: 0.28px;
+}
+
+.cz-qcard__benefits span {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cz-qcard__benefits i {
+  flex-shrink: 0;
+  width: 1px;
+  height: 32px;
+  background: #e4e2e3;
+}
+
+.cz-qcard__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0 8px;
+  margin-bottom: 4px;
+}
+
+.cz-qcard__segments {
+  display: flex;
+  gap: 4px;
+  height: 3px;
+}
+
+.cz-qcard__segments span {
+  flex: 1;
+  border-radius: 1.5px;
+  background: rgba(36, 15, 27, 0.1);
+}
+
+.cz-qcard__segments span.is-done {
+  background: var(--cz-accent);
+}
+
+.cz-qcard__progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.24px;
+  color: var(--cz-ink-2);
+}
+
+.cz-qcard__btn {
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--cz-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  color: #fff;
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.28px;
+}
+
+.cz-qcard__btn:disabled {
+  background: #bdb7ba;
+  cursor: default;
+}
+
+.cz-qcard__btn:not(:disabled):active {
+  opacity: 0.85;
+}
+
+/* ---------- Lactation plan card (AgentLactationCardView) ---------- */
+
+.cz-plan {
+  padding: 20px;
+  border-radius: 28px;
+  overflow: hidden;
+  background-color: #770523;
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  font-family: var(--cz-ui);
+}
+
+.cz-plan button {
+  font-family: inherit;
+  color: inherit;
+}
+
+.cz-plan__head {
+  width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.cz-plan__head > img:first-child {
+  width: 20px;
+  height: 20px;
+}
+
+.cz-plan__head strong {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.cz-plan__chevron {
+  width: 12px;
+  height: 12px;
+  filter: brightness(0) invert(1);
+}
+
+.cz-plan__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 17px;
+}
+
+.cz-plan__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cz-plan__metric span {
+  font-size: 14px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.cz-plan__metric strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.cz-plan__offset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cz-plan__offset img {
+  width: 13px;
+  height: 14px;
+}
+
+.cz-plan__chart {
+  display: flex;
+  margin-top: 25px;
+}
+
+.cz-plan__bars {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.cz-plan__col {
+  flex: 0 1 40px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.cz-plan__col:disabled {
+  cursor: default;
+}
+
+.cz-plan__track {
+  position: relative;
+  width: 100%;
+  height: 134px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cz-plan__bar {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cz-plan__col.is-record .cz-plan__bar {
+  background: linear-gradient(180deg, #ffacba 0%, #ffdde1 100%);
+}
+
+.cz-plan__col.is-backfill .cz-plan__bar {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.cz-plan__col.is-unfinished .cz-plan__bar {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.cz-plan__bar em {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.cz-plan__bar img {
+  width: 16px;
+  height: 16px;
+}
+
+.cz-plan__col.is-add .cz-plan__track img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.cz-plan__time {
+  height: 12px;
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  white-space: nowrap;
+}
+
+.cz-plan__scale {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 134px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.cz-plan__scale span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  line-height: 14px;
+}
+
+.cz-plan__scale .cz-plan__unit {
+  top: 0;
+  transform: none;
+  font-size: 11px;
+}
+
+.cz-plan__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.cz-plan__foot > img {
+  width: 16px;
+  height: 16px;
+}
+
+.cz-plan__foot-title {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.cz-plan__foot-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.cz-plan__foot-value small {
+  font-size: 17px;
+}
+
+.cz-plan__viewdata {
+  flex-shrink: 0;
+  width: 106px;
+  height: 33px;
+  border: 0;
+  border-radius: 16.5px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cz-plan__viewdata:active,
+.cz-plan__col:not(:disabled):active {
+  opacity: 0.75;
+}
+
+/* ---------- Pumping schedule card (LactationScheduleAgentCardRenderer) ---------- */
+
+.cz-sched {
+  padding: 16px;
+  border-radius: 24px;
+  background: #fff;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+}
+
+.cz-sched__head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cz-sched__head strong {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: 0.32px;
+}
+
+.cz-sched__head span {
+  font-size: 14px;
+  line-height: 18px;
+  letter-spacing: 0.28px;
+  color: rgba(36, 15, 27, 0.44);
+}
+
+.cz-sched__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.cz-sched__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--cz-bg);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+
+.cz-sched__row.is-next {
+  background: #fff1f3;
+}
+
+.cz-sched__row.is-done {
+  opacity: 0.8;
+}
+
+.cz-sched__labels {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cz-sched__time {
+  font-size: 14px;
+  line-height: 18px;
+  letter-spacing: 0.28px;
+  color: rgba(36, 15, 27, 0.6);
+}
+
+.cz-sched__desc {
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 0.32px;
+}
+
+.cz-sched__row.is-done .cz-sched__time,
+.cz-sched__row.is-done .cz-sched__desc {
+  color: #bdb7ba;
+}
+
+.cz-sched__row img {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.cz-sched__row img.is-spinning {
+  animation: czSpin 1s linear infinite;
+}
+
+@keyframes czSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

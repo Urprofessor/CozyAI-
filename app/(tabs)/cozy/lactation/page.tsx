@@ -4,11 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
-import {
-  LACTATION_GOAL_LABELS,
-  seedLactationSessions,
-  type LactationGoal,
-} from '@/lib/cozy/profile';
+import { LACTATION_GOAL_LABELS, type LactationGoal } from '@/lib/cozy/profile';
+import { freshDay } from '@/lib/cozy/lactation';
 
 type Answers = {
   goal?: LactationGoal;
@@ -98,8 +95,7 @@ export default function LactationQuestionnaire() {
         status: 'completed',
         trackingStarted: false,
         progress: { current: TOTAL, total: TOTAL },
-        sessions: seedLactationSessions(),
-        todayVolumeOz: 32,
+        ...freshDay(answers),
         createdAt: Date.now(),
       },
     });

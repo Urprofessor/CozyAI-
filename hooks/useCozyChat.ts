@@ -18,8 +18,8 @@ import {
   COZY_PAGE_SIZE,
   COZY_SESSION_TIMEOUT_MS,
 } from '@/lib/cozy/constants';
-import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
-import { detectHandoffTrigger, detectSkillTrigger } from '@/lib/cozy/keywords';
+import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, PUMP_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
+import { detectHandoffTrigger, detectSkillTrigger, type CardSkill } from '@/lib/cozy/keywords';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
 import type { CozyProfile } from '@/lib/cozy/profile';
@@ -30,7 +30,14 @@ interface Options {
   /** Extraction seam: called post-stream with any profile facts the model
    *  emitted via a [[PROFILE:{...}]] tag. Swappable for a dedicated call later. */
   onProfilePatch?: (patch: Partial<CozyProfile>) => void;
+  /** Picks the card message for a skill from current plan state (e.g. the
+   *  setup card vs the plan dashboard). Returns the card sentinel. */
+  resolveCard?: (skill: CardSkill) => string;
+  /** Called post-stream with a pumping log the model emitted via [[PUMP:{...}]]. */
+  onPumpLog?: (entry: { oz: number; time?: string }) => void;
 }
+
+const QUESTIONNAIRE_CARD = '__SKILL_LACTATION__';
 
 export function useCozyChat(opts: Options = {}) {
   const deviceId = useDeviceId();
@@ -55,9 +62,13 @@ export function useCozyChat(opts: Options = {}) {
   const sessionsRef = useRef<CozySession[]>([]);
   const deviceIdRef = useRef<string | null>(null);
   const onProfilePatchRef = useRef(opts.onProfilePatch);
+  const resolveCardRef = useRef(opts.resolveCard);
+  const onPumpLogRef = useRef(opts.onPumpLog);
 
   useEffect(() => {
     onProfilePatchRef.current = opts.onProfilePatch;
+    resolveCardRef.current = opts.resolveCard;
+    onPumpLogRef.current = opts.onPumpLog;
   });
   useEffect(() => {
     sessionsRef.current = sessions;
@@ -266,17 +277,22 @@ export function useCozyChat(opts: Options = {}) {
 
       await streamReply(persona, [...messages, userMsg]);
 
-      // Keep the pumping-plan skill card anchored to the bottom of the
-      // conversation: surface it on keyword, and once present always re-anchor
-      // it below the latest reply so it stays visible instead of scrolling away.
-      const wantSkill = cleaned && detectSkillTrigger(cleaned) !== null;
-      setMessages((prev) => {
-        if (!wantSkill && !prev.some((m) => m.content === '__SKILL_LACTATION__')) return prev;
-        return [
-          ...prev.filter((m) => m.content !== '__SKILL_LACTATION__'),
-          { id: newId(), role: 'system', content: '__SKILL_LACTATION__', createdAt: Date.now() },
-        ];
-      });
+      // Keyword backstop for the model's [[SKILL:*]] tag: surface the card
+      // after the reply. Otherwise keep an existing setup card anchored below
+      // the latest reply so it doesn't scroll away.
+      const keywordSkill = cleaned ? detectSkillTrigger(cleaned) : null;
+      if (keywordSkill) {
+        insertCard(keywordSkill);
+      } else {
+        setMessages((prev) =>
+          prev.some((m) => m.content === QUESTIONNAIRE_CARD)
+            ? [
+                ...prev.filter((m) => m.content !== QUESTIONNAIRE_CARD),
+                { id: newId(), role: 'system', content: QUESTIONNAIRE_CARD, createdAt: Date.now() },
+              ]
+            : prev
+        );
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pendingImages, streaming, persona, inQueue, messages]
@@ -448,7 +464,22 @@ export function useCozyChat(opts: Options = {}) {
 
     // Skill offer: append a skill card message (deduped) if the model asked.
     const skillMatch = text.match(SKILL_TAG_RE);
-    if (skillMatch) insertSkillMessage(skillMatch[1]);
+    if (skillMatch && (skillMatch[1] === 'lactation' || skillMatch[1] === 'schedule')) {
+      insertCard(skillMatch[1]);
+    }
+
+    // Pumping log → plan data (sessions / today's volume).
+    const pumpMatch = text.match(PUMP_TAG_RE);
+    if (pumpMatch) {
+      try {
+        const entry = JSON.parse(pumpMatch[1]) as { oz?: number; time?: string };
+        if (typeof entry.oz === 'number' && entry.oz > 0) {
+          onPumpLogRef.current?.({ oz: entry.oz, time: entry.time });
+        }
+      } catch {
+        /* malformed tag — ignore */
+      }
+    }
 
     const hasHandoff = text.includes(HANDOFF_TAG);
     const hasExit = text.includes(EXIT_TAG);
@@ -546,11 +577,10 @@ export function useCozyChat(opts: Options = {}) {
     setMessages((prev) => [...prev, { id: newId(), role: 'system', content }]);
   }, []);
 
-  // Surface the skill card in the chat. Re-poppable: any existing card is
-  // moved to the bottom so chips / keyword / AI-tag always pop a fresh one.
-  function insertSkillMessage(skill: string) {
-    if (skill !== 'lactation') return;
-    const sentinel = '__SKILL_LACTATION__';
+  // Surface a skill card; the card kind comes from plan state (resolveCard).
+  // Re-poppable: an existing card of the same kind moves to the bottom.
+  function insertCard(skill: CardSkill) {
+    const sentinel = resolveCardRef.current?.(skill) ?? QUESTIONNAIRE_CARD;
     setMessages((prev) => [
       ...prev.filter((m) => m.content !== sentinel),
       { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() },
@@ -559,14 +589,14 @@ export function useCozyChat(opts: Options = {}) {
 
   /** Offer a skill card. With `userText`, first post it as the user's turn —
    *  the App's quick-access "Lactation plan" sends "Check my lactation plan". */
-  const startSkill = useCallback((skill: string, userText?: string) => {
+  const startSkill = useCallback((skill: CardSkill, userText?: string) => {
     if (userText) {
       setMessages((prev) => [
         ...prev,
         { id: newId(), role: 'user', content: userText, createdAt: Date.now() },
       ]);
     }
-    insertSkillMessage(skill);
+    insertCard(skill);
   }, []);
 
   // Surface the generated plan card (deduped) — inserted once the questionnaire
@@ -580,15 +610,6 @@ export function useCozyChat(opts: Options = {}) {
     );
   }, []);
 
-  // Append the tracking dashboard inline in the chat (deduped) — "查看详情".
-  const showDashboard = useCallback(() => {
-    const sentinel = '__DASHBOARD_LACTATION__';
-    setMessages((prev) =>
-      prev.some((m) => m.content === sentinel)
-        ? prev
-        : [...prev, { id: newId(), role: 'system', content: sentinel, createdAt: Date.now() }]
-    );
-  }, []);
 
   const appendAssistant = useCallback(
     (content: string, personaOverride?: Persona) => {
@@ -637,7 +658,6 @@ export function useCozyChat(opts: Options = {}) {
     appendAssistant,
     startSkill,
     showPlanCard,
-    showDashboard,
     pageSize: COZY_PAGE_SIZE,
   };
 }
@@ -686,6 +706,7 @@ function cleanForDisplay(text: string): string {
   let t = text
     .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
     .replace(/\[\[SKILL:[a-z_]+\]\]/g, '')
+    .replace(/\[\[PUMP:[\s\S]*?\]\]/g, '')
     .replaceAll(HANDOFF_TAG, '')
     .replaceAll(EXIT_TAG, '');
   const open = t.lastIndexOf('[[');
