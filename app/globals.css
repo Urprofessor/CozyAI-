@@ -1,5 +1,6 @@
 @import './momcozy-theme.css';
 @import './app-shell.css';
+@import './cozie-chat.css';
 
 @tailwind base;
 @tailwind components;

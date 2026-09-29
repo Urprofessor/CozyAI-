@@ -1,336 +1,236 @@
 'use client';
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { CZ, showToast, ToastHost } from './ui';
 
 interface Props {
   onStart: () => void;
 }
 
-const WIDGETS = [
-  '/images/cozyaichat/Widget_Pumping.png',
-  '/images/cozyaichat/Widget_Feeding.png',
-  '/images/cozyaichat/Widget_Sleep.png',
+// ---------- Capability card motion (App AgentChatCapabilityMotion) ----------
+
+const CARD_W = 200;
+const CARD_H = 260;
+const DESIGN_W = 402; // slot poses are laid out on a 402pt-wide container
+const LOOP = 6000; // ms: 1s hold + 1s transition, three times
+type Pose = { left: number; top: number; rot: number };
+const SLOT_POSES: Pose[] = [
+  { left: 143, top: 16, rot: 10 }, // back right
+  { left: 59, top: 36, rot: -10 }, // back left
+  { left: 101, top: 52, rot: 0 }, // front
+];
+const SLOT_Z = [0, 2, 4];
+const FRONT = 2;
+const BACK_RIGHT = 0;
+// states[s][card] = slot of that card in state s.
+const STATES = [
+  [0, 1, 2],
+  [1, 2, 0],
+  [2, 0, 1],
+];
+const OUTSIDE: Pose = {
+  left: SLOT_POSES[FRONT].left + CARD_W * 1.12,
+  top: SLOT_POSES[FRONT].top + CARD_H * -0.02,
+  rot: 5,
+};
+
+const CARDS = [
+  {
+    key: 'verified',
+    title: 'Certified experts',
+    subtitle: 'Backed by 3 certified IBCLCs',
+    topInset: 24,
+  },
+  { key: 'trusted', title: '1M+', subtitle: 'Trusted by 1M+ moms', topInset: 24 },
+  {
+    key: 'personalized',
+    title: 'Made for you',
+    subtitle: 'Your AI parenting assistant',
+    topInset: 32,
+  },
 ];
 
-/** First-run welcome shown when there's no chat history yet. Lives inside the
- *  tab shell (tab bar stays), so no full-screen mask / back arrow. */
-export function WelcomeGate({ onStart }: Props) {
-  const [agreed, setAgreed] = useState(false);
+const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
 
-  return (
-    <div className="cozy-welcome">
-      <div className="cozy-welcome__body">
-        <img
-          className="cozy-welcome__mascot"
-          src="/images/IP_%E9%AB%98%E5%85%B4.png"
-          alt=""
-          draggable={false}
-        />
-        <h1 className="cozy-welcome__title">How can I help today ?</h1>
-        <p className="cozy-welcome__subtitle">
-          Warm answers for feeding, sleep, device support, and everyday baby care.
-        </p>
-
-        <WidgetDeck />
-      </div>
-
-      <div className="cozy-welcome__foot">
-        <div className="cozy-welcome__agreerow">
-          <label className="cozy-welcome__agree">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-            />
-            <span>
-              I agree to{' '}
-              <a role="button" tabIndex={0}>
-                Privacy Statement
-              </a>
-            </span>
-          </label>
-          {/* Both links open policy dialogs later — no-op for now. */}
-          <a className="cozy-welcome__policy" role="button" tabIndex={0}>
-            Medical Disclaimer
-          </a>
-        </div>
-
-        <button
-          type="button"
-          className="mc-button mc-button--lg cozy-welcome__start"
-          disabled={!agreed}
-          onClick={onStart}
-        >
-          Get Started
-        </button>
-      </div>
-    </div>
-  );
+/** Ease each half of the move separately so the front card's out-and-back
+ *  excursion turns smoothly (AgentChatCapabilityMotion.autoplayProgress). */
+function autoplayProgress(p: number) {
+  if (p <= 0.5) return 0.5 * easeInOutCubic(p / 0.5);
+  return 0.5 + 0.5 * easeInOutCubic((p - 0.5) / 0.5);
 }
 
-// Slot geometry by depth (0 = front, then two peekers): {x,y in % of card width, rot in deg}.
-const SLOTS = [
-  { x: 0, y: 2, rot: 0 }, // front — centered, nudged down so peekers show above
-  { x: -22, y: -3, rot: -8 }, // middle — back-left, tilted counter-clockwise
-  { x: 27, y: -13, rot: 9 }, // back — back-right and up, tilted clockwise
-];
-// Farthest position of the outgoing front card: swung out to the right, clear of
-// the stack (~one card width) before it recycles into the back slot.
-const FAR = { x: 112, y: 0, rot: 5 };
-const FAR_LEFT_X = 117; // left-swipe swings a touch further → ~30px clearance (right is ~20px)
-
-const COMMIT_FINGER_RATIO = 0.5; // drag this fraction of deck width → reach farthest / commit
-const PHASE1_MS = 460; // front swings out to the farthest (ease-out)
-const PHASE2_MS = 680; // front recycles into the back, peekers finish (linear / constant speed) — gentler
-const SPRING_MS = 300; // release-short spring-back
-const HANDOFF_P = 0.75; // progress at which the outgoing card drops behind
-const AUTO_START_MS = 800; // delay before the first auto rotation
-const AUTO_DWELL_MS = 1300; // rest between auto rotations (≈ 2s / card)
-const IDLE_RESUME_MS = 2000; // no interaction this long → resume auto-play
-
-type Slot = { x: number; y: number; rot: number };
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-const mix = (a: Slot, b: Slot, t: number): Slot => ({
-  x: lerp(a.x, b.x, t),
-  y: lerp(a.y, b.y, t),
+const lerpPose = (a: Pose, b: Pose, t: number): Pose => ({
+  left: lerp(a.left, b.left, t),
+  top: lerp(a.top, b.top, t),
   rot: lerp(a.rot, b.rot, t),
 });
 
-const NSLOTS = SLOTS.length;
-
-/** Transform of a card at `depth` (0 front, 1 middle, 2 back) at rotation
- *  progress p∈[0,1]. The rotation is ALWAYS forward (front → back, middle →
- *  front, back → middle); `swing` (+1 right / −1 left) only flips which way the
- *  outgoing front card swings out — right-swipe throws it right, left-swipe
- *  throws it left — both landing in the same back slot. */
-function slotAt(depth: number, p: number, swing: number): Slot {
-  const target = (depth - 1 + NSLOTS) % NSLOTS; // one slot forward
-  if (depth === 0) {
-    const farX = swing < 0 ? FAR_LEFT_X : FAR.x; // left clears a bit more than right
-    const far = { x: farX * swing, y: FAR.y, rot: FAR.rot * swing };
-    return p <= 0.5 ? mix(SLOTS[0], far, p / 0.5) : mix(far, SLOTS[target], (p - 0.5) / 0.5);
+function poseFor(from: number, to: number, t: number): Pose {
+  if (from === to) return SLOT_POSES[from];
+  // The front card swings out to the right, then tucks in behind.
+  if (from === FRONT && to === BACK_RIGHT) {
+    return t <= 0.5
+      ? lerpPose(SLOT_POSES[FRONT], OUTSIDE, t / 0.5)
+      : lerpPose(OUTSIDE, SLOT_POSES[BACK_RIGHT], (t - 0.5) / 0.5);
   }
-  return mix(SLOTS[depth], SLOTS[target], p);
-}
-const SLOT_Z = [40, 30, 20]; // canonical layer for slot 0 (front) / 1 (middle) / 2 (back)
-const TOP_Z = 45; // the outgoing card rides just above everything until the hand-off
-
-/** Layer order (always forward), by each card's DESTINATION slot so the settled
- *  stacking is always front > middle > back. The outgoing front card rides on
- *  top until the hand-off, then drops to the back — same for both swipe
- *  directions, since the rotation itself is identical. */
-function zAt(depth: number, p: number): number {
-  const target = (depth - 1 + NSLOTS) % NSLOTS; // one slot forward
-  return depth === 0 && p < HANDOFF_P ? TOP_Z : SLOT_Z[target];
+  return lerpPose(SLOT_POSES[from], SLOT_POSES[to], t);
 }
 
-/** Card deck driven by a single rotation progress `p` (rAF), matching the mp4:
- *  the front card swings out to the right while the layers behind advance part-
- *  way, then it recycles into the back (constant speed) as they finish. Manual:
- *  the finger drives the swing-out; crossing the farthest point commits and the
- *  card recycles on its own. Auto: the same rotation plays every ~2s. Memoized
- *  (no props) so it renders once — all motion is imperative via refs + rAF. */
-const WidgetDeck = memo(function WidgetDeck() {
-  const n = WIDGETS.length;
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const slotRefs = useRef<(HTMLDivElement | null)[]>([]); // z-index carriers
-  const cardRefs = useRef<(HTMLImageElement | null)[]>([]);
-  const frontRef = useRef(0); // index of the current front card
-  const pRef = useRef(0); // rotation progress 0..1
-  const modeRef = useRef<'auto' | 'manual'>('auto');
-  const noAutoRef = useRef(false); // reduced-motion → no auto-play
-  const draggingRef = useRef(false);
-  const committedRef = useRef(false); // crossed the farthest point mid-drag
-  const startXRef = useRef(0);
-  const commitPxRef = useRef(120); // finger px to reach the farthest, measured on grab
-  const dirRef = useRef(1); // swing direction of the outgoing card: +1 right, −1 left
-  const dirLockedRef = useRef(false); // has this drag committed to a swing direction yet
-  const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const anim = useRef<{ kind: string; t0: number; from?: number }>({ kind: 'rest', t0: 0 });
-  const lastNow = useRef(0);
-
-  function paint() {
-    const front = frontRef.current;
-    const p = pRef.current;
-    const swing = dirRef.current;
-    for (let i = 0; i < n; i++) {
-      const img = cardRefs.current[i];
-      const slot = slotRefs.current[i];
-      if (!img || !slot) continue;
-      const depth = (i - front + n) % n;
-      const s = slotAt(depth, p, swing);
-      img.style.transform = `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`;
-      slot.style.zIndex = String(zAt(depth, p)); // z on the wrapper, not the transformed img
-    }
-  }
-
-  function armIdleResume() {
-    if (idleRef.current) clearTimeout(idleRef.current);
-    idleRef.current = setTimeout(() => {
-      modeRef.current = 'auto';
-    }, IDLE_RESUME_MS);
-  }
+function CapabilityDeck() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    noAutoRef.current = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
-    const frame = (now: number) => {
-      const gap = now - (lastNow.current || now);
-      lastNow.current = now;
-      const a = anim.current;
-      if (gap > 250 && a.t0) a.t0 += gap; // absorb stalls (hidden tab) so nothing jumps
+    const start = performance.now();
 
-      if (a.kind === 'rest') {
-        if (modeRef.current === 'auto' && !noAutoRef.current && !draggingRef.current) {
-          a.kind = 'autowait';
-          a.t0 = now;
-        }
-      } else if (a.kind === 'autowait') {
-        if (modeRef.current !== 'auto' || draggingRef.current) a.kind = 'rest';
-        else if (now - a.t0 >= AUTO_START_MS) {
-          a.kind = 'autorun';
-          a.t0 = now;
-        }
-      } else if (a.kind === 'autorun') {
-        dirRef.current = 1; // auto-play is always forward (right)
-        const el = now - a.t0;
-        if (el < PHASE1_MS) pRef.current = 0.5 * easeOut(el / PHASE1_MS);
-        else if (el < PHASE1_MS + PHASE2_MS)
-          pRef.current = 0.5 + 0.5 * ((el - PHASE1_MS) / PHASE2_MS);
-        else {
-          frontRef.current = (frontRef.current + 1) % n;
-          pRef.current = 0;
-          a.kind = 'autodwell';
-          a.t0 = now;
-        }
-      } else if (a.kind === 'autodwell') {
-        if (modeRef.current !== 'auto' || draggingRef.current) a.kind = 'rest';
-        else if (now - a.t0 >= AUTO_DWELL_MS) {
-          a.kind = 'autorun';
-          a.t0 = now;
-        }
-      } else if (a.kind === 'commit') {
-        const frac = Math.min(1, (now - a.t0) / PHASE2_MS);
-        pRef.current = 0.5 + 0.5 * frac; // constant-speed recycle from the farthest
-        if (frac >= 1) {
-          frontRef.current = (frontRef.current + 1) % n; // always forward
-          pRef.current = 0;
-          a.kind = 'rest';
-          armIdleResume();
-        }
-      } else if (a.kind === 'spring') {
-        const frac = Math.min(1, (now - a.t0) / SPRING_MS);
-        pRef.current = (a.from ?? 0) * (1 - easeOut(frac));
-        if (frac >= 1) {
-          pRef.current = 0;
-          a.kind = 'rest';
-          armIdleResume();
-        }
-      }
+    function render(now: number) {
+      const container = containerRef.current;
+      if (!container) return;
+      const offsetX = (container.clientWidth - DESIGN_W) / 2;
+      const cycle = reduce ? 0 : (now - start) % LOOP;
+      const stage = Math.floor(cycle / 2000); // 0..2
+      const inStage = cycle - stage * 2000;
+      const fromState = stage;
+      const moving = inStage >= 1000;
+      const toState = moving ? (stage + 1) % 3 : stage;
+      const t = moving ? autoplayProgress((inStage - 1000) / 1000) : 0;
 
-      paint();
-      raf = requestAnimationFrame(frame);
-    };
-    raf = requestAnimationFrame(frame);
-    return () => {
-      cancelAnimationFrame(raf);
-      if (idleRef.current) clearTimeout(idleRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [n]);
-
-  function onDown(e: React.PointerEvent) {
-    if (idleRef.current) clearTimeout(idleRef.current);
-    modeRef.current = 'manual'; // user took the wheel — stops the auto loop
-    anim.current.kind = 'rest'; // cancel any in-flight auto rotation
-    draggingRef.current = true;
-    committedRef.current = false;
-    dirLockedRef.current = false; // decide right/left on the first real move
-    startXRef.current = e.clientX;
-    commitPxRef.current = COMMIT_FINGER_RATIO * (wrapRef.current?.clientWidth || 300);
-    try {
-      wrapRef.current?.setPointerCapture?.(e.pointerId);
-    } catch {
-      /* pointer not capturable — safe to ignore */
+      cardRefs.current.forEach((card, i) => {
+        if (!card) return;
+        const fromSlot = STATES[fromState][i];
+        const toSlot = STATES[toState][i];
+        const pose = poseFor(fromSlot, toSlot, t);
+        card.style.transform = `translate(${pose.left + offsetX}px, ${pose.top}px) rotate(${pose.rot}deg)`;
+        card.style.zIndex = String(SLOT_Z[t < 0.5 ? fromSlot : toSlot]);
+      });
+      if (!reduce) raf = requestAnimationFrame(render);
     }
-  }
 
-  function onMove(e: React.PointerEvent) {
-    if (!draggingRef.current || committedRef.current) return;
-    const dx = e.clientX - startXRef.current;
-    // Lock the direction on the first move past a small dead-zone: right → forward,
-    // left → reverse. Until then the deck stays at rest.
-    if (!dirLockedRef.current) {
-      if (Math.abs(dx) < 6) {
-        pRef.current = 0;
-        paint();
-        return;
-      }
-      dirRef.current = dx > 0 ? 1 : -1;
-      dirLockedRef.current = true;
-    }
-    // Progress is driven by how far the finger has moved in the locked direction.
-    const p = 0.5 * ((dirRef.current * dx) / commitPxRef.current);
-    if (p >= 0.5) {
-      // Crossed the farthest point → detach from the finger and recycle to back.
-      committedRef.current = true;
-      draggingRef.current = false;
-      pRef.current = 0.5;
-      paint(); // snap to the farthest immediately; the commit animation eases on from here
-      anim.current = { kind: 'commit', t0: performance.now() };
-    } else {
-      pRef.current = Math.max(0, p); // dragging back past the start just returns to rest
-      paint();
-    }
-  }
+    raf = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
-  function onUp() {
-    if (committedRef.current) {
-      committedRef.current = false; // the commit animation finishes on its own
-      return;
-    }
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    anim.current = { kind: 'spring', t0: performance.now(), from: pRef.current };
+  return (
+    <div ref={containerRef} className="cz-consent__deck" aria-label="What Cozie offers">
+      {CARDS.map((c, i) => (
+        <div
+          key={c.key}
+          ref={(el) => {
+            cardRefs.current[i] = el;
+          }}
+          className="cz-cap-card"
+          style={{
+            backgroundImage: `url(${CZ}/icons/capability_${c.key}_background.png)`,
+            transform: `translate(${SLOT_POSES[i].left}px, ${SLOT_POSES[i].top}px) rotate(${SLOT_POSES[i].rot}deg)`,
+            zIndex: SLOT_Z[i],
+          }}
+        >
+          <img src={`${CZ}/icons/capability_${c.key}.svg`} alt="" style={{ marginTop: c.topInset }} />
+          <strong>{c.title}</strong>
+          <span>{c.subtitle}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** App AgentChatConsentViewController: first-run activation page with the
+ *  rotating capability deck, the privacy agreement and "Get started". */
+export function WelcomeGate({ onStart }: Props) {
+  const [agreed, setAgreed] = useState(false);
+  const [prompt, setPrompt] = useState(false);
+
+  function comingSoon(label: string) {
+    showToast(`${label} is coming soon.`);
   }
 
   return (
-    <div
-      ref={wrapRef}
-      className="widget-deck"
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onPointerCancel={onUp}
-    >
-      {WIDGETS.map((src, i) => {
-        const s = SLOTS[i]; // initial layout: front index 0 → card i sits at depth i
-        return (
+    <div className="cz-consent">
+      <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+
+      <div className="cz-consent__scroll">
+        <img
+          className="cz-consent__hero"
+          src={`${CZ}/icons/cozie_magic_wand_light.png`}
+          alt=""
+          draggable={false}
+        />
+        <h1 className="cz-consent__title">How can I help today?</h1>
+        <p className="cz-consent__subtitle">
+          Warm answers for feeding, sleep, device support, and everyday baby care.
+        </p>
+        <CapabilityDeck />
+      </div>
+
+      <div className="cz-consent__agree">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={agreed}
+          aria-label="I agree to the privacy statement"
+          onClick={() => setAgreed((v) => !v)}
+        >
+          <img src={`${CZ}/icons/${agreed ? 'consent_checked' : 'consent_unchecked'}.svg`} alt="" />
+        </button>
+        <span>
+          I agree to{' '}
+          <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
+            Privacy statement
+          </button>
+          <span className="cz-consent__gap" />
+          <button type="button" className="cz-link" onClick={() => comingSoon('Medical disclaimer')}>
+            Medical disclaimer
+          </button>
+        </span>
+      </div>
+
+      <button
+        type="button"
+        className="cz-consent__start"
+        onClick={() => (agreed ? onStart() : setPrompt(true))}
+      >
+        Get started
+      </button>
+
+      {prompt && (
+        <div className="cz-alert-scrim" onClick={() => setPrompt(false)}>
           <div
-            key={src}
-            ref={(el) => {
-              slotRefs.current[i] = el;
-            }}
-            className="widget-slot"
-            style={{ zIndex: [40, 30, 20][i] }}
+            className="cz-consent-prompt"
+            role="alertdialog"
+            aria-label="Agree to the privacy statement"
+            onClick={(e) => e.stopPropagation()}
           >
-            <img
-              ref={(el) => {
-                cardRefs.current[i] = el;
+            <strong>Agree to the privacy statement</strong>
+            <p>
+              Please review and agree to our{' '}
+              <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
+                Privacy statement
+              </button>{' '}
+              before getting started.
+            </p>
+            <button
+              type="button"
+              className={cn('cz-consent-prompt__btn', 'is-primary')}
+              onClick={() => {
+                setAgreed(true);
+                setPrompt(false);
+                onStart();
               }}
-              src={src}
-              alt=""
-              draggable={false}
-              className="widget-card"
-              style={{
-                transform: `translate(${s.x}%, ${s.y}%) rotate(${s.rot}deg)`,
-                transition: 'none',
-              }}
-            />
+            >
+              Agree and continue
+            </button>
+            <button type="button" className="cz-consent-prompt__btn" onClick={() => setPrompt(false)}>
+              Not now
+            </button>
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      <ToastHost />
     </div>
   );
-});
+}

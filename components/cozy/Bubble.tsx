@@ -1,94 +1,109 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, ArrowUpRight } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { CozyMessage } from '@/lib/cozy/types';
 import { ImageGrid } from './ImageGrid';
 import { MarkdownMessage } from './MarkdownMessage';
+import { CZ, showToast } from './ui';
+
+export type Rating = 'up' | 'down' | null;
 
 interface Props {
   msg: CozyMessage;
   onOpenImage: (src: string) => void;
-  agentName?: string;
-  agentAvatar?: string;
-  /** Show the like / dislike / copy / share row under the reply. Suppressed
-   *  while a reply is still streaming. */
-  showActions?: boolean;
-  /** Show the follow-up ("猜你想问") chips — only on the latest turn's reply. */
-  showSuggestions?: boolean;
-  /** Send a tapped follow-up as the next user message. */
-  onSuggest?: (text: string) => void;
-  /** This reply is still streaming — trails a bunny caret after the text. */
+  /** Still streaming — no action bar yet, tail rabbit keeps animating. */
   streaming?: boolean;
-  /** Re-generate this reply in place (retry button). */
+  /** Newest reply of the conversation: owns the response tail + retry. */
+  isLatestReply?: boolean;
+  /** Follow-up chips (only on the latest reply once it has finished). */
+  showSuggestions?: boolean;
+  onSuggest?: (text: string) => void;
   onRetry?: () => void;
+  rating?: Rating;
+  onRate?: (rating: Rating) => void;
+  onNegativeFeedback?: () => void;
+  onOpenSources?: () => void;
 }
 
-/** One rendered chat message. Delegates to sub-forms by role. */
+const DISCLAIMER = 'For information purpose only. Not medical advice.';
+
+/** One chat row, following the App's ChatList rows: UserMessage,
+ *  AssistantMarkdown, AssistantMessageActions, GenerationStopped and the
+ *  AgentResponseTail. */
 export function Bubble({
   msg,
   onOpenImage,
-  showActions = true,
+  streaming = false,
+  isLatestReply = false,
   showSuggestions = false,
   onSuggest,
-  streaming = false,
   onRetry,
+  rating = null,
+  onRate,
+  onNegativeFeedback,
+  onOpenSources,
 }: Props) {
   if (msg.role === 'system') {
-    return <SystemMessage content={msg.content} />;
+    // The __HANDOFF_CARD__ sentinel is intercepted by Chat.tsx to render the card.
+    if (msg.content === '__HANDOFF_CARD__') return null;
+    return <div className="cz-system">{msg.content}</div>;
   }
 
   if (msg.role === 'user') {
     return (
-      <div className="flex flex-col self-end items-end max-w-[86%] gap-1.5">
-        {msg.images && msg.images.length > 0 && (
-          <ImageGrid images={msg.images} onOpen={onOpenImage} />
-        )}
-        {msg.content && (
-          <div className="bg-surface-bubble text-text-1 rounded-[18px_18px_4px_18px] px-4 py-3 max-w-full">
-            <div className="whitespace-pre-wrap break-words leading-6">{msg.content}</div>
-          </div>
-        )}
+      <div className="cz-row cz-row--user">
+        {msg.images && msg.images.length > 0 && <ImageGrid images={msg.images} onOpen={onOpenImage} />}
+        {msg.content && <UserText text={msg.content} />}
       </div>
     );
   }
 
-  // assistant — no header; markdown body, actions, then a bunny + disclaimer
-  // footer once the reply has finished streaming.
+  const isSupport = msg.persona === 'support';
+  const done = !streaming;
+
   return (
-    <div className="flex flex-col self-start items-start w-full gap-1.5">
-      <div className="cozy-md px-0.5 max-w-[86%]">
-        <MarkdownMessage content={msg.content} streaming={streaming} />
-      </div>
-      {showActions && msg.content && (
-        <MessageActions
-          content={msg.content}
-          rateable={msg.persona !== 'support'}
-          onRetry={onRetry}
-        />
-      )}
-      {!streaming && msg.content && msg.persona !== 'support' && (
-        <div className="cozy-reply-foot">
-          <img src="/icon/Frame%202147240664.png" alt="" draggable={false} />
-          <span>
-            For information purpose only.
-            <br />
-            Not medical advice.
-          </span>
+    <div className="cz-row cz-row--agent">
+      {msg.content && (
+        <div className="cozy-md">
+          <MarkdownMessage content={msg.content} />
         </div>
       )}
+
+      {msg.stopped ? (
+        <div className="cz-stopped">
+          <strong>Response stopped</strong>
+          <span>Want a different answer? Regenerate it.</span>
+          {onRetry && (
+            <button type="button" className="cz-action" onClick={onRetry} aria-label="Regenerate">
+              <img src={`${CZ}/icons/action_refresh.svg`} alt="" />
+            </button>
+          )}
+        </div>
+      ) : (
+        done &&
+        msg.content && (
+          <ActionBar
+            content={msg.content}
+            rateable={!isSupport}
+            rating={rating}
+            onRate={onRate}
+            onNegativeFeedback={onNegativeFeedback}
+            onOpenSources={onOpenSources}
+            onRetry={isLatestReply && !isSupport ? onRetry : undefined}
+          />
+        )
+      )}
+
+      {isLatestReply && !isSupport && !msg.stopped && (msg.content || streaming) && (
+        <ResponseTail completed={done} />
+      )}
+
       {showSuggestions && msg.suggestions && msg.suggestions.length > 0 && onSuggest && (
-        <div className="cozy-followups">
+        <div className="cz-followups">
           {msg.suggestions.map((q) => (
-            <button
-              key={q}
-              type="button"
-              className="cozy-followup"
-              onClick={() => onSuggest(q)}
-            >
-              <ArrowUpRight size={13} strokeWidth={2} />
-              <span>{q}</span>
+            <button key={q} type="button" className="cz-chip" onClick={() => onSuggest(q)}>
+              {q}
             </button>
           ))}
         </div>
@@ -97,100 +112,143 @@ export function Bubble({
   );
 }
 
-/** Copy / like / dislike / retry row + a Sources placeholder, under a reply.
- *  Ratings are local-only (demo); retry re-generates the reply in place. */
-function MessageActions({
+/** White 24pt-radius bubble, clamped to 5 lines; tapping a clamped message
+ *  shows it in full. */
+function UserText({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [clamped, setClamped] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && !expanded) setClamped(el.scrollHeight > el.clientHeight + 1);
+  }, [text, expanded]);
+
+  return (
+    <div
+      ref={ref}
+      className={cn('cz-user-bubble', !expanded && 'is-clamped', clamped && 'is-tappable')}
+      onClick={clamped || expanded ? () => setExpanded((v) => !v) : undefined}
+    >
+      {text}
+    </div>
+  );
+}
+
+function ActionBar({
   content,
   rateable,
+  rating,
+  onRate,
+  onNegativeFeedback,
+  onOpenSources,
   onRetry,
 }: {
   content: string;
   rateable: boolean;
+  rating: Rating;
+  onRate?: (rating: Rating) => void;
+  onNegativeFeedback?: () => void;
+  onOpenSources?: () => void;
   onRetry?: () => void;
 }) {
-  const [vote, setVote] = useState<'up' | 'down' | null>(null);
-  const [copied, setCopied] = useState(false);
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      showToast('Copied');
     } catch {
       /* clipboard blocked — no-op */
     }
   }
 
+  function up() {
+    if (rating === 'up') return onRate?.(null);
+    onRate?.('up');
+    showToast('Thanks for the feedback.');
+  }
+
+  function down() {
+    if (rating === 'down') return onRate?.(null);
+    onNegativeFeedback?.();
+  }
+
   return (
-    <div className="mt-2 flex w-full items-center justify-between">
-      <div className="flex items-center gap-0.5 -ml-1.5">
-        <ActionButton label={copied ? 'Copied' : 'Copy'} onClick={copy}>
-          {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={1.9} />}
-        </ActionButton>
-        {rateable && (
-          <>
-            <ActionButton
-              label="Helpful"
-              active={vote === 'up'}
-              onClick={() => setVote((v) => (v === 'up' ? null : 'up'))}
-            >
-              <ThumbsUp size={15} strokeWidth={1.9} />
-            </ActionButton>
-            <ActionButton
-              label="Not helpful"
-              active={vote === 'down'}
-              onClick={() => setVote((v) => (v === 'down' ? null : 'down'))}
-            >
-              <ThumbsDown size={15} strokeWidth={1.9} />
-            </ActionButton>
-            {onRetry && (
-              <ActionButton label="Regenerate" onClick={onRetry}>
-                <RotateCcw size={15} strokeWidth={1.9} />
-              </ActionButton>
-            )}
-          </>
-        )}
-      </div>
+    <div className="cz-actions">
+      <button type="button" className="cz-action" onClick={copy} aria-label="Copy">
+        <img src={`${CZ}/icons/action_copy.svg`} alt="" />
+      </button>
       {rateable && (
-        <button type="button" className="cozy-sources" title="Sources (coming soon)">
-          Sources
-          <ArrowUpRight size={13} strokeWidth={2} />
+        <>
+          <button
+            type="button"
+            className="cz-action"
+            onClick={up}
+            aria-label="Helpful"
+            aria-pressed={rating === 'up'}
+          >
+            <img src={`${CZ}/icons/action_thumb_up${rating === 'up' ? '_filled' : ''}.svg`} alt="" />
+          </button>
+          <button
+            type="button"
+            className="cz-action"
+            onClick={down}
+            aria-label="Not helpful"
+            aria-pressed={rating === 'down'}
+          >
+            <img src={`${CZ}/icons/action_thumb_down${rating === 'down' ? '_filled' : ''}.svg`} alt="" />
+          </button>
+        </>
+      )}
+      {onRetry && (
+        <button type="button" className="cz-action" onClick={onRetry} aria-label="Regenerate">
+          <img src={`${CZ}/icons/action_refresh.svg`} alt="" />
+        </button>
+      )}
+      {rateable && onOpenSources && (
+        <button type="button" className="cz-sources-pill" onClick={onOpenSources}>
+          Sources ↗
         </button>
       )}
     </div>
   );
 }
 
-function ActionButton({
-  label,
-  active,
-  onClick,
-  children,
-}: {
-  label: string;
-  active?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+/** App ChatResponseTailCell: thinking rabbit while the reply streams, then the
+ *  resting rabbit + right-aligned disclaimer. */
+function ResponseTail({ completed }: { completed: boolean }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
-        'text-text-2 hover:bg-surface-bubble active:scale-95',
-        active && 'text-brand-rose-700 bg-surface-bubble'
+    <div className="cz-tail">
+      <img
+        className="cz-tail__rabbit"
+        src={completed ? `${CZ}/icons/cozie_response_initial.png` : `${CZ}/ip/Cozie_Thinking_Light.webp`}
+        alt=""
+        draggable={false}
+      />
+      {completed && (
+        // App formatResponseDisclaimer: one sentence per line.
+        <span className="cz-tail__disclaimer">
+          {DISCLAIMER.split(/(?<=\.)\s+/).map((s, i) => (
+            <span key={i} className="block">
+              {s}
+            </span>
+          ))}
+        </span>
       )}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 
-function SystemMessage({ content }: { content: string }) {
-  // The __HANDOFF_CARD__ sentinel is intercepted by Chat.tsx to render the card.
-  if (content === '__HANDOFF_CARD__') return null;
-  return <div className="cozy-tier-3 self-center max-w-[90%] px-3 py-0.5 my-1">{content}</div>;
+/** App AgentChatRunStatusView: looping thinking rabbit + shimmering stage text,
+ *  shown before the first token arrives. */
+export function RunStatus({ text = 'Thinking…' }: { text?: string }) {
+  return (
+    <div className="cz-row cz-row--agent">
+      <div className="cz-runstatus">
+        <img src={`${CZ}/ip/Cozie_Thinking_Light.webp`} alt="" draggable={false} />
+        <span className="cz-shimmer" data-text={text}>
+          {text}
+        </span>
+      </div>
+    </div>
+  );
 }

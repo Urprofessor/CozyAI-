@@ -12,6 +12,7 @@ export interface CozyMessage {
   reference?: string; // QA reply footer (e.g. "From Professional literature")
   suggestions?: string[]; // QA follow-up chips ("猜你想问"), from a [[SUGGEST]] tag
   createdAt?: number;
+  stopped?: boolean; // reply was stopped by the user mid-generation
 }
 
 export type HandoffState = 'idle' | 'connecting' | 'queuing' | 'assigning' | 'joined';

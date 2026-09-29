@@ -154,7 +154,7 @@ export default function LactationQuestionnaire() {
       <div className="lac-q__foot">
         <button
           type="button"
-          className="mc-button mc-button--lg cozy-welcome__start"
+          className="mc-button mc-button--lg lac-q__start"
           disabled={currentValue == null}
           onClick={next}
         >

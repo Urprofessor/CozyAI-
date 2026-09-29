@@ -2,75 +2,55 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Hexagon, House, Orbit, UserRound } from 'lucide-react';
+import { CZ, MaskIcon } from '@/components/cozy/ui';
 
-const SIDE_TABS = [
-  { href: '/home', label: 'Home', icon: House },
-  { href: '/device', label: 'Device', icon: Hexagon },
-] as const;
-
-const SIDE_TABS_RIGHT = [
-  { href: '/community', label: 'Community', icon: Orbit },
-  { href: '/me', label: 'Me', icon: UserRound },
+// Tab order, titles and icons follow the App's new-flow tab bar
+// (TabBarItem.visibleItems: home, smart, ai, moment, mine).
+const TABS = [
+  { href: '/home', label: 'Home', icon: 'home' },
+  { href: '/device', label: 'Device', icon: 'device' },
+  { href: '/cozy', label: 'Cozie AI', icon: 'ai' },
+  { href: '/community', label: 'Community', icon: 'community' },
+  { href: '/me', label: 'Me', icon: 'me' },
 ] as const;
 
 // Full-screen detail pages that have their own back nav — the floating tab bar
 // doesn't belong under them.
 const HIDE_TAB_BAR_ON = ['/cozy/schedule'];
 
-/** iOS 26-style floating liquid-glass tab bar with the Cozy AI center slot. */
+/** App-style floating glass tab bar (iOS 26 UITabBar look): 10pt labels,
+ *  #3E0010 normal / #770523 selected, the AI tab keeps its original-colour
+ *  selected artwork. */
 export function GlassTabBar() {
   const pathname = usePathname();
-  const cozyActive = pathname.startsWith('/cozy');
 
   if (HIDE_TAB_BAR_ON.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav className="glass-tab-bar" aria-label="Primary navigation">
-      {SIDE_TABS.map((tab) => (
-        <TabItem key={tab.href} {...tab} active={pathname.startsWith(tab.href)} />
-      ))}
-
-      <Link
-        href="/cozy"
-        className={`glass-tab-bar__item ${cozyActive ? 'is-active' : ''}`}
-        aria-label="Cozy AI"
-      >
-        <span className="glass-tab-bar__icon">
-          <img
-            src="/images/IP_%E9%AB%98%E5%85%B4.png"
-            alt=""
-            draggable={false}
-            className="glass-tab-bar__cozy"
-          />
-        </span>
-        <span>Cozy AI</span>
-      </Link>
-
-      {SIDE_TABS_RIGHT.map((tab) => (
-        <TabItem key={tab.href} {...tab} active={pathname.startsWith(tab.href)} />
-      ))}
+      {TABS.map((tab) => {
+        const active = pathname.startsWith(tab.href);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`glass-tab-bar__item ${active ? 'is-active' : ''}`}
+            aria-current={active ? 'page' : undefined}
+          >
+            <span className="glass-tab-bar__icon">
+              {tab.icon === 'ai' && active ? (
+                <img src={`${CZ}/tab/ai-selected.svg`} alt="" draggable={false} />
+              ) : (
+                <MaskIcon
+                  src={`${CZ}/tab/${tab.icon}${active && tab.icon !== 'ai' ? '-selected' : tab.icon === 'ai' ? '-normal' : ''}.svg`}
+                  size={24}
+                />
+              )}
+            </span>
+            <span className="glass-tab-bar__label">{tab.label}</span>
+          </Link>
+        );
+      })}
     </nav>
-  );
-}
-
-function TabItem({
-  href,
-  label,
-  icon: Icon,
-  active,
-}: {
-  href: string;
-  label: string;
-  icon: typeof House;
-  active: boolean;
-}) {
-  return (
-    <Link href={href} className={`glass-tab-bar__item ${active ? 'is-active' : ''}`}>
-      <span className="glass-tab-bar__icon">
-        <Icon size={22} strokeWidth={1.9} />
-      </span>
-      <span>{label}</span>
-    </Link>
   );
 }

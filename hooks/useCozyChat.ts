@@ -46,6 +46,9 @@ export function useCozyChat(opts: Options = {}) {
   const [hydrated, setHydrated] = useState(false); // sessions loaded from server yet?
 
   const abortRef = useRef<AbortController | null>(null);
+  // Set when a stream is aborted because the conversation is being swapped out
+  // (new chat / load session) — that abort must not leave a "stopped" reply.
+  const discardStreamRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef(false);
   const currentIdRef = useRef<string | null>(null);
@@ -151,6 +154,7 @@ export function useCozyChat(opts: Options = {}) {
 
   /** Manual restart from the topbar — the current session is already archived. */
   const newSession = useCallback(() => {
+    if (abortRef.current) discardStreamRef.current = true;
     stopInternal(abortRef);
     currentIdRef.current = null;
     setCurrentSessionId(null);
@@ -166,6 +170,7 @@ export function useCozyChat(opts: Options = {}) {
   const loadSession = useCallback((id: string) => {
     const s = sessionsRef.current.find((x) => x.id === id);
     if (!s) return;
+    if (abortRef.current) discardStreamRef.current = true;
     stopInternal(abortRef);
     currentIdRef.current = id;
     setCurrentSessionId(id);
@@ -191,6 +196,15 @@ export function useCozyChat(opts: Options = {}) {
     },
     [persistSessions]
   );
+
+  const deleteAllSessions = useCallback(() => {
+    sessionsRef.current = [];
+    setSessions([]);
+    persistSessions([]);
+    currentIdRef.current = null;
+    setCurrentSessionId(null);
+    setMessages([]);
+  }, [persistSessions]);
 
   // ---------- image pool ----------
 
@@ -280,7 +294,7 @@ export function useCozyChat(opts: Options = {}) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: '', reference: undefined, suggestions: undefined }
+            ? { ...m, content: '', reference: undefined, suggestions: undefined, stopped: false }
             : m
         )
       );
@@ -304,9 +318,11 @@ export function useCozyChat(opts: Options = {}) {
     setStreaming(true);
     abortRef.current = new AbortController();
     let text = '';
+    let aborted = false;
     const isRegen = !!targetId; // rewrite an existing reply in place vs. append a new one
     const assistantId = targetId ?? newId();
 
+    let bubbleAdded = isRegen; // regen updates the existing message instead of appending
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -315,7 +331,8 @@ export function useCozyChat(opts: Options = {}) {
         body: JSON.stringify({
           persona: personaAtStart,
           messages: history
-            .filter((m) => m.role === 'user' || m.role === 'assistant')
+            // Stopped-before-first-token replies are empty; the model APIs reject those.
+            .filter((m) => (m.role === 'user' || m.role === 'assistant') && (m.content || m.images?.length))
             .map((m) => {
               const base: { role: 'user' | 'assistant'; content: string; images?: string[] } = {
                 role: m.role as 'user' | 'assistant',
@@ -331,7 +348,6 @@ export function useCozyChat(opts: Options = {}) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let bubbleAdded = isRegen; // regen updates the existing message instead of appending
 
       while (true) {
         const { value, done } = await reader.read();
@@ -373,7 +389,30 @@ export function useCozyChat(opts: Options = {}) {
       }
     } catch (err: unknown) {
       const isAbort = err instanceof DOMException && err.name === 'AbortError';
-      if (!isAbort) {
+      if (isAbort && discardStreamRef.current) {
+        discardStreamRef.current = false;
+        aborted = true;
+      } else if (isAbort) {
+        // Keep whatever streamed in and mark the reply as stopped (the list
+        // renders "Response stopped" + regenerate under it, as in the App).
+        aborted = true;
+        const partial = cleanForDisplay(text).trim();
+        setMessages((prev) =>
+          bubbleAdded
+            ? prev.map((m) => (m.id === assistantId ? { ...m, content: partial, stopped: true } : m))
+            : [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: partial,
+                  persona: personaAtStart,
+                  stopped: true,
+                  createdAt: Date.now(),
+                },
+              ]
+        );
+      } else {
         const errText = "Sorry, I couldn't reach the assistant right now. Please try again.";
         setMessages((prev) =>
           isRegen
@@ -394,6 +433,7 @@ export function useCozyChat(opts: Options = {}) {
       setStreaming(false);
       abortRef.current = null;
     }
+    if (aborted) return;
 
     // Extract the silent profile tag (if any) and hand the patch to the store.
     const profileMatch = text.match(PROFILE_TAG_RE);
@@ -517,7 +557,17 @@ export function useCozyChat(opts: Options = {}) {
     ]);
   }
 
-  const startSkill = useCallback((skill: string) => insertSkillMessage(skill), []);
+  /** Offer a skill card. With `userText`, first post it as the user's turn —
+   *  the App's quick-access "Lactation plan" sends "Check my lactation plan". */
+  const startSkill = useCallback((skill: string, userText?: string) => {
+    if (userText) {
+      setMessages((prev) => [
+        ...prev,
+        { id: newId(), role: 'user', content: userText, createdAt: Date.now() },
+      ]);
+    }
+    insertSkillMessage(skill);
+  }, []);
 
   // Surface the generated plan card (deduped) — inserted once the questionnaire
   // completes. Distinct from the always-initial offer card.
@@ -576,6 +626,7 @@ export function useCozyChat(opts: Options = {}) {
     newSession,
     loadSession,
     deleteSession,
+    deleteAllSessions,
     addImages,
     removeImage,
     confirmHandoff,

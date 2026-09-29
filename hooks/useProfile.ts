@@ -85,5 +85,19 @@ export function useProfile() {
     });
   }, []);
 
-  return { profile, loaded, applyPatch };
+  /** Forget everything (Settings → Reset Cozie memory). */
+  const reset = useCallback(() => {
+    setProfile({});
+    writeLocal({});
+    const id = deviceRef.current;
+    if (id) {
+      fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: id, profile: {} }),
+      }).catch(() => {});
+    }
+  }, []);
+
+  return { profile, loaded, applyPatch, reset };
 }

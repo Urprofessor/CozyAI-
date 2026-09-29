@@ -2,18 +2,24 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, Mic, Moon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCozyChat } from '@/hooks/useCozyChat';
 import { useProfile } from '@/hooks/useProfile';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
+import type { CozyMessage } from '@/lib/cozy/types';
 import type { CozyProfile } from '@/lib/cozy/profile';
-import { Bubble } from './Bubble';
+import { Bubble, RunStatus, type Rating } from './Bubble';
+import { CozieHero, SuggestionPanel } from './CozieHome';
 import { CozyTopbar } from './CozyTopbar';
+import { FeedbackSheet } from './FeedbackSheet';
 import { HandoffCard } from './HandoffCard';
 import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
+import { SettingsSheet } from './SettingsSheet';
+import { SourcesSheet } from './SourcesSheet';
+import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
 import { LactationSkillMessage } from './skill/LactationSkillMessage';
 import { PlanCard } from './skill/PlanCard';
@@ -26,16 +32,32 @@ interface SkillHandlers {
   onViewDetail: () => void;
 }
 
-const WELCOMED_KEY = 'cozyWelcomed';
+interface RowHandlers {
+  onOpenImage: (src: string) => void;
+  onSarahIntro: () => void;
+  ratings: Record<string, Rating>;
+  onRate: (id: string, rating: Rating) => void;
+  onNegativeFeedback: (id: string) => void;
+  onOpenSources: () => void;
+}
 
-/** Cozy AI tab — the AI home IS the conversation. The greeting is the stream's
- *  opening element and scrolls away with it. */
+const WELCOMED_KEY = 'cozyWelcomed';
+const HISTORY_OPEN_CLASS = 'cz-history-open';
+
+/** Cozie AI tab, laid out like the App's AgentChatViewController: top bar,
+ *  home (IP + greeting) or the chat list, the suggestion / quick-access panel
+ *  and the input pill, over the #F9F7F5 page with its pink header wash. */
 export function CozyChat() {
   const router = useRouter();
   const profile = useProfile();
   const chat = useCozyChat({ onProfilePatch: profile.applyPatch });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [ratings, setRatings] = useState<Record<string, Rating>>({});
+  const [heroReplay, setHeroReplay] = useState(0);
   // null = localStorage not read yet; true/false once known.
   const [welcomed, setWelcomed] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,8 +66,14 @@ export function CozyChat() {
     setWelcomed(localStorage.getItem(WELCOMED_KEY) === '1');
   }, []);
 
-  // Follow the bottom as the conversation updates (including when the skill
-  // card re-anchors below a new reply), unless the user scrolled up to read.
+  // The drawer slides the whole tab page (including the tab bar) to the right,
+  // so the open state lives on <html> where the shared shell can see it.
+  useEffect(() => {
+    document.documentElement.classList.toggle(HISTORY_OPEN_CLASS, historyOpen);
+  }, [historyOpen]);
+  useEffect(() => () => document.documentElement.classList.remove(HISTORY_OPEN_CLASS), []);
+
+  // Follow the bottom as the conversation updates, unless the user scrolled up.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -67,8 +95,7 @@ export function CozyChat() {
     onViewDetail: chat.showDashboard,
   };
 
-  // Surface the generated plan card once the questionnaire completes (the
-  // offer card above stays initial so the user can re-make a plan). Wait for
+  // Surface the generated plan card once the questionnaire completes. Wait for
   // history hydration so the load doesn't wipe the inserted card.
   const planStatus = profile.profile.lactationPlan?.status;
   useEffect(() => {
@@ -79,7 +106,7 @@ export function CozyChat() {
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
   const decided = welcomed !== null && chat.hydrated;
-  if (!decided) return <div className="cozy-page" />;
+  if (!decided) return <div className="cz-page" />;
 
   if (!welcomed && chat.sessions.length === 0) {
     return (
@@ -92,45 +119,26 @@ export function CozyChat() {
     );
   }
 
-  // Empty (first-entry) state: mascot + greeting + suggested chips + quick pills.
-  const isEmpty = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
+  const isHome = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
+  const title = profileTitle(profile.profile);
+
+  function startNewChat() {
+    setHistoryOpen(false);
+    chat.newSession();
+    setHeroReplay((n) => n + 1);
+  }
+
+  const rows: RowHandlers = {
+    onOpenImage: setLightboxSrc,
+    onSarahIntro: handleSarahIntro,
+    ratings,
+    onRate: (id, rating) => setRatings((r) => ({ ...r, [id]: rating })),
+    onNegativeFeedback: setFeedbackFor,
+    onOpenSources: () => setSourcesOpen(true),
+  };
 
   return (
-    <div className={isEmpty ? 'cozy-page cozy-page--empty' : 'cozy-page'}>
-      <CozyTopbar
-        onOpenHistory={() => setHistoryOpen(true)}
-        onNewSession={() => {
-          setHistoryOpen(false);
-          chat.newSession();
-        }}
-      />
-
-      {isEmpty ? (
-        <EmptyHome onSend={chat.send} />
-      ) : (
-        /* Conversation stream — the only scroll area */
-        <div ref={scrollRef} className="cozy-stream">
-          {renderStream(chat, setLightboxSrc, handleSarahIntro, skill)}
-
-          {/* Dots only for the pre-first-token gap; once the reply starts, the
-              streaming bunny caret trails the text instead. */}
-          {chat.streaming &&
-            chat.messages[chat.messages.length - 1]?.role !== 'assistant' && (
-              <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
-            )}
-        </div>
-      )}
-
-      <InputBar
-        streaming={chat.streaming}
-        pendingImages={chat.pendingImages}
-        onAddImages={chat.addImages}
-        onRemoveImage={chat.removeImage}
-        onSend={chat.send}
-        onStop={chat.stop}
-        onSkill={chat.startSkill}
-      />
-
+    <>
       <HistoryDrawer
         open={historyOpen}
         sessions={chat.sessions}
@@ -141,39 +149,132 @@ export function CozyChat() {
           setHistoryOpen(false);
         }}
         onDelete={chat.deleteSession}
+        onNewChat={startNewChat}
+        onOpenSettings={() => {
+          // The App shows settings once the drawer has closed.
+          setHistoryOpen(false);
+          setTimeout(() => setSettingsOpen(true), 280);
+        }}
       />
 
+      <div className={cn('cz-page', isHome ? 'is-home' : 'is-chat')}>
+        <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+        {!isHome && <div className="cz-page__bottom-fade" aria-hidden />}
+
+        <CozyTopbar
+          title={title}
+          canSelectBaby={false}
+          onOpenHistory={() => setHistoryOpen(true)}
+          onNewSession={startNewChat}
+          newSessionEnabled={!isHome}
+        />
+
+        {isHome ? (
+          <CozieHero replayKey={heroReplay} />
+        ) : (
+          <div ref={scrollRef} className="cz-stream">
+            {renderStream(chat, skill, rows)}
+          </div>
+        )}
+
+        <SuggestionPanel
+          showSuggestions={isHome}
+          onSend={chat.send}
+          onLactationPlan={() => chat.startSkill('lactation', 'Check my lactation plan')}
+          lactationActive={planStatus === 'completed'}
+        />
+
+        <InputBar
+          streaming={chat.streaming}
+          pendingImages={chat.pendingImages}
+          onAddImages={chat.addImages}
+          onRemoveImage={chat.removeImage}
+          onSend={chat.send}
+          onStop={chat.stop}
+        />
+      </div>
+
+      <SettingsSheet
+        open={settingsOpen}
+        title={title}
+        onClose={() => setSettingsOpen(false)}
+        onResetMemory={profile.reset}
+        onDeleteHistory={() => {
+          chat.deleteAllSessions();
+          setSettingsOpen(false);
+        }}
+      />
+
+      <FeedbackSheet
+        open={feedbackFor !== null}
+        onClose={() => setFeedbackFor(null)}
+        onSubmit={() => {
+          if (feedbackFor) setRatings((r) => ({ ...r, [feedbackFor]: 'down' }));
+          setFeedbackFor(null);
+          showToast('Thanks for the feedback.');
+        }}
+      />
+
+      <SourcesSheet open={sourcesOpen} onClose={() => setSourcesOpen(false)} />
+
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
-    </div>
+      <ToastHost />
+    </>
   );
 }
 
-/** Render the message stream. */
+/** App agent_chat_profile_*: "Mom and Baby", one of them, or "Cozie". */
+function profileTitle(p: CozyProfile) {
+  const mom = p.name?.trim();
+  const baby = p.baby?.name?.trim();
+  if (mom && baby) return `${mom} and ${baby}`;
+  return mom || baby || 'Cozie';
+}
+
+/** Render the message stream as App ChatList rows. */
 function renderStream(
   chat: ReturnType<typeof useCozyChat>,
-  onOpenImage: (src: string) => void,
-  onSarahIntro: () => void,
-  skill: SkillHandlers
+  skill: SkillHandlers,
+  rows: RowHandlers
 ): ReactNode[] {
   const out: ReactNode[] = [];
+  const last = chat.messages[chat.messages.length - 1];
 
-  // Follow-up chips ride only on the newest reply: the last user-or-assistant
-  // message. Older replies keep their chips collapsed (not rendered), and the
-  // chips drop away the moment the user sends anything after the reply.
-  let lastTurnId: string | null = null;
+  // The response tail, retry and follow-up chips belong to the newest reply
+  // only; a new user message takes them away (App: AgentResponseTail rule).
+  let lastTurn: CozyMessage | null = null;
   for (const m of chat.messages) {
-    if (m.role === 'user' || m.role === 'assistant') lastTurnId = m.id;
+    if (m.role === 'user' || m.role === 'assistant') lastTurn = m;
   }
+  const latestReplyId = lastTurn?.role === 'assistant' ? lastTurn.id : null;
 
+  let lastDay = '';
   for (const m of chat.messages) {
+    // Date separator before the first message of each local day.
+    if (m.createdAt && (m.role === 'user' || m.role === 'assistant')) {
+      const day = new Date(m.createdAt).toDateString();
+      if (day !== lastDay) {
+        lastDay = day;
+        out.push(
+          <div key={`sep-${m.id}`} className="cz-date">
+            {formatSeparator(m.createdAt)}
+          </div>
+        );
+      }
+    }
+
     if (m.content === '__SKILL_LACTATION__') {
-      out.push(<LactationSkillMessage key={m.id} onStart={skill.onStart} />);
+      out.push(
+        <div key={m.id} className="cz-row cz-row--card">
+          <LactationSkillMessage onStart={skill.onStart} />
+        </div>
+      );
       continue;
     }
     if (m.content === '__PLAN_LACTATION__') {
       if (skill.plan) {
         out.push(
-          <div key={m.id} className="self-start w-[92%] max-w-[92%]">
+          <div key={m.id} className="cz-row cz-row--card">
             <PlanCard
               plan={skill.plan}
               onStartTracking={skill.onStartTracking}
@@ -187,7 +288,7 @@ function renderStream(
     if (m.content === '__DASHBOARD_LACTATION__') {
       if (skill.plan) {
         out.push(
-          <div key={m.id} className="self-start w-[92%] max-w-[92%]">
+          <div key={m.id} className="cz-row cz-row--card">
             <LactationDashboard plan={skill.plan} />
           </div>
         );
@@ -196,97 +297,77 @@ function renderStream(
     }
     if (m.content === '__HANDOFF_CARD__') {
       out.push(
-        <HandoffCard
-          key={m.id}
-          state={chat.handoffState}
-          supportAvatar={chat.supportAvatar}
-          onConfirm={chat.confirmHandoff}
-          onCancel={chat.cancelHandoff}
-          onAdvance={chat.advanceHandoff}
-          onJoined={() => {
-            chat.finishHandoff();
-            chat.appendSystem('Sarah joined the conversation.');
-          }}
-          onSarahIntro={onSarahIntro}
-        />
+        <div key={m.id} className="cz-row cz-row--card">
+          <HandoffCard
+            state={chat.handoffState}
+            supportAvatar={chat.supportAvatar}
+            onConfirm={chat.confirmHandoff}
+            onCancel={chat.cancelHandoff}
+            onAdvance={chat.advanceHandoff}
+            onJoined={() => {
+              chat.finishHandoff();
+              chat.appendSystem('Sarah joined the conversation.');
+            }}
+            onSarahIntro={rows.onSarahIntro}
+          />
+        </div>
       );
       continue;
     }
 
-    // Hide the action row on the reply that's still streaming in.
-    const isLast = m.id === chat.messages[chat.messages.length - 1]?.id;
-    const midStream = chat.streaming && isLast && m.role === 'assistant';
-    const showActions = !midStream;
-    // Follow-up chips only on the latest turn's reply, and never mid-stream.
-    const showSuggestions = m.id === lastTurnId && !midStream;
+    const midStream = chat.streaming && m.id === last?.id && m.role === 'assistant';
+    // A reply being regenerated is empty until its first token: show the run
+    // status in its place.
+    if (midStream && !m.content) {
+      out.push(<RunStatus key={m.id} />);
+      continue;
+    }
+
     out.push(
       <Bubble
         key={m.id}
         msg={m}
-        onOpenImage={onOpenImage}
-        showActions={showActions}
-        showSuggestions={showSuggestions}
-        onSuggest={chat.send}
+        onOpenImage={rows.onOpenImage}
         streaming={midStream}
+        isLatestReply={m.id === latestReplyId}
+        showSuggestions={m.id === latestReplyId && !midStream}
+        onSuggest={chat.send}
         onRetry={() => chat.regenerate(m.id)}
+        rating={rows.ratings[m.id] ?? null}
+        onRate={(r) => rows.onRate(m.id, r)}
+        onNegativeFeedback={() => rows.onNegativeFeedback(m.id)}
+        onOpenSources={rows.onOpenSources}
       />
+    );
+  }
+
+  // Pre-first-token gap: Cozie's run status (Sarah keeps her typing indicator).
+  if (chat.streaming && last?.role !== 'assistant') {
+    out.push(
+      chat.persona === 'support' ? (
+        <div key="loading" className="cz-row cz-row--agent">
+          <LoadingIndicator persona={chat.persona} supportAvatar={chat.supportAvatar} />
+        </div>
+      ) : (
+        <RunStatus key="loading" />
+      )
     );
   }
 
   return out;
 }
 
-// Demo content for the first-entry state (static for now; wired to logs later).
-const SUGGESTED = [
-  'Bonnie slept from 1:10 to 2:05 pm.',
-  'How much should my baby be eating?',
-  'I pumped 5 oz total just now.',
-];
-const QUICK_PILLS = [
-  { label: 'Lactation Plan', icon: <Tag size={15} strokeWidth={1.9} /> },
-  { label: 'Voice Log', icon: <Mic size={15} strokeWidth={1.9} /> },
-  { label: 'BB Sleep Forecast', icon: <Moon size={15} strokeWidth={1.9} /> },
-];
-
-/** First-entry / empty-conversation home: mascot + greeting, then a "Suggested
- *  for you" list and quick-action pills above the composer. The hero collapses
- *  and the pills hide when the keyboard is up (via the .kb-open root class). */
-function EmptyHome({ onSend }: { onSend: (text: string) => void }) {
-  const [hour, setHour] = useState<number | null>(null);
-  useEffect(() => setHour(new Date().getHours()), []);
-  const part = hour === null ? '' : hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
-
-  return (
-    <div className="cozy-empty">
-      <div className="cozy-empty__hero">
-        {/* TODO: swap for the new mascot asset when provided. */}
-        <img
-          className="cozy-empty__mascot"
-          src="/images/IP_%E9%AB%98%E5%85%B4.png"
-          alt=""
-          draggable={false}
-        />
-        <h1 className="cozy-greeting cozy-greeting--center">Good {part || 'Day'}</h1>
-      </div>
-
-      <div className="cozy-empty__suggest">
-        <p className="cozy-suggest-label">Suggested for you</p>
-        <div className="cozy-suggest-chips">
-          {SUGGESTED.map((q) => (
-            <button key={q} type="button" className="cozy-suggest-chip" onClick={() => onSend(q)}>
-              {q}
-            </button>
-          ))}
-        </div>
-        <div className="cozy-quick-pills">
-          {QUICK_PILLS.map((p) => (
-            <button key={p.label} type="button" className="cozy-quick-pill">
-              {p.icon}
-              <span>{p.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+/** Today HH:mm / Yesterday HH:mm / MMM d, HH:mm / MMM d, yyyy, HH:mm. */
+function formatSeparator(ts: number) {
+  const d = new Date(ts);
+  const now = new Date();
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const dayDiff = Math.round((startOf(now) - startOf(d)) / 86_400_000);
+  if (dayDiff === 0) return `Today ${time}`;
+  if (dayDiff === 1) return `Yesterday ${time}`;
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  return d.getFullYear() === now.getFullYear()
+    ? `${month} ${d.getDate()}, ${time}`
+    : `${month} ${d.getDate()}, ${d.getFullYear()}, ${time}`;
 }
