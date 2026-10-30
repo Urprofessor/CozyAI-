@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useCozyChat } from '@/hooks/useCozyChat';
+import { useCozyClose } from '@/components/shell/cozyClose';
 import { useProfile } from '@/hooks/useProfile';
 import { SARAH_INTRO } from '@/lib/cozy/constants';
 import type { CozyMessage } from '@/lib/cozy/types';
@@ -59,6 +60,7 @@ const HISTORY_OPEN_CLASS = 'cz-history-open';
  *  and the input pill, over the #F9F7F5 page with its pink header wash. */
 export function CozyChat() {
   const router = useRouter();
+  const closeCozy = useCozyClose();
   const profile = useProfile();
   // Latest plan for the hook's post-stream callbacks.
   const planRef = useRef(profile.profile.lactationPlan);
@@ -157,7 +159,7 @@ export function CozyChat() {
         </div>
       );
     }
-    return <WelcomeGate onStart={() => setLetter('arrive')} />;
+    return <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeCozy} />;
   }
 
   const isHome = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
@@ -207,8 +209,7 @@ export function CozyChat() {
           title={title}
           canSelectBaby={false}
           onOpenHistory={() => setHistoryOpen(true)}
-          onNewSession={startNewChat}
-          newSessionEnabled={!isHome}
+          onClose={closeCozy}
         />
 
         {isHome ? (

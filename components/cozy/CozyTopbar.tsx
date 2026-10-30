@@ -1,26 +1,23 @@
 'use client';
 
-import { CZ, MaskIcon } from './ui';
+import { useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
+import { CZ, showToast } from './ui';
 
 interface Props {
   /** Profile title: "Mom and Baby" when both are known, else "Cozie". */
   title: string;
   canSelectBaby: boolean;
   onOpenHistory: () => void;
-  onNewSession: () => void;
-  newSessionEnabled: boolean;
+  onClose: () => void;
 }
 
 /** App TopBarComponent: 44pt glass history button (left), avatar + profile
- *  title (center), 44pt glass new-chat button (right), over a blur that fades
- *  into the page. */
-export function CozyTopbar({
-  title,
-  canSelectBaby,
-  onOpenHistory,
-  onNewSession,
-  newSessionEnabled,
-}: Props) {
+ *  title (center), read-aloud toggle and close (right), over a blur that fades
+ *  into the page. New chat lives in the history drawer. */
+export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onClose }: Props) {
+  const [readAloud, setReadAloud] = useState(false);
+
   return (
     <header className="cz-topbar">
       <div className="cz-topbar__blur" aria-hidden />
@@ -39,17 +36,23 @@ export function CozyTopbar({
         {canSelectBaby && <img src={`${CZ}/icons/chevrons.svg`} alt="" width={10} height={16} />}
       </div>
 
-      <button
-        type="button"
-        className="cz-glass-btn"
-        onClick={onNewSession}
-        disabled={!newSessionEnabled}
-        // App: only shown once a conversation exists (chat mode).
-        style={{ visibility: newSessionEnabled ? 'visible' : 'hidden' }}
-        aria-label="Start a new chat"
-      >
-        <MaskIcon src={`${CZ}/icons/new_conversation_figma.svg`} size={24} />
-      </button>
+      <div className="cz-topbar__right">
+        <button
+          type="button"
+          className="cz-glass-btn"
+          aria-pressed={readAloud}
+          aria-label="Read replies aloud"
+          onClick={() => {
+            setReadAloud((v) => !v);
+            showToast('Read-aloud is coming soon.');
+          }}
+        >
+          {readAloud ? <Volume2 size={22} strokeWidth={1.6} /> : <VolumeX size={22} strokeWidth={1.6} />}
+        </button>
+        <button type="button" className="cz-glass-btn" onClick={onClose} aria-label="Close Cozie">
+          <img src={`${CZ}/icons/settings_close.svg`} alt="" width={22} height={22} draggable={false} />
+        </button>
+      </div>
     </header>
   );
 }

@@ -39,17 +39,63 @@
   bottom: 16px;
   z-index: 20;
   height: 62px;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  align-items: stretch;
-  padding: 4px;
-  border-radius: 31px;
+  display: flex;
+  gap: 10px;
+  transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.glass-tab-bar__pill,
+.glass-tab-bar__cozie {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 0.5px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 8px 24px rgba(36, 15, 27, 0.08), 0 1px 2px rgba(36, 15, 27, 0.05);
-  transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.glass-tab-bar__pill {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
+  padding: 4px;
+  border-radius: 31px;
+}
+
+/* Round Cozie launcher, apart from the tabs. */
+.glass-tab-bar__cozie {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.glass-tab-bar__cozie img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.glass-tab-bar__cozie:active {
+  transform: scale(0.94);
+}
+
+/* Cozie, opened over the current tab (CozyShell circle reveal). */
+.cozy-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cozy-stage.is-open {
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .glass-tab-bar__item {
@@ -104,9 +150,9 @@
   background: var(--cz-bg);
   color: var(--cz-ink);
   font-family: var(--cz-ui);
-  /* Floating tab bar: 16 inset + 62 tall; the input keeps 14pt above it
-     (10 of which is the input's own bottom inset). */
-  padding-bottom: 82px;
+  /* Full screen, no tab bar: the input's own 10pt inset plus the home
+     indicator area. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   transition:
     transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
     border-radius 300ms ease,
@@ -152,8 +198,15 @@
   height: 70px; /* 8 status inset + 44 bar + 18 fade */
   padding: 8px 16px 18px;
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  grid-template-columns: 96px 1fr 96px;
   align-items: center;
+}
+
+.cz-topbar__right {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .cz-topbar__blur {
@@ -1569,10 +1622,17 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 102px; /* tab bar (78) + 24pt button inset */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
   background: var(--cz-bg);
   color: var(--cz-ink);
   font-family: var(--cz-ui);
+}
+
+.cz-consent__close {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 2;
 }
 
 .cz-consent__scroll {

@@ -1558,7 +1558,8 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  /* Cozie pages run full screen — no tab bar to clear. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
   background: var(--colors-backgrouds-primary);
 }
 

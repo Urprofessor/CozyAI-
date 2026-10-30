@@ -6,6 +6,7 @@ import { CZ, showToast, ToastHost } from './ui';
 
 interface Props {
   onStart: () => void;
+  onClose: () => void;
 }
 
 // Intro video in place of the App's rotating capability deck. Until the final
@@ -44,7 +45,7 @@ function IntroVideo() {
 
 /** App AgentChatConsentViewController: first-run activation page with the
  *  intro video, the privacy agreement and "Get started". */
-export function WelcomeGate({ onStart }: Props) {
+export function WelcomeGate({ onStart, onClose }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [prompt, setPrompt] = useState(false);
 
@@ -55,6 +56,9 @@ export function WelcomeGate({ onStart }: Props) {
   return (
     <div className="cz-consent">
       <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+      <button type="button" className="cz-glass-btn cz-consent__close" onClick={onClose} aria-label="Close Cozie">
+        <img src={`${CZ}/icons/settings_close.svg`} alt="" width={22} height={22} draggable={false} />
+      </button>
 
       <div className="cz-consent__scroll">
         <img
