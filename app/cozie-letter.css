@@ -15,7 +15,11 @@
   perspective: 1200px;
   color: var(--cz-ink);
   font-family: var(--cz-ui);
-  background: rgba(249, 247, 245, 0.97);
+  /* Frosted, so whatever it opened over (the intro film, the chat) shows
+     through softly. */
+  background: rgba(249, 247, 245, 0.7);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   animation: czFadeIn 300ms ease both;
 }
 

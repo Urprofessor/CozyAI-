@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CozyChat } from '@/components/cozy/Chat';
-import { CozyCloseContext } from './cozyClose';
+import { CozyCloseContext, CozyVisibleContext } from './cozyClose';
 import { GlassTabBar } from './GlassTabBar';
 
 const RETURN_KEY = 'cozyReturnTo';
@@ -82,7 +82,9 @@ export function CozyShell({ children }: { children: ReactNode }) {
           inert={!open}
           aria-hidden={!open}
         >
-          <CozyChat />
+          <CozyVisibleContext.Provider value={open}>
+            <CozyChat />
+          </CozyVisibleContext.Provider>
         </div>
       )}
     </CozyCloseContext.Provider>

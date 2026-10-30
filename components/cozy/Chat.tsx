@@ -141,10 +141,12 @@ export function CozyChat() {
   if (!decided) return <div className="cz-page" />;
 
   if (!welcomed && chat.sessions.length === 0) {
-    if (letter === 'arrive') {
-      return (
-        <div className="cz-page">
-          <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+    // The letter arrives over the (blurred) intro film; the gate stays mounted
+    // underneath so the film isn't restarted.
+    return (
+      <>
+        <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeCozy} />
+        {letter === 'arrive' && (
           <CozieLetter
             letter={FIRST_LETTER}
             mode="arrive"
@@ -156,10 +158,9 @@ export function CozyChat() {
               setWelcomed(true);
             }}
           />
-        </div>
-      );
-    }
-    return <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeCozy} />;
+        )}
+      </>
+    );
   }
 
   const isHome = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useCozyVisible } from '@/components/shell/cozyClose';
 import { CZ, showToast, ToastHost } from './ui';
 
 interface Props {
@@ -9,42 +10,53 @@ interface Props {
   onClose: () => void;
 }
 
-// Intro video in place of the App's rotating capability deck. Until the final
-// cut is dropped in at INTRO_VIDEO, the slot shows its placeholder backdrop.
 const INTRO_VIDEO = `${CZ}/onboarding/intro.mp4`;
 
+/** Full-screen intro film. Plays once from the top each time Cozie is opened
+ *  and rests on its last frame; paused while Cozie is closed. With reduced
+ *  motion it just shows that last frame. */
 function IntroVideo() {
+  const visible = useCozyVisible();
+  const ref = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
-  const [reduce, setReduce] = useState(false);
 
   useEffect(() => {
-    setReduce(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  }, []);
+    const v = ref.current;
+    if (!v) return;
+    if (!visible) {
+      v.pause();
+      return;
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    v.currentTime = 0;
+    v.play().catch(() => {
+      /* autoplay refused — the first frame stays up */
+    });
+  }, [visible]);
 
   return (
-    <div className="cz-consent__video" aria-label="What Cozie offers">
-      <img
-        className="cz-consent__video-ph"
-        src={`${CZ}/ip/Cozy_Magic_Light.webp`}
-        alt=""
-        draggable={false}
-      />
-      <video
-        className={cn(ready && 'is-ready')}
-        src={INTRO_VIDEO}
-        autoPlay={!reduce}
-        muted
-        loop
-        playsInline
-        preload="auto"
-        onLoadedData={() => setReady(true)}
-      />
-    </div>
+    <video
+      ref={ref}
+      className={cn('cz-consent__video', ready && 'is-ready')}
+      src={INTRO_VIDEO}
+      muted
+      playsInline
+      preload="auto"
+      aria-label="What Cozie offers"
+      onLoadedMetadata={(e) => {
+        const v = e.currentTarget;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          v.currentTime = Math.max(0, v.duration - 0.05);
+        }
+      }}
+      onLoadedData={() => setReady(true)}
+    />
   );
 }
 
-/** App AgentChatConsentViewController: first-run activation page with the
- *  intro video, the privacy agreement and "Get started". */
+/** App AgentChatConsentViewController: first-run activation page — the intro
+ *  film full screen, with the privacy agreement and "Get started" floating
+ *  over its faded bottom. */
 export function WelcomeGate({ onStart, onClose }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [prompt, setPrompt] = useState(false);
@@ -55,54 +67,43 @@ export function WelcomeGate({ onStart, onClose }: Props) {
 
   return (
     <div className="cz-consent">
-      <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+      <IntroVideo />
+
       <button type="button" className="cz-glass-btn cz-consent__close" onClick={onClose} aria-label="Close Cozie">
         <img src={`${CZ}/icons/settings_close.svg`} alt="" width={22} height={22} draggable={false} />
       </button>
 
-      <div className="cz-consent__scroll">
-        <img
-          className="cz-consent__hero"
-          src={`${CZ}/icons/cozie_magic_wand_light.png`}
-          alt=""
-          draggable={false}
-        />
-        <h1 className="cz-consent__title">How can I help today?</h1>
-        <p className="cz-consent__subtitle">
-          Warm answers for feeding, sleep, device support, and everyday baby care.
-        </p>
-        <IntroVideo />
-      </div>
+      <div className="cz-consent__panel">
+        <div className="cz-consent__agree">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={agreed}
+            aria-label="I agree to the privacy statement"
+            onClick={() => setAgreed((v) => !v)}
+          >
+            <img src={`${CZ}/icons/${agreed ? 'consent_checked' : 'consent_unchecked'}.svg`} alt="" />
+          </button>
+          <span>
+            I agree to{' '}
+            <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
+              Privacy statement
+            </button>
+            <span className="cz-consent__gap" />
+            <button type="button" className="cz-link" onClick={() => comingSoon('Medical disclaimer')}>
+              Medical disclaimer
+            </button>
+          </span>
+        </div>
 
-      <div className="cz-consent__agree">
         <button
           type="button"
-          role="checkbox"
-          aria-checked={agreed}
-          aria-label="I agree to the privacy statement"
-          onClick={() => setAgreed((v) => !v)}
+          className="cz-consent__start"
+          onClick={() => (agreed ? onStart() : setPrompt(true))}
         >
-          <img src={`${CZ}/icons/${agreed ? 'consent_checked' : 'consent_unchecked'}.svg`} alt="" />
+          Get started
         </button>
-        <span>
-          I agree to{' '}
-          <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
-            Privacy statement
-          </button>
-          <span className="cz-consent__gap" />
-          <button type="button" className="cz-link" onClick={() => comingSoon('Medical disclaimer')}>
-            Medical disclaimer
-          </button>
-        </span>
       </div>
-
-      <button
-        type="button"
-        className="cz-consent__start"
-        onClick={() => (agreed ? onStart() : setPrompt(true))}
-      >
-        Get started
-      </button>
 
       {prompt && (
         <div className="cz-alert-scrim" onClick={() => setPrompt(false)}>

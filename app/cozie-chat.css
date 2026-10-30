@@ -1616,90 +1616,18 @@
 
 /* ---------- First-run consent (AgentChatConsentViewController) ---------- */
 
+/* The intro film fills the page; agreement + "Get started" float over its
+   bottom, which fades into the page colour so they stay legible. */
 .cz-consent {
   position: relative;
   height: 100%;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-  background: var(--cz-bg);
+  background: #fff; /* the film opens on white */
   color: var(--cz-ink);
   font-family: var(--cz-ui);
 }
 
-.cz-consent__close {
-  position: absolute;
-  top: 8px;
-  right: 16px;
-  z-index: 2;
-}
-
-.cz-consent__scroll {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-top: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  scrollbar-width: none;
-}
-
-.cz-consent__scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.cz-consent__hero {
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.cz-consent__title {
-  margin: 0;
-  padding: 0 16px;
-  font-family: var(--cz-brand);
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 29px;
-  text-align: center;
-}
-
-.cz-consent__subtitle {
-  margin: 8px 0 0;
-  padding: 0 16px;
-  font-size: 16px;
-  line-height: 22px;
-  letter-spacing: 0.32px;
-  text-align: center;
-}
-
-/* Intro video slot (replaces the capability deck). The IP art underneath is
-   the placeholder until the video has decoded its first frame. */
 .cz-consent__video {
-  position: relative;
-  flex-shrink: 0;
-  width: calc(100% - 32px);
-  height: 330px;
-  margin-top: 31px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 28px;
-  background: linear-gradient(160deg, #fbe9ec 0%, #f6efe9 100%);
-}
-
-.cz-consent__video-ph {
-  width: 180px;
-  height: 180px;
-  object-fit: contain;
-}
-
-.cz-consent__video video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1709,8 +1637,32 @@
   transition: opacity 300ms ease;
 }
 
-.cz-consent__video video.is-ready {
+.cz-consent__video.is-ready {
   opacity: 1;
+}
+
+.cz-consent__close {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 2;
+}
+
+.cz-consent__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 96px 0 calc(env(safe-area-inset-bottom, 0px) + 24px);
+  background: linear-gradient(
+    to bottom,
+    rgba(249, 247, 245, 0) 0%,
+    rgba(249, 247, 245, 0.88) 42%,
+    var(--cz-bg) 62%
+  );
 }
 
 .cz-consent__agree {
