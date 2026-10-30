@@ -13,6 +13,7 @@ export interface CozyMessage {
   suggestions?: string[]; // QA follow-up chips ("猜你想问"), from a [[SUGGEST]] tag
   createdAt?: number;
   stopped?: boolean; // reply was stopped by the user mid-generation
+  scripted?: boolean; // fixed copy (letter openers) — nothing to regenerate
 }
 
 export type HandoffState = 'idle' | 'connecting' | 'queuing' | 'assigning' | 'joined';

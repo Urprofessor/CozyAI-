@@ -21,6 +21,8 @@ import { SettingsSheet } from './SettingsSheet';
 import { SourcesSheet } from './SourcesSheet';
 import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
+import { CozieLetter, LetterCard } from './CozieLetter';
+import { FIRST_LETTER, LETTER_CARD, personaSeed } from '@/lib/cozy/letters';
 import { PlanCard, QuestionnaireCard, ScheduleCard } from './cards/LactationCards';
 import { logPump, toggleSession } from '@/lib/cozy/lactation';
 import type { CardSkill } from '@/lib/cozy/keywords';
@@ -46,6 +48,7 @@ interface RowHandlers {
   onRate: (id: string, rating: Rating) => void;
   onNegativeFeedback: (id: string) => void;
   onOpenSources: () => void;
+  onOpenLetter: () => void;
 }
 
 const WELCOMED_KEY = 'cozyWelcomed';
@@ -82,6 +85,8 @@ export function CozyChat() {
   const [heroReplay, setHeroReplay] = useState(0);
   // null = localStorage not read yet; true/false once known.
   const [welcomed, setWelcomed] = useState<boolean | null>(null);
+  // "From Cozie" overlay: arriving after Get started, or reopened from its card.
+  const [letter, setLetter] = useState<'arrive' | 'reread' | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -134,14 +139,25 @@ export function CozyChat() {
   if (!decided) return <div className="cz-page" />;
 
   if (!welcomed && chat.sessions.length === 0) {
-    return (
-      <WelcomeGate
-        onStart={() => {
-          localStorage.setItem(WELCOMED_KEY, '1');
-          setWelcomed(true);
-        }}
-      />
-    );
+    if (letter === 'arrive') {
+      return (
+        <div className="cz-page">
+          <img className="cz-page__wash" src={`${CZ}/icons/header_background.png`} alt="" aria-hidden />
+          <CozieLetter
+            letter={FIRST_LETTER}
+            mode="arrive"
+            onAction={(action) => {
+              localStorage.setItem(WELCOMED_KEY, '1');
+              profile.applyPatch(personaSeed());
+              chat.deliverLetter(LETTER_CARD, action.opener);
+              setLetter(null);
+              setWelcomed(true);
+            }}
+          />
+        </div>
+      );
+    }
+    return <WelcomeGate onStart={() => setLetter('arrive')} />;
   }
 
   const isHome = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
@@ -160,6 +176,7 @@ export function CozyChat() {
     onRate: (id, rating) => setRatings((r) => ({ ...r, [id]: rating })),
     onNegativeFeedback: setFeedbackFor,
     onOpenSources: () => setSourcesOpen(true),
+    onOpenLetter: () => setLetter('reread'),
   };
 
   return (
@@ -242,6 +259,10 @@ export function CozyChat() {
 
       <SourcesSheet open={sourcesOpen} onClose={() => setSourcesOpen(false)} />
 
+      {letter === 'reread' && (
+        <CozieLetter letter={FIRST_LETTER} mode="reread" onClose={() => setLetter(null)} />
+      )}
+
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
       <ToastHost />
     </>
@@ -276,7 +297,7 @@ function renderStream(
   let lastDay = '';
   for (const m of chat.messages) {
     // Date separator before the first message of each local day.
-    if (m.createdAt && (m.role === 'user' || m.role === 'assistant')) {
+    if (m.createdAt && (m.role === 'user' || m.role === 'assistant' || m.content === LETTER_CARD)) {
       const day = new Date(m.createdAt).toDateString();
       if (day !== lastDay) {
         lastDay = day;
@@ -323,6 +344,14 @@ function renderStream(
       }
       continue;
     }
+    if (m.content === LETTER_CARD) {
+      out.push(
+        <div key={m.id} className="cz-row cz-row--card">
+          <LetterCard letter={FIRST_LETTER} onOpen={rows.onOpenLetter} />
+        </div>
+      );
+      continue;
+    }
     // Retired card from older histories.
     if (m.content === '__DASHBOARD_LACTATION__') continue;
     if (m.content === '__HANDOFF_CARD__') {
@@ -362,7 +391,7 @@ function renderStream(
         isLatestReply={m.id === latestReplyId}
         showSuggestions={m.id === latestReplyId && !midStream}
         onSuggest={chat.send}
-        onRetry={() => chat.regenerate(m.id)}
+        onRetry={m.scripted ? undefined : () => chat.regenerate(m.id)}
         rating={rows.ratings[m.id] ?? null}
         onRate={(r) => rows.onRate(m.id, r)}
         onNegativeFeedback={() => rows.onNegativeFeedback(m.id)}

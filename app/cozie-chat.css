@@ -1618,47 +1618,39 @@
   text-align: center;
 }
 
-.cz-consent__deck {
+/* Intro video slot (replaces the capability deck). The IP art underneath is
+   the placeholder until the video has decoded its first frame. */
+.cz-consent__video {
   position: relative;
   flex-shrink: 0;
-  width: 100%;
+  width: calc(100% - 32px);
   height: 330px;
   margin-top: 31px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 28px;
+  background: linear-gradient(160deg, #fbe9ec 0%, #f6efe9 100%);
 }
 
-.cz-cap-card {
+.cz-consent__video-ph {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+}
+
+.cz-consent__video video {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 200px;
-  height: 260px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0 16px;
-  background-size: cover;
-  color: #fff;
-  will-change: transform;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 300ms ease;
 }
 
-.cz-cap-card img {
-  width: 36px;
-  height: 36px;
-}
-
-.cz-cap-card strong {
-  margin-top: 24px;
-  font-family: var(--cz-brand);
-  font-size: 26px;
-  font-weight: 400;
-  line-height: 33.8px;
-}
-
-.cz-cap-card span {
-  margin-top: 4px;
-  font-size: 20px;
-  line-height: 26px;
-  letter-spacing: 0.4px;
+.cz-consent__video video.is-ready {
+  opacity: 1;
 }
 
 .cz-consent__agree {

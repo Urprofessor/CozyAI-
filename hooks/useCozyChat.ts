@@ -304,7 +304,7 @@ export function useCozyChat(opts: Options = {}) {
     (assistantId: string) => {
       if (streaming) return;
       const idx = messages.findIndex((m) => m.id === assistantId);
-      if (idx < 0 || messages[idx].role !== 'assistant') return;
+      if (idx < 0 || messages[idx].role !== 'assistant' || messages[idx].scripted) return;
       const target = messages[idx];
       const history = messages.slice(0, idx); // everything up to the prompting user message
       setMessages((prev) =>
@@ -611,6 +611,28 @@ export function useCozyChat(opts: Options = {}) {
   }, []);
 
 
+  /** Deliver a letter into the conversation: its card, then Cozie's fixed
+   *  opener for whichever reply mom picked. */
+  const deliverLetter = useCallback(
+    (sentinel: string, opener: { content: string; suggestions?: string[] }) => {
+      const now = Date.now();
+      setMessages((prev) => [
+        ...prev,
+        { id: newId(), role: 'system', content: sentinel, createdAt: now },
+        {
+          id: newId(),
+          role: 'assistant',
+          content: opener.content,
+          persona: 'qa',
+          createdAt: now,
+          scripted: true,
+          ...(opener.suggestions ? { suggestions: opener.suggestions } : {}),
+        },
+      ]);
+    },
+    []
+  );
+
   const appendAssistant = useCallback(
     (content: string, personaOverride?: Persona) => {
       setMessages((prev) => [
@@ -656,6 +678,7 @@ export function useCozyChat(opts: Options = {}) {
     finishHandoff,
     appendSystem,
     appendAssistant,
+    deliverLetter,
     startSkill,
     showPlanCard,
     pageSize: COZY_PAGE_SIZE,
