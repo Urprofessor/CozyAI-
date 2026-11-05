@@ -132,13 +132,13 @@ export function isHalloweenSeason(d = new Date()) {
 export type BoundDevice = 'pump' | 'prenatal';
 
 const DEV = '/cozie/home/device';
-/** The prenatal device. Until the room art has an empty-stool variant it
- *  sits on the armchair seat. `y` is the top edge. */
+/** The prenatal device, on the floor in front of the laundry basket (left of
+ *  the rug). `y` is the top edge. */
 export const PRENATAL = {
-  x: 13,
-  y: 302,
-  w: 42,
+  x: 14,
+  y: 384,
+  w: 44,
   aspect: 0.64,
   src: { off: `${DEV}/prenatal_off.webp`, on: `${DEV}/prenatal_on.webp` },
-  spot: { hit: { x: 0, y: 288, w: 62, h: 50 }, dot: { x: 52, y: 294 }, stand: { x: 80, y: 356 } },
+  spot: { hit: { x: 8, y: 376, w: 56, h: 40 }, dot: { x: 56, y: 384 }, stand: { x: 98, y: 414 } },
 };
