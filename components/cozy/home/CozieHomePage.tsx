@@ -51,11 +51,14 @@ type Bubble = { kind: 'cozie' } | { kind: 'spot'; spot: SpotId };
 
 interface Msg {
   id: number;
-  who: 'you' | 'cozie';
+  /** 'note' = a quiet status line in the thread ("Cozie put her phone down"). */
+  who: 'you' | 'cozie' | 'note';
   text: string;
   /** Your messages: sent → read (she picked them up) or failed. */
   status?: 'sent' | 'read' | 'failed';
   urgent?: boolean;
+  /** Her check-in after you went quiet; she only sends one. */
+  nudge?: boolean;
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -63,6 +66,32 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** How long you wait after your last message before she answers — long
  *  enough to send a second line, like texting a person. */
 const REPLY_AFTER_MS = 1100;
+
+/** Going quiet: how long before she checks in or puts the phone down. */
+const QUIET_MS = 22_000;
+const QUIET_AFTER_NUDGE_MS = 18_000;
+const QUIET_EMPTY_MS = 25_000;
+
+/** What she goes back to, by routine animation, for the thread note. */
+const ACTIVITY: Partial<Record<CozieAnim, string>> = {
+  fold: '去叠小衣服',
+  journal: '去写日记',
+  look: '去翻翻书架',
+  sit: '去沙发上歇会儿',
+  tend: '去看看 Mila',
+  idle: '去窗边站会儿',
+};
+
+const NUDGES = [
+  '还在吗？不着急，忙完再回我就好',
+  '是不是{baby}醒了？你先去吧',
+  '你那边还好吗？',
+  '我先不吵你啦，想聊随时叫我',
+];
+
+function nudgeLine(persona: ReturnType<typeof personaFrom>) {
+  return fill(NUDGES[Math.floor(Math.random() * NUDGES.length)], persona);
+}
 
 /** Cozie's home: a full-screen room where she goes about her day. Chatting
  *  pulls up a glass thread from the bottom; she stays where she is, picks up
@@ -79,6 +108,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const [cozieTyping, setCozieTyping] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const [chatPlace, setChatPlace] = useState<Place | null>(null);
+  /** Chat is open but she has put the phone down. */
+  const [away, setAway] = useState(false);
   const [routineIdx, setRoutineIdx] = useState(0);
   const [letter, setLetter] = useState<{ content: LetterContent; mode: 'arrive' | 'reread'; eventId?: string } | null>(
     null
@@ -144,13 +175,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   // While chatting she stays exactly where she was.
   const place: Place =
-    chatOpen && chatPlace ? chatPlace : bubble?.kind === 'spot' ? bubble.spot : routine.place;
+    chatOpen && chatPlace && !away ? chatPlace : bubble?.kind === 'spot' ? bubble.spot : routine.place;
   const [walk, setWalk] = useState<{ dir: number; key: number } | null>(null);
   const anim: CozieAnim =
     reaction ??
     (walk
       ? 'hop'
-      : chatOpen
+      : chatOpen && !away
         ? 'phone'
         : draft.length > 0
           ? 'listen'
@@ -176,7 +207,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   }, [place, at.x, later]);
 
   // Drift through her routine while nobody's with her.
-  const busy = chatOpen || bubble !== null || letter !== null || draft.length > 0;
+  const busy = (chatOpen && !away) || bubble !== null || letter !== null || draft.length > 0;
   useEffect(() => {
     if (busy) return;
     const t = setTimeout(() => setRoutineIdx((i) => i + 1), routine.ms);
@@ -191,7 +222,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   // ---------- Bubble follows her head ----------
 
-  const typingOverHead = chatOpen && cozieTyping && bubble === null;
+  const typingOverHead = chatOpen && !away && cozieTyping && bubble === null;
   const bubbleVisible = bubble !== null || typingOverHead;
   useLayoutEffect(() => {
     if (!bubbleVisible) return;
@@ -224,6 +255,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     setChatPlace(place);
     setBubble(null);
     setUnseen(0);
+    setAway(false);
     setChatOpen(true);
     react('phoneup', 650);
   }
@@ -232,6 +264,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     if (!chatOpenRef.current) return;
     setChatOpen(false);
     setChatPlace(null);
+    setAway(false);
     (document.activeElement as HTMLElement | null)?.blur?.();
   }
 
@@ -247,6 +280,12 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     if (!text) return;
     setDraft('');
     openChat();
+    if (away) {
+      // She hears it and picks the phone back up, wherever she is now.
+      setAway(false);
+      setChatPlace(place);
+      react('phoneup', 650);
+    }
     setThread((t) => [...t, { id: ++msgSeq.current, who: 'you', text, status: 'sent' }]);
     // A new message cancels a reply in progress; she'll answer everything at once.
     abortRef.current?.abort();
@@ -255,8 +294,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     later('reply', detectDangerSignal(text) ? 300 : REPLY_AFTER_MS, () => void respond());
   }
 
-  function pushCozie(text: string, urgent = false) {
-    setThread((t) => [...t, { id: ++msgSeq.current, who: 'cozie', text, urgent }]);
+  function pushCozie(text: string, urgent = false, nudge = false) {
+    setThread((t) => [...t, { id: ++msgSeq.current, who: 'cozie', text, urgent, nudge }]);
     if (!chatOpenRef.current) setUnseen((n) => n + 1);
   }
 
@@ -305,7 +344,10 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         body: JSON.stringify({
           mode: 'life',
           context: `Day ${clock.day} of your week, ${clock.slot}. ${cozieLine(clock, persona)} Mila is ${persona.milaWeeks} weeks old. The user is ${persona.mom}; her baby ${persona.baby} is ${persona.babyWeeks} weeks old.`,
-          messages: all.slice(-16).map((m) => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text })),
+          messages: all
+            .filter((m) => m.who !== 'note')
+            .slice(-16)
+            .map((m) => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text })),
         }),
       });
       if (!res.ok || !res.body) {
@@ -357,6 +399,30 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     setThread((t) => t.map((m) => (m.status === 'failed' ? { ...m, status: 'sent' } : m)));
     later('reply', 200, () => void respond());
   }
+
+  // ---------- When you go quiet ----------
+  // After a while without a reply she either checks in once, or puts the
+  // phone down and goes back to what she was doing. Sending again brings her
+  // back to the phone.
+  const routineRef = useRef(routine);
+  routineRef.current = routine;
+  useEffect(() => {
+    clearTimeout(timers.current.idle);
+    if (!chatOpen || away || cozieTyping || draft.length > 0) return;
+    const last = [...thread].reverse().find((m) => m.who !== 'note');
+    if (last?.who === 'you') return; // she's about to answer
+    const ms = !last ? QUIET_EMPTY_MS : last.nudge ? QUIET_AFTER_NUDGE_MS : QUIET_MS;
+    later('idle', ms, () => {
+      if (last && !last.nudge && Math.random() < 0.6) {
+        pushCozie(nudgeLine(persona), false, true);
+        return;
+      }
+      const doing = ACTIVITY[routineRef.current.anim] ?? '忙自己的事';
+      setThread((t) => [...t, { id: ++msgSeq.current, who: 'note', text: `Cozie 放下手机，${doing}了` }]);
+      setAway(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatOpen, away, cozieTyping, draft.length > 0, thread]);
 
   // ---------- Her own things ----------
 
@@ -537,6 +603,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           {thread.map((m, i) => {
             const prev = thread[i - 1];
             const firstOfGroup = !prev || prev.who !== m.who;
+            if (m.who === 'note') {
+              return (
+                <p key={m.id} className="ch-note">
+                  {m.text}
+                </p>
+              );
+            }
             if (m.who === 'cozie') {
               return (
                 <div key={m.id} className={cn('ch-msg is-cozie', firstOfGroup && 'is-first')}>

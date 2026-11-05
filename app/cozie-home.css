@@ -1009,3 +1009,14 @@ span.ch-msg__avatar {
     transition: none;
   }
 }
+
+/* Quiet status line in the thread ("Cozie 放下手机，去叠小衣服了"). */
+.ch-note {
+  align-self: center;
+  margin: 10px 0 2px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(36, 15, 27, 0.06);
+  font-size: 12px;
+  color: var(--cz-ink-2);
+}
