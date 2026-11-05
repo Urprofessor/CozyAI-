@@ -1020,3 +1020,17 @@ span.ch-msg__avatar {
   font-size: 12px;
   color: var(--cz-ink-2);
 }
+
+/* Her latest text over her head while chatting: shorter and lighter than
+   the room bubbles. Tapping it (with the chat closed) opens the chat. */
+.ch-bubble.is-say {
+  width: auto;
+  max-width: min(240px, calc(100% - 24px));
+  padding: 9px 14px 10px;
+  border-radius: 18px;
+}
+
+.ch-bubble.is-say .ch-bubble__text {
+  font-size: 14px;
+  line-height: 1.4;
+}

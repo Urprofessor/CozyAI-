@@ -107,6 +107,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const [chatOpen, setChatOpen] = useState(false);
   const [cozieTyping, setCozieTyping] = useState(false);
   const [unseen, setUnseen] = useState(0);
+  /** Her latest text, also shown over her head for a while. */
+  const [headMsg, setHeadMsg] = useState<{ id: number; text: string } | null>(null);
   const [chatPlace, setChatPlace] = useState<Place | null>(null);
   /** Chat is open but she has put the phone down. */
   const [away, setAway] = useState(false);
@@ -222,8 +224,10 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   // ---------- Bubble follows her head ----------
 
-  const typingOverHead = chatOpen && !away && cozieTyping && bubble === null;
-  const bubbleVisible = bubble !== null || typingOverHead;
+  // Her latest text wins; the typing dots only show before her first one.
+  const textOverHead = !away && bubble === null && headMsg !== null;
+  const typingOverHead = !textOverHead && chatOpen && !away && cozieTyping && bubble === null;
+  const bubbleVisible = bubble !== null || typingOverHead || textOverHead;
   useLayoutEffect(() => {
     if (!bubbleVisible) return;
     let raf = 0;
@@ -295,7 +299,11 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   }
 
   function pushCozie(text: string, urgent = false, nudge = false) {
-    setThread((t) => [...t, { id: ++msgSeq.current, who: 'cozie', text, urgent, nudge }]);
+    const id = ++msgSeq.current;
+    setThread((t) => [...t, { id, who: 'cozie', text, urgent, nudge }]);
+    // Over her head too, long enough to read, until the next one replaces it.
+    setHeadMsg({ id, text });
+    later('head', headMs(text, urgent), () => setHeadMsg((h) => (h?.id === id ? null : h)));
     if (!chatOpenRef.current) setUnseen((n) => n + 1);
   }
 
@@ -420,6 +428,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       const doing = ACTIVITY[routineRef.current.anim] ?? '忙自己的事';
       setThread((t) => [...t, { id: ++msgSeq.current, who: 'note', text: `Cozie 放下手机，${doing}了` }]);
       setAway(true);
+      setHeadMsg(null);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatOpen, away, cozieTyping, draft.length > 0, thread]);
@@ -588,7 +597,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       </header>
 
       {bubbleVisible && (
-        <div ref={bubbleRef} className={cn('ch-bubble', typingOverHead && 'is-compact')} role="status" aria-live="polite">
+        <div
+          ref={bubbleRef}
+          className={cn('ch-bubble', typingOverHead && 'is-compact', textOverHead && 'is-say')}
+          role="status"
+          aria-live="polite"
+          onClick={textOverHead && !chatOpen ? openChat : undefined}
+        >
           {renderBubble()}
         </div>
       )}
@@ -803,6 +818,9 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         </p>
       );
     }
+    if (textOverHead && headMsg) {
+      return <p className="ch-bubble__text">{clip(headMsg.text)}</p>;
+    }
 
     if (bubble?.kind === 'spot') {
       const v = views[bubble.spot];
@@ -852,6 +870,17 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       </>
     );
   }
+}
+
+/** How long her latest text stays over her head: about reading speed,
+ *  4–9 seconds (urgent ones a little longer). */
+function headMs(text: string, urgent = false) {
+  return Math.min(Math.max(text.length * 180, 4000), urgent ? 12000 : 9000);
+}
+
+/** Over her head only a short line; the full text is in the thread. */
+function clip(text: string, max = 36) {
+  return text.length <= max ? text : text.slice(0, max - 1) + '…';
 }
 
 /** Break a reply into text-message sized pieces: one per line, long lines
