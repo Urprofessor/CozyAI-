@@ -29,6 +29,8 @@ export interface LifeState {
   answers?: Record<string, string>;
   /** Event ids the mom has opened. */
   seen?: string[];
+  /** Bound Momcozy device (demo setting). */
+  device?: 'pump' | 'prenatal';
 }
 
 export interface LifePersona {

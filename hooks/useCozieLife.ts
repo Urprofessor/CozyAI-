@@ -107,9 +107,17 @@ export function useCozieLife() {
 
   const skipDay = useCallback(() => update((s) => ({ ...s, dayOffset: (s.dayOffset ?? 0) + 1 })), [update]);
 
-  const restart = useCallback(() => update(() => ({ startedAt: Date.now() })), [update]);
+  const restart = useCallback(
+    () => update((s) => ({ startedAt: Date.now(), device: s.device })),
+    [update]
+  );
 
-  return { state, ready, begin, markSeen, answer, skipDay, restart };
+  const setDevice = useCallback(
+    (device: 'pump' | 'prenatal') => update((s) => ({ ...s, device })),
+    [update]
+  );
+
+  return { state, ready, begin, markSeen, answer, skipDay, restart, setDevice };
 }
 
 export type CozieLife = ReturnType<typeof useCozieLife>;

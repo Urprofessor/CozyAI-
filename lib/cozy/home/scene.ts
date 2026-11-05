@@ -126,3 +126,19 @@ export function isHalloweenSeason(d = new Date()) {
   const day = d.getDate();
   return (m === 10 && day >= 20) || (m === 11 && day <= 10);
 }
+
+/** The Momcozy device the mom has bound. A pump user sees the pumps on the
+ *  stool (baked into the room art); a prenatal-device user sees the 胎教仪. */
+export type BoundDevice = 'pump' | 'prenatal';
+
+const DEV = '/cozie/home/device';
+/** The prenatal device. Until the room art has an empty-stool variant it
+ *  sits on the armchair seat. `y` is the top edge. */
+export const PRENATAL = {
+  x: 13,
+  y: 302,
+  w: 42,
+  aspect: 0.64,
+  src: { off: `${DEV}/prenatal_off.webp`, on: `${DEV}/prenatal_on.webp` },
+  spot: { hit: { x: 0, y: 288, w: 62, h: 50 }, dot: { x: 52, y: 294 }, stand: { x: 80, y: 356 } },
+};

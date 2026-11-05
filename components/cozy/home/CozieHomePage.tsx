@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ChevronLeft, Clock3, Mail, MessageCircleMore, X } from 'lucide-react';
+import { ChevronLeft, Clock3, Mail, MessageCircleMore, Music, Palette, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CozieLife } from '@/hooks/useCozieLife';
 import type { CozyProfile } from '@/lib/cozy/profile';
@@ -30,12 +30,14 @@ import {
   HALLOWEEN,
   MILA,
   PLACES,
+  PRENATAL,
   PROPS,
   ROOM_H,
   ROUTINES,
   SPOTS,
   isHalloweenSeason,
   pct,
+  type BoundDevice,
   type MilaMood,
   type Place,
 } from '@/lib/cozy/home/scene';
@@ -120,6 +122,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   );
   const [mailOpen, setMailOpen] = useState(false);
   const [halloween, setHalloween] = useState(() => isHalloweenSeason());
+  const [deviceOn, setDeviceOn] = useState(false);
+  const [deviceReply, setDeviceReply] = useState<string | null>(null);
   const [clockOpen, setClockOpen] = useState(false);
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -172,9 +176,15 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   const clock: LifeClock = clockFor(life.state, now, slotOverride);
   const views = spotViews(life.state, clock, persona);
-  const unread = unreadSpots(views);
   const letters = collectedLetters(life.state, clock, persona);
   const routine = ROUTINES[clock.slot][routineIdx % ROUTINES[clock.slot].length];
+  const device: BoundDevice = life.state.device ?? 'pump';
+  // With the prenatal device bound, the stool spot becomes the device.
+  const spots = SPOTS.map((s) =>
+    s.id === 'table' && device === 'prenatal' ? { ...s, label: '胎教仪', ...PRENATAL.spot } : s
+  );
+  const hasNew = (id: SpotId) => (id === 'table' && device === 'prenatal' ? !deviceOn : views[id].unread);
+  const unread = spots.map((s) => s.id).filter(hasNew);
 
   // ---------- Where she is and what she's doing ----------
 
@@ -199,7 +209,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       ? HALLOWEEN.cozie.phone
       : HALLOWEEN.cozie.idle
     : ANIMS[anim];
-  const at = PLACES[place];
+  const at = place === 'table' && device === 'prenatal' ? PRENATAL.spot.stand : PLACES[place];
   const bgArt = BACKGROUNDS[clock.slot];
   const milaMood: MilaMood =
     bubble?.kind === 'spot' && bubble.spot === 'crib' ? 'smile' : clock.slot === 'morning' ? 'awake' : 'sleep';
@@ -359,7 +369,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         signal: ctrl.signal,
         body: JSON.stringify({
           mode: 'life',
-          context: `Day ${clock.day} of your week, ${clock.slot}. ${cozieLine(clock, persona)} Mila is ${persona.milaWeeks} weeks old. The user is ${persona.mom}; her baby ${persona.baby} is ${persona.babyWeeks} weeks old.`,
+          context: `Day ${clock.day} of your week, ${clock.slot}. ${cozieLine(clock, persona)} Mila is ${persona.milaWeeks} weeks old. The user is ${persona.mom}; her baby ${persona.baby} is ${persona.babyWeeks} weeks old. ${device === 'prenatal' ? 'Her Momcozy device is a prenatal-education device (胎教仪) for drawing and composing music with her baby; she may still be pregnant.' : 'Her Momcozy device is a wearable breast pump.'}`,
           messages: all
             .filter((m) => m.who !== 'note')
             .slice(-16)
@@ -446,6 +456,10 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   function openSpot(spot: SpotId) {
     closeChat();
     setBubble({ kind: 'spot', spot });
+    if (spot === 'table' && device === 'prenatal') {
+      setDeviceReply(null);
+      return;
+    }
     const ev = views[spot].event;
     if (ev && ev.kind !== 'letter') life.markSeen(ev.id);
   }
@@ -522,6 +536,15 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             />
           </>
         )}
+        {device === 'prenatal' && (
+          <img
+            className={cn('ch-deco ch-device', deviceOn && 'is-on')}
+            src={deviceOn ? PRENATAL.src.on : PRENATAL.src.off}
+            alt=""
+            aria-hidden
+            style={{ left: pct.x(PRENATAL.x), top: pct.y(PRENATAL.y), width: pct.x(PRENATAL.w) }}
+          />
+        )}
         <img
           className="ch-mila"
           src={MILA.src(milaMood, clock.slot)}
@@ -560,18 +583,18 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           />
         )}
 
-        {SPOTS.map((s) => (
+        {spots.map((s) => (
           <button
             key={s.id}
             type="button"
             className={cn('ch-spot', bubble?.kind === 'spot' && bubble.spot === s.id && 'is-active')}
             style={{ left: pct.x(s.hit.x), top: pct.y(s.hit.y), width: pct.x(s.hit.w), height: pct.h(s.hit.h) }}
             onClick={() => openSpot(s.id)}
-            aria-label={views[s.id].unread ? `${s.label}，有新内容` : s.label}
+            aria-label={hasNew(s.id) ? `${s.label}，有新内容` : s.label}
           />
         ))}
         {!chatOpen &&
-          SPOTS.filter((s) => views[s.id].unread).map((s) => (
+          spots.filter((s) => hasNew(s.id)).map((s) => (
             <span key={`dot-${s.id}`} className="ch-dot" style={{ left: pct.x(s.dot.x), top: pct.y(s.dot.y) }} aria-hidden />
           ))}
 
@@ -795,6 +818,31 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             实时
           </button>
         </div>
+        <div className="ch-seg" role="radiogroup" aria-label="绑定设备">
+          <span>绑定设备</span>
+          {(
+            [
+              ['pump', '吸奶器'],
+              ['prenatal', '胎教仪'],
+            ] as const
+          ).map(([d, label]) => (
+            <button
+              key={d}
+              type="button"
+              role="radio"
+              aria-checked={device === d}
+              className={cn(device === d && 'is-on')}
+              onClick={() => {
+                life.setDevice(d);
+                setDeviceOn(false);
+                setDeviceReply(null);
+                setBubble(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           className={cn('ch-toggle', halloween && 'is-on')}
@@ -864,6 +912,62 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       return <p className="ch-bubble__text">{clip(headMsg.text)}</p>;
     }
 
+    if (bubble?.kind === 'spot' && bubble.spot === 'table' && device === 'prenatal') {
+      return (
+        <>
+          <button type="button" className="ch-bubble__close" onClick={() => setBubble(null)} aria-label="关闭">
+            <X size={14} strokeWidth={2} />
+          </button>
+          <p className="ch-bubble__who">{deviceOn ? '胎教仪 · 已激活' : '胎教仪 · 未激活'}</p>
+          {!deviceOn ? (
+            <>
+              <p className="ch-bubble__text">轻点一下，唤醒它。和宝宝一起画点什么，或者编一段小曲子。</p>
+              <div className="ch-chips">
+                <button
+                  type="button"
+                  className="ch-chip is-primary"
+                  onClick={() => {
+                    setDeviceOn(true);
+                    react('stars', 1800);
+                  }}
+                >
+                  轻点胎教仪
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="ch-bubble__text">{deviceReply ?? '选择你的创作'}</p>
+              <div className="ch-create">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeviceReply('我们一起给宝宝画点什么吧，我先画一只小兔子～');
+                    react('journal', 2400);
+                    showToast('演示：这里会打开胎教作画');
+                  }}
+                >
+                  <Palette size={22} strokeWidth={1.6} />
+                  作画
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeviceReply('来编一段摇篮曲吧，宝宝在肚子里也能听见哦。');
+                    react('happy', 2400);
+                    showToast('演示：这里会打开胎教作曲');
+                  }}
+                >
+                  <Music size={22} strokeWidth={1.6} />
+                  作曲
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      );
+    }
+
     if (bubble?.kind === 'spot') {
       const v = views[bubble.spot];
       const ev = v.event;
@@ -904,7 +1008,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           <div className="ch-chips">
             {unread.map((id) => (
               <button key={id} type="button" className="ch-chip is-new" onClick={() => openSpot(id)}>
-                {newLabel(id)}
+                {id === 'table' && device === 'prenatal' ? '胎教仪' : newLabel(id)}
               </button>
             ))}
           </div>

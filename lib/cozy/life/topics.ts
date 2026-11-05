@@ -16,6 +16,14 @@ export interface Topic {
 
 const RULES: Array<{ words: string[]; topic: Topic }> = [
   {
+    words: ['胎教', '胎动', '作曲', '作画', '肚子里', '怀孕', '孕期', 'prenatal', 'pregnan'],
+    topic: {
+      place: 'table',
+      mood: 'stars',
+      fallback: '我那时候也天天给 Mila 放胎教曲\n轻点一下胎教仪，就能和宝宝一起作画或者作曲\n要不要现在试试？',
+    },
+  },
+  {
     words: ['吸奶', '泵', '奶量', '堵奶', '奶水', '追奶', '背奶', '涨奶', '胀奶', 'pump', 'milk supply'],
     topic: {
       place: 'table',

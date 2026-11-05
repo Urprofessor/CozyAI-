@@ -1120,3 +1120,75 @@ span.ch-msg__avatar {
     animation: none;
   }
 }
+
+/* ---------- Prenatal device (胎教仪) ---------- */
+
+.ch-device {
+  z-index: 1;
+  filter: drop-shadow(0 3px 4px rgba(90, 70, 60, 0.28));
+}
+
+.ch-device.is-on {
+  filter: drop-shadow(0 3px 4px rgba(90, 70, 60, 0.28)) drop-shadow(0 0 6px rgba(80, 210, 230, 0.55));
+}
+
+/* Two round "create" buttons, like the device's own app. */
+.ch-create {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.ch-create button {
+  width: 74px;
+  height: 74px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  background: rgba(253, 248, 236, 0.92);
+  box-shadow: 0 4px 12px rgba(120, 90, 60, 0.15);
+  color: #6b5a3c;
+  font-family: var(--cz-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ch-create button:active {
+  transform: scale(0.96);
+}
+
+.ch-seg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.ch-seg span {
+  flex: 1;
+}
+
+.ch-seg button {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(36, 15, 27, 0.12);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.ch-seg button.is-on {
+  border-color: var(--cz-accent);
+  background: #fff7f8;
+  color: var(--cz-accent);
+}
