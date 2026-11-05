@@ -282,10 +282,6 @@ export function CozyChat() {
             life={life}
             profile={profile.profile}
             onBack={() => setHomeOpen(false)}
-            onTalk={(text) => {
-              setHomeOpen(false);
-              chat.send(text);
-            }}
           />
         </div>
       )}

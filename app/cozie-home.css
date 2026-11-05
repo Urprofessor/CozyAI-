@@ -1,5 +1,6 @@
-/* Cozie's home: the picture-book room behind the Cozie button in the chat
-   top bar. Slides in over the chat as a second-level page. */
+/* Cozie's home: the full-screen picture-book room behind the Cozie button in
+   the chat top bar. Slides in over the chat as a second-level page. Talking
+   happens in iOS-style glass over the room. */
 
 .ch-panel {
   position: absolute;
@@ -19,96 +20,48 @@
 }
 
 .ch-page {
-  --ch-ink-line: #9a7a69;
   --ch-dot: #e2566f;
+  --ch-glass: rgba(255, 255, 255, 0.56);
+  --ch-glass-border: rgba(255, 255, 255, 0.8);
+  --ch-glass-shadow: 0 8px 28px rgba(36, 15, 27, 0.12), 0 1px 2px rgba(36, 15, 27, 0.06);
   position: relative;
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  container-type: size;
   /* clip, not hidden: the off-screen sheets must not make the page scrollable. */
   overflow: clip;
-  background: var(--cz-bg);
+  background: #f7efe4;
   color: var(--cz-ink);
   font-family: var(--cz-ui);
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
 }
 
-/* ---------- Top bar ---------- */
-
-.ch-top {
-  flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px 10px;
+.ch-glass {
+  background: var(--ch-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--ch-glass-border);
+  box-shadow: var(--ch-glass-shadow);
 }
 
-.ch-top__title {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-}
-
-.ch-top__title strong {
-  font-family: var(--cz-brand);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.1;
-}
-
-.ch-top__title span {
-  font-size: 12px;
-  color: var(--cz-ink-2);
-}
-
-.ch-top__mail {
-  position: relative;
-}
-
-.ch-top__count {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--cz-accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
-  text-align: center;
-}
-
-/* ---------- Stage ---------- */
-
-/* As tall as a full-width 3:4 room, shrinking on short screens; any spare
-   height goes to the speech card below. */
-.ch-stage-wrap {
-  flex: 0 1 calc((100cqw - 24px) * 4 / 3);
-  min-height: 0;
-  container-type: size;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
+/* ---------- Stage: covers the screen at the art's 300:620 ratio ---------- */
 
 .ch-stage {
-  position: relative;
-  width: min(calc(100cqw - 24px), 75cqh);
-  aspect-ratio: 3 / 4;
-  border-radius: 28px;
-  overflow: hidden;
-  background: #f7efe4;
-  box-shadow:
-    0 10px 30px rgba(36, 15, 27, 0.1),
-    0 0 0 1px rgba(154, 122, 105, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, calc(100cqh * 300 / 620));
+  aspect-ratio: 300 / 620;
+  transform: translate(-50%, -50%);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+.ch-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
 }
 
 .ch-room {
@@ -119,7 +72,6 @@
   display: block;
 }
 
-/* Light by part of the day. The room art swaps its sky; these wash over it. */
 .ch-tint {
   position: absolute;
   inset: 0;
@@ -136,20 +88,20 @@
   mix-blend-mode: multiply;
 }
 
-/* The pendant lamp's pool of light, over everything. */
+/* The pendant lamp's pool of light. */
 .is-night .ch-stage::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  background: radial-gradient(ellipse 60% 48% at 50% 18%, rgba(255, 222, 150, 0.5), rgba(255, 222, 150, 0) 70%);
+  background: radial-gradient(ellipse 62% 30% at 50% 34%, rgba(255, 222, 150, 0.5), rgba(255, 222, 150, 0) 70%);
   mix-blend-mode: screen;
 }
 
 .is-night .ch-cozie__img,
 .is-night .ch-mila {
-  filter: brightness(0.84) saturate(0.9) drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
+  filter: brightness(0.86) saturate(0.92);
 }
 
 /* ---------- Characters ---------- */
@@ -164,35 +116,99 @@
   cursor: pointer;
   transform: translate(-50%, calc(var(--foot, 1) * -100%));
   transition:
-    left 750ms cubic-bezier(0.3, 0.7, 0.2, 1),
-    top 750ms cubic-bezier(0.3, 0.7, 0.2, 1),
-    width 300ms ease,
-    transform 300ms ease;
+    left 800ms cubic-bezier(0.4, 0.1, 0.3, 1),
+    top 800ms cubic-bezier(0.4, 0.1, 0.3, 1),
+    transform 250ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.ch-cozie__img {
-  position: relative;
-  width: 100%;
+.ch-cozie__hop {
   display: block;
   transform-origin: 50% calc(var(--foot, 1) * 100%);
-  /* Soften the 3D gloss toward the picture-book room. */
-  filter: saturate(0.92) drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
-  animation:
-    ch-pop 380ms cubic-bezier(0.3, 1.4, 0.5, 1),
-    ch-bob 3s ease-in-out 380ms infinite;
+}
+
+.ch-cozie.is-walking .ch-cozie__hop {
+  animation: ch-hop 266ms ease-in-out 3;
+}
+
+.ch-cozie__img {
+  width: 100%;
+  display: block;
   pointer-events: none;
 }
 
 .ch-cozie__shadow {
   position: absolute;
-  left: 26%;
-  right: 26%;
-  top: calc(var(--foot, 1) * 100% - 4%);
-  height: 8%;
+  left: 30%;
+  right: 30%;
+  top: calc(var(--foot, 1) * 100% - 3%);
+  height: 7%;
   border-radius: 50%;
-  background: rgba(120, 88, 66, 0.2);
+  background: rgba(120, 88, 66, 0.22);
   filter: blur(2px);
+}
+
+.ch-cozie.is-walking .ch-cozie__shadow {
+  animation: ch-hop-shadow 266ms ease-in-out 3;
+}
+
+@keyframes ch-hop {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--lean)) scale(1.04, 0.96);
+  }
+  50% {
+    transform: translateY(-9%) rotate(var(--lean)) scale(0.97, 1.03);
+  }
+}
+
+@keyframes ch-hop-shadow {
+  50% {
+    transform: scale(0.75);
+    opacity: 0.6;
+  }
+}
+
+/* Her phone, held in front while she reads and replies. Placeholder until the
+   C4D render with a phone arrives. */
+.ch-phone {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--foot, 1) * 100% - 38%);
+  width: 22%;
+  aspect-ratio: 0.56;
+  border-radius: 18% / 10%;
+  background: #3a2a33;
+  box-shadow: 0 3px 8px rgba(36, 15, 27, 0.25);
+  transform: translateX(-50%) rotate(-8deg);
+  animation: ch-phone-up 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  pointer-events: none;
+}
+
+.ch-phone__screen {
+  position: absolute;
+  inset: 7% 9%;
+  border-radius: 14% / 8%;
+  background: linear-gradient(160deg, #fff6f8, #ffd9e0);
+}
+
+.ch-phone__screen::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 30%;
+  height: 10%;
+  border-radius: 4px;
+  background: rgba(119, 5, 35, 0.35);
+  box-shadow: 0 9px 0 rgba(119, 5, 35, 0.2);
+}
+
+@keyframes ch-phone-up {
+  from {
+    transform: translate(-50%, 40%) rotate(-8deg) scale(0.6);
+    opacity: 0;
+  }
 }
 
 .ch-mila {
@@ -201,8 +217,7 @@
   aspect-ratio: 1;
   transform: translate(-50%, calc(var(--foot, 1) * -100%));
   /* Same model, tinted peach until Mila has her own render. */
-  filter: sepia(0.35) hue-rotate(-14deg) saturate(1.15) brightness(1.03)
-    drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
+  filter: sepia(0.35) hue-rotate(-14deg) saturate(1.15) brightness(1.03);
   animation: ch-breathe 3.6s ease-in-out infinite;
   transform-origin: 50% 72%;
   pointer-events: none;
@@ -217,25 +232,6 @@
   color: #fff3d0;
   animation: ch-float 3s ease-in-out infinite;
   pointer-events: none;
-}
-
-@keyframes ch-bob {
-  0%,
-  100% {
-    transform: translateY(0) scale(1, 1);
-  }
-  50% {
-    transform: translateY(-2.5%) scale(1.012, 0.988);
-  }
-}
-
-@keyframes ch-pop {
-  from {
-    transform: scale(0.86);
-  }
-  to {
-    transform: scale(1);
-  }
 }
 
 @keyframes ch-breathe {
@@ -308,77 +304,177 @@
   }
 }
 
-.ch-clock {
+/* ---------- Top bar (floats over the wall) ---------- */
+
+.ch-top {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 6;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: start;
+  gap: 8px;
+  padding: 8px 16px 0;
+  pointer-events: none;
+}
+
+.ch-top > * {
+  pointer-events: auto;
+}
+
+.ch-top__title {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 11px 0 9px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.ch-top__title strong {
+  font-family: var(--cz-brand);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.ch-top__title span {
+  font-size: 12px;
+  color: var(--cz-ink-2);
+}
+
+.is-night .ch-top__title strong,
+.is-night .ch-top__title span {
+  color: #fff6ee;
+}
+
+.ch-top__mail {
+  position: relative;
+}
+
+.ch-top__count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cz-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ch-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  margin-top: 6px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--ch-glass-border);
+  border-radius: 12px;
+  background: var(--ch-glass);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   color: var(--cz-ink);
   font-family: var(--cz-ui);
   font-size: 12px;
   cursor: pointer;
 }
 
-/* ---------- What Cozie says ---------- */
+/* ---------- Glass speech bubble over her head ---------- */
 
-.ch-say {
-  flex: 1 0 104px;
-  min-height: 104px;
-  overflow-y: auto;
-  margin: 12px 16px 0;
+.ch-bubble {
+  --tail: 50%;
+  position: absolute;
+  z-index: 8;
+  width: min(300px, calc(100% - 24px));
   padding: 12px 16px 14px;
   border-radius: 22px;
-  background: #fff;
-  box-shadow: 0 2px 14px rgba(36, 15, 27, 0.06);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--ch-glass-border);
+  box-shadow: var(--ch-glass-shadow);
+  transform: translateY(calc(-100% - 12px));
+  animation: ch-bubble-in 280ms cubic-bezier(0.3, 1.3, 0.5, 1);
+  transform-origin: var(--tail) 100%;
 }
 
-.ch-say__who {
-  margin: 0 0 4px;
+/* Tail pointing down at her head; --tail is set from her position. */
+.ch-bubble::after {
+  content: '';
+  position: absolute;
+  left: var(--tail);
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: inherit;
+  border-right: 1px solid var(--ch-glass-border);
+  border-bottom: 1px solid var(--ch-glass-border);
+  border-bottom-right-radius: 4px;
+  transform: rotate(45deg);
+}
+
+@keyframes ch-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% - 4px)) scale(0.9);
+  }
+}
+
+.ch-bubble.is-urgent {
+  background: rgba(255, 244, 245, 0.8);
+  border-color: rgba(226, 86, 111, 0.45);
+}
+
+.ch-bubble__who {
+  margin: 0 28px 4px 0;
   font-size: 12px;
   font-weight: 500;
   color: var(--cz-ink-2);
 }
 
-.ch-say__text {
+.ch-bubble__text {
+  max-height: 34cqh;
+  overflow-y: auto;
   margin: 0;
   font-size: 15px;
-  line-height: 1.45;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
-.ch-say__reply {
+.ch-bubble__reply {
   margin: 10px 0 0;
   padding: 8px 12px;
   border-radius: 14px;
-  background: #fff1f3;
+  background: rgba(255, 228, 233, 0.75);
   color: var(--cz-rose);
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-.ch-say__you {
-  width: fit-content;
-  max-width: 85%;
-  margin: 0 0 10px auto;
-  padding: 7px 12px;
-  border-radius: 14px;
-  background: var(--cz-fill);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.ch-say__dots {
-  display: inline-block;
-  animation: ch-float 1.2s ease-in-out infinite;
+.ch-bubble__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(36, 15, 27, 0.06);
+  color: var(--cz-ink-2);
+  cursor: pointer;
 }
 
 .ch-chips {
@@ -393,9 +489,9 @@
   align-items: center;
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid rgba(36, 15, 27, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 17px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.7);
   color: var(--cz-ink);
   font-family: var(--cz-ui);
   font-size: 13px;
@@ -421,19 +517,119 @@
   background: var(--ch-dot);
 }
 
-/* ---------- Small input ---------- */
+/* ---------- What you just said ---------- */
+
+.ch-echo {
+  position: absolute;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  z-index: 9;
+  max-width: 72%;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 18px 18px 6px 18px;
+  background: rgba(119, 5, 35, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  animation: ch-echo 3.8s ease forwards;
+}
+
+@keyframes ch-echo {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  8%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* ---------- History (swipe up on the input) ---------- */
+
+.ch-history {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+  z-index: 9;
+  max-height: 52%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--ch-glass-border);
+  box-shadow: var(--ch-glass-shadow);
+  animation: ch-history-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes ch-history-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.ch-history__line {
+  max-width: 82%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ch-history__line.is-cozie {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.ch-history__line.is-you {
+  align-self: flex-end;
+  background: rgba(119, 5, 35, 0.82);
+  color: #fff;
+}
+
+.ch-history__empty {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--cz-ink-2);
+  text-align: center;
+}
+
+/* ---------- Glass input ---------- */
 
 .ch-input {
-  flex-shrink: 0;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  z-index: 10;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 48px;
-  margin: 10px 16px 0;
-  padding: 0 6px 0 18px;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 2px 14px rgba(36, 15, 27, 0.06);
+  gap: 6px;
+  height: 52px;
+  padding: 0 7px 0 6px;
+  border-radius: 26px;
+  background: var(--ch-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--ch-glass-border);
+  box-shadow: var(--ch-glass-shadow);
+  touch-action: none;
 }
 
 .ch-input input {
@@ -444,16 +640,34 @@
   background: transparent;
   color: var(--cz-ink);
   font-family: var(--cz-ui);
-  font-size: 15px;
+  /* 16px: anything smaller makes iOS Safari zoom in on focus. */
+  font-size: 16px;
 }
 
 .ch-input input::placeholder {
-  color: var(--cz-ink-2);
+  color: rgba(36, 15, 27, 0.45);
+}
+
+.ch-input__history {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cz-ink);
+  cursor: pointer;
+}
+
+.ch-input__history.is-on {
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .ch-input__send {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -470,7 +684,7 @@
 }
 
 .ch-input__send:disabled {
-  background: #e3dee0;
+  background: rgba(36, 15, 27, 0.15);
   cursor: default;
 }
 
@@ -638,11 +852,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ch-cozie,
-  .ch-cozie__img,
+  .ch-cozie__hop,
   .ch-mila,
   .ch-zz,
   .ch-dot,
-  .ch-panel {
+  .ch-panel,
+  .ch-bubble,
+  .ch-echo,
+  .ch-phone {
     animation: none;
     transition: none;
   }

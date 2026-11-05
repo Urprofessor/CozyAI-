@@ -26,7 +26,7 @@ export function RoomArt({ slot }: { slot: Slot }) {
   const line = { stroke: INK, strokeWidth: 1.3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
 
   return (
-    <svg className="ch-room" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden>
+    <svg className="ch-room" viewBox="0 0 300 620" preserveAspectRatio="none" aria-hidden>
       <defs>
         {/* Hand-drawn wobble on every edge. */}
         <filter id="ch-wobble" x="-2%" y="-2%" width="104%" height="104%">
@@ -47,9 +47,30 @@ export function RoomArt({ slot }: { slot: Slot }) {
         </clipPath>
       </defs>
 
-      <g filter="url(#ch-wobble)">
+      {/* Full-screen canvas: the original 300×400 room sits 150 units down,
+          with extra wall above and floor below. */}
+      <rect width="300" height="620" fill={WALL} />
+      <g filter="url(#ch-wobble)" transform="translate(0 150)">
         {/* Wall */}
-        <rect x="-4" y="-4" width="308" height="258" fill={WALL} />
+        <rect x="-4" y="-154" width="308" height="408" fill={WALL} />
+        {/* Bunting along the top of the wall */}
+        <path d="M-4 -96 Q75 -70 150 -92 T304 -94" fill="none" {...line} strokeWidth={1} />
+        {[12, 40, 68, 96, 124, 152, 180, 208, 236, 264, 292].map((x, i) => {
+          const y = -94 + Math.sin((x / 300) * Math.PI) * 18 * (i % 2 ? 1 : 0.9);
+          return (
+            <path
+              key={x}
+              d={`M${x - 9} ${y} L${x + 9} ${y} L${x} ${y + 16} Z`}
+              fill={[ROSE, SAGE, HONEY][i % 3]}
+              {...line}
+              strokeWidth={1}
+            />
+          );
+        })}
+        {/* Little framed picture of Mila */}
+        <rect x="34" y="-30" width="34" height="42" rx="3" fill={CREAM} {...line} />
+        <circle cx="51" cy="-7" r="9" fill={ROSE} {...line} strokeWidth={1} />
+        <path d="M46 -18 Q47 -26 49 -16 M53 -16 Q55 -26 56 -18" fill="none" {...line} strokeWidth={1} />
         <rect x="-4" y="198" width="308" height="54" fill={WAINSCOT} />
         <path d="M-4 198 H304" {...line} strokeWidth={1} fill="none" />
         {[30, 70, 230, 270].map((x) => (
@@ -57,7 +78,7 @@ export function RoomArt({ slot }: { slot: Slot }) {
         ))}
 
         {/* Pendant lamp */}
-        <path d="M150 -4 V22" {...line} fill="none" />
+        <path d="M150 -154 V22" {...line} fill="none" />
         <path d="M137 24 H163 L170 38 H130 Z" fill={ROSE} {...line} />
         <circle cx="150" cy="41" r="3.2" fill={slot === 'night' ? '#ffe9a8' : CREAM} {...line} strokeWidth={1} />
 
@@ -107,8 +128,8 @@ export function RoomArt({ slot }: { slot: Slot }) {
         <ellipse cx="184" cy="121" rx="5" ry="8" fill={SAGE_DEEP} {...line} transform="rotate(18 184 121)" />
 
         {/* Floor */}
-        <rect x="-4" y="250" width="308" height="154" fill={FLOOR} />
-        {[284, 322, 364].map((y) => (
+        <rect x="-4" y="250" width="308" height="230" fill={FLOOR} />
+        {[284, 322, 364, 406, 446].map((y) => (
           <path key={y} d={`M-4 ${y} H304`} stroke={PLANK} strokeWidth={1.2} />
         ))}
         {[
@@ -119,7 +140,11 @@ export function RoomArt({ slot }: { slot: Slot }) {
           [40, 322, 364],
           [170, 322, 364],
           [100, 364, 404],
-          [230, 364, 404],
+          [230, 364, 406],
+          [50, 406, 446],
+          [200, 406, 446],
+          [130, 446, 480],
+          [260, 446, 480],
         ].map(([x, y1, y2]) => (
           <path key={`${x}-${y1}`} d={`M${x} ${y1} V${y2}`} stroke={PLANK} strokeWidth={1.2} />
         ))}
@@ -205,9 +230,21 @@ export function RoomArt({ slot }: { slot: Slot }) {
         </g>
         <rect x="250" y="362" width="42" height="24" rx="3" fill={WOOD} {...line} />
         <path d="M250 372 H292" stroke={WOOD_DARK} strokeWidth={1.2} />
+
+        {/* Sofa, front left, where Cozie sits down to rest or read her phone */}
+        <rect x="34" y="384" width="118" height="34" rx="12" fill={ROSE} {...line} />
+        <rect x="40" y="408" width="106" height="28" rx="8" fill="#f4d3d7" {...line} />
+        <rect x="26" y="398" width="18" height="42" rx="8" fill={ROSE} {...line} />
+        <rect x="142" y="398" width="18" height="42" rx="8" fill={ROSE} {...line} />
+        <path d="M40 440 V448 M146 440 V448" {...line} strokeWidth={2.4} fill="none" />
+        <rect x="58" y="392" width="22" height="18" rx="6" fill={SAGE} {...line} strokeWidth={1} transform="rotate(-8 69 401)" />
+        {/* Basket of toys, front right */}
+        <path d="M206 420 H250 L246 448 H210 Z" fill={WOOD} {...line} />
+        <circle cx="218" cy="416" r="7" fill={SKY_BLUE} {...line} strokeWidth={1} />
+        <rect x="228" y="406" width="12" height="14" rx="2" fill={HONEY} {...line} strokeWidth={1} />
       </g>
 
-      <rect width="300" height="400" filter="url(#ch-grain)" />
+      <rect width="300" height="620" filter="url(#ch-grain)" />
     </svg>
   );
 }

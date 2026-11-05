@@ -17,7 +17,6 @@ export default function CozieHomeRoute() {
         life={life}
         profile={profile}
         onBack={() => router.push('/cozy')}
-        onTalk={() => router.push('/cozy')}
       />
       <ToastHost />
     </>
