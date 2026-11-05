@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
-import { CZ, showToast } from './ui';
+import { CZ } from './ui';
 
 interface Props {
   /** Profile title: "Mom and Baby" when both are known, else "Cozie". */
   title: string;
   canSelectBaby: boolean;
   onOpenHistory: () => void;
+  /** Opens Cozie's home (the picture-book room). */
+  onOpenHome: () => void;
+  /** Something new is waiting at Cozie's. */
+  homeBadge: boolean;
   onClose: () => void;
 }
 
 /** App TopBarComponent: 44pt glass history button (left), avatar + profile
- *  title (center), read-aloud toggle and close (right), over a blur that fades
+ *  title (center), Cozie's home and close (right), over a blur that fades
  *  into the page. New chat lives in the history drawer. */
-export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onClose }: Props) {
-  const [readAloud, setReadAloud] = useState(false);
-
+export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onOpenHome, homeBadge, onClose }: Props) {
   return (
     <header className="cz-topbar">
       <div className="cz-topbar__blur" aria-hidden />
@@ -39,15 +39,14 @@ export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onClose }: Pro
       <div className="cz-topbar__right">
         <button
           type="button"
-          className="cz-glass-btn"
-          aria-pressed={readAloud}
-          aria-label="Read replies aloud"
-          onClick={() => {
-            setReadAloud((v) => !v);
-            showToast('Read-aloud is coming soon.');
-          }}
+          className="cz-glass-btn cz-home-btn"
+          onClick={onOpenHome}
+          aria-label={homeBadge ? "Visit Cozie's home, something new" : "Visit Cozie's home"}
         >
-          {readAloud ? <Volume2 size={22} strokeWidth={1.6} /> : <VolumeX size={22} strokeWidth={1.6} />}
+          <span className="cz-home-btn__face">
+            <img src={`${CZ}/home/cozie_neutral.png`} alt="" draggable={false} />
+          </span>
+          {homeBadge && <span className="cz-home-btn__dot" aria-hidden />}
         </button>
         <button type="button" className="cz-glass-btn" onClick={onClose} aria-label="Close Cozie">
           <img src={`${CZ}/icons/settings_close.svg`} alt="" width={22} height={22} draggable={false} />

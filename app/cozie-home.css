@@ -1,0 +1,649 @@
+/* Cozie's home: the picture-book room behind the Cozie button in the chat
+   top bar. Slides in over the chat as a second-level page. */
+
+.ch-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 380ms;
+}
+
+.ch-panel.is-open {
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ch-page {
+  --ch-ink-line: #9a7a69;
+  --ch-dot: #e2566f;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* clip, not hidden: the off-screen sheets must not make the page scrollable. */
+  overflow: clip;
+  background: var(--cz-bg);
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+}
+
+/* ---------- Top bar ---------- */
+
+.ch-top {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 10px;
+}
+
+.ch-top__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ch-top__title strong {
+  font-family: var(--cz-brand);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.ch-top__title span {
+  font-size: 12px;
+  color: var(--cz-ink-2);
+}
+
+.ch-top__mail {
+  position: relative;
+}
+
+.ch-top__count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cz-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ---------- Stage ---------- */
+
+/* As tall as a full-width 3:4 room, shrinking on short screens; any spare
+   height goes to the speech card below. */
+.ch-stage-wrap {
+  flex: 0 1 calc((100cqw - 24px) * 4 / 3);
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.ch-stage {
+  position: relative;
+  width: min(calc(100cqw - 24px), 75cqh);
+  aspect-ratio: 3 / 4;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #f7efe4;
+  box-shadow:
+    0 10px 30px rgba(36, 15, 27, 0.1),
+    0 0 0 1px rgba(154, 122, 105, 0.2);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ch-room {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Light by part of the day. The room art swaps its sky; these wash over it. */
+.ch-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background-color 600ms ease;
+}
+
+.is-morning .ch-tint {
+  background: linear-gradient(115deg, rgba(255, 210, 160, 0.22), rgba(255, 230, 200, 0) 55%);
+}
+
+.is-night .ch-tint {
+  background-color: rgba(50, 54, 108, 0.42);
+  mix-blend-mode: multiply;
+}
+
+/* The pendant lamp's pool of light, over everything. */
+.is-night .ch-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 48% at 50% 18%, rgba(255, 222, 150, 0.5), rgba(255, 222, 150, 0) 70%);
+  mix-blend-mode: screen;
+}
+
+.is-night .ch-cozie__img,
+.is-night .ch-mila {
+  filter: brightness(0.84) saturate(0.9) drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
+}
+
+/* ---------- Characters ---------- */
+
+.ch-cozie {
+  position: absolute;
+  z-index: 3;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: translate(-50%, calc(var(--foot, 1) * -100%));
+  transition:
+    left 750ms cubic-bezier(0.3, 0.7, 0.2, 1),
+    top 750ms cubic-bezier(0.3, 0.7, 0.2, 1),
+    width 300ms ease,
+    transform 300ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ch-cozie__img {
+  position: relative;
+  width: 100%;
+  display: block;
+  transform-origin: 50% calc(var(--foot, 1) * 100%);
+  /* Soften the 3D gloss toward the picture-book room. */
+  filter: saturate(0.92) drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
+  animation:
+    ch-pop 380ms cubic-bezier(0.3, 1.4, 0.5, 1),
+    ch-bob 3s ease-in-out 380ms infinite;
+  pointer-events: none;
+}
+
+.ch-cozie__shadow {
+  position: absolute;
+  left: 26%;
+  right: 26%;
+  top: calc(var(--foot, 1) * 100% - 4%);
+  height: 8%;
+  border-radius: 50%;
+  background: rgba(120, 88, 66, 0.2);
+  filter: blur(2px);
+}
+
+.ch-mila {
+  position: absolute;
+  z-index: 2;
+  aspect-ratio: 1;
+  transform: translate(-50%, calc(var(--foot, 1) * -100%));
+  /* Same model, tinted peach until Mila has her own render. */
+  filter: sepia(0.35) hue-rotate(-14deg) saturate(1.15) brightness(1.03)
+    drop-shadow(0 0 0.6px rgba(154, 122, 105, 0.9));
+  animation: ch-breathe 3.6s ease-in-out infinite;
+  transform-origin: 50% 72%;
+  pointer-events: none;
+}
+
+.ch-zz {
+  position: absolute;
+  z-index: 3;
+  font-family: var(--cz-brand);
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: #fff3d0;
+  animation: ch-float 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ch-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-2.5%) scale(1.012, 0.988);
+  }
+}
+
+@keyframes ch-pop {
+  from {
+    transform: scale(0.86);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes ch-breathe {
+  0%,
+  100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.025 0.985;
+  }
+}
+
+@keyframes ch-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* ---------- Tappable spots ---------- */
+
+.ch-spot {
+  position: absolute;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    box-shadow 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ch-spot:active,
+.ch-spot.is-active {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.75);
+}
+
+.ch-dot {
+  position: absolute;
+  z-index: 5;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--ch-dot);
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  animation: ch-ping 1.8s ease-out infinite;
+}
+
+@keyframes ch-ping {
+  0% {
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 2px rgba(226, 86, 111, 0.55);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 11px rgba(226, 86, 111, 0);
+  }
+}
+
+.ch-clock {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ---------- What Cozie says ---------- */
+
+.ch-say {
+  flex: 1 0 104px;
+  min-height: 104px;
+  overflow-y: auto;
+  margin: 12px 16px 0;
+  padding: 12px 16px 14px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 2px 14px rgba(36, 15, 27, 0.06);
+}
+
+.ch-say__who {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cz-ink-2);
+}
+
+.ch-say__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.ch-say__reply {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff1f3;
+  color: var(--cz-rose);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ch-say__you {
+  width: fit-content;
+  max-width: 85%;
+  margin: 0 0 10px auto;
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: var(--cz-fill);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ch-say__dots {
+  display: inline-block;
+  animation: ch-float 1.2s ease-in-out infinite;
+}
+
+.ch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ch-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(36, 15, 27, 0.14);
+  border-radius: 17px;
+  background: #fff;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ch-chip:active {
+  transform: scale(0.97);
+}
+
+.ch-chip.is-primary {
+  border-color: var(--cz-accent);
+  background: var(--cz-accent);
+  color: #fff;
+}
+
+.ch-chip.is-new::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--ch-dot);
+}
+
+/* ---------- Small input ---------- */
+
+.ch-input {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  margin: 10px 16px 0;
+  padding: 0 6px 0 18px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 2px 14px rgba(36, 15, 27, 0.06);
+}
+
+.ch-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  font-size: 15px;
+}
+
+.ch-input input::placeholder {
+  color: var(--cz-ink-2);
+}
+
+.ch-input__send {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cz-accent);
+  cursor: pointer;
+}
+
+.ch-input__send img {
+  width: 18px;
+  height: 18px;
+  transform: rotate(180deg);
+}
+
+.ch-input__send:disabled {
+  background: #e3dee0;
+  cursor: default;
+}
+
+/* ---------- Sheets ---------- */
+
+.ch-sheet {
+  padding: 24px 20px 24px;
+}
+
+.ch-sheet__title {
+  margin: 0;
+  font-family: var(--cz-brand);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.ch-sheet__sub {
+  margin: 6px 0 18px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--cz-ink-2);
+}
+
+.ch-sheet__empty {
+  margin: 0;
+  padding: 20px 0 8px;
+  font-size: 14px;
+  color: var(--cz-ink-2);
+  text-align: center;
+}
+
+.ch-mail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.ch-mail button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ch-mail__seal {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4e4df;
+  color: var(--cz-accent);
+  font-family: var(--cz-brand);
+  font-size: 19px;
+}
+
+.ch-mail__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ch-mail__text strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ch-mail__text em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--cz-ink-2);
+}
+
+.ch-clock-opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ch-clock-opts button,
+.ch-clock-actions button {
+  border: 1px solid rgba(36, 15, 27, 0.12);
+  background: #fff;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  cursor: pointer;
+}
+
+.ch-clock-opts button {
+  height: 44px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+
+.ch-clock-opts .is-on {
+  border-color: var(--cz-accent);
+  background: #fff7f8;
+  color: var(--cz-accent);
+}
+
+.ch-clock-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.ch-clock-actions button {
+  height: 48px;
+  border-radius: 24px;
+  font-size: 15px;
+}
+
+.ch-clock-actions .is-primary {
+  border-color: var(--cz-accent);
+  background: var(--cz-accent);
+  color: #fff;
+}
+
+/* ---------- Entry in the chat top bar ---------- */
+
+.cz-home-btn {
+  position: relative;
+  overflow: visible;
+}
+
+.cz-home-btn__face {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.cz-home-btn__face img {
+  width: 40px;
+  height: 40px;
+  transform: translateY(5px) scale(1.55);
+}
+
+.cz-home-btn__dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e2566f;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-cozie,
+  .ch-cozie__img,
+  .ch-mila,
+  .ch-zz,
+  .ch-dot,
+  .ch-panel {
+    animation: none;
+    transition: none;
+  }
+}

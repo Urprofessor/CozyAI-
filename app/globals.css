@@ -2,6 +2,7 @@
 @import './app-shell.css';
 @import './cozie-chat.css';
 @import './cozie-letter.css';
+@import './cozie-home.css';
 
 @tailwind base;
 @tailwind components;

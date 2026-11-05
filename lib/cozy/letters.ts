@@ -27,6 +27,8 @@ export interface LetterAction {
 
 export interface LetterContent {
   id: string;
+  /** Who signs it. Defaults to Cozie; Cozie's baby writes some too. */
+  from?: string;
   kicker: string; // small line under "From Cozie"
   salutation: string;
   blocks: LetterBlock[];

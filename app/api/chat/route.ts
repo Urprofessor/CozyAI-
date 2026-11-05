@@ -8,7 +8,7 @@ import { streamText, type CoreMessage } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 
-import { QA_SYSTEM_PROMPT, SUPPORT_SYSTEM_PROMPT } from '@/lib/cozy/prompts';
+import { LIFE_SYSTEM_PROMPT, QA_SYSTEM_PROMPT, SUPPORT_SYSTEM_PROMPT } from '@/lib/cozy/prompts';
 import type { Persona } from '@/lib/cozy/types';
 
 export const runtime = 'edge';
@@ -28,6 +28,10 @@ interface ClientMessage {
 interface ChatRequestBody {
   persona?: Persona;
   messages?: ClientMessage[];
+  /** 'life' = small talk inside Cozie's home (short replies, no tags). */
+  mode?: 'life';
+  /** What Cozie is doing right now, for 'life' mode. */
+  context?: string;
 }
 
 export async function POST(req: Request) {
@@ -42,7 +46,12 @@ export async function POST(req: Request) {
   if (raw.length === 0) return errJson(400, 'Empty messages');
 
   const persona: Persona = body.persona === 'support' ? 'support' : 'qa';
-  const systemPrompt = persona === 'support' ? SUPPORT_SYSTEM_PROMPT : QA_SYSTEM_PROMPT;
+  const life = body.mode === 'life';
+  const systemPrompt = life
+    ? `${LIFE_SYSTEM_PROMPT}\n\nRight now: ${String(body.context ?? '').slice(0, 600)}`
+    : persona === 'support'
+      ? SUPPORT_SYSTEM_PROMPT
+      : QA_SYSTEM_PROMPT;
 
   // Any image at all? Route the whole conversation to Claude vision.
   const hasImages = raw.some((m) => Array.isArray(m.images) && m.images.length > 0);
@@ -65,8 +74,8 @@ export async function POST(req: Request) {
     model: deepseek('deepseek-chat'),
     system: systemPrompt,
     messages,
-    temperature: 0.7,
-    maxTokens: 800,
+    temperature: life ? 0.8 : 0.7,
+    maxTokens: life ? 200 : 800,
   });
   return result.toDataStreamResponse();
 }

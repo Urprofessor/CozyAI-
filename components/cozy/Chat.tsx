@@ -27,6 +27,8 @@ import { FIRST_LETTER, LETTER_CARD, personaSeed } from '@/lib/cozy/letters';
 import { PlanCard, QuestionnaireCard, ScheduleCard } from './cards/LactationCards';
 import { logPump, toggleSession } from '@/lib/cozy/lactation';
 import type { CardSkill } from '@/lib/cozy/keywords';
+import { useCozieLife } from '@/hooks/useCozieLife';
+import { CozieHomePage, hasNewAtCozies } from './home/CozieHomePage';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -89,6 +91,10 @@ export function CozyChat() {
   const [welcomed, setWelcomed] = useState<boolean | null>(null);
   // "From Cozie" overlay: arriving after Get started, or reopened from its card.
   const [letter, setLetter] = useState<'arrive' | 'reread' | null>(null);
+  // Cozie's home: a second-level page over the chat. Mounted on first visit.
+  const life = useCozieLife();
+  const [homeOpen, setHomeOpen] = useState(false);
+  const [homeMounted, setHomeMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -210,6 +216,11 @@ export function CozyChat() {
           title={title}
           canSelectBaby={false}
           onOpenHistory={() => setHistoryOpen(true)}
+          onOpenHome={() => {
+            setHomeMounted(true);
+            setHomeOpen(true);
+          }}
+          homeBadge={hasNewAtCozies(life, profile.profile)}
           onClose={closeCozy}
         />
 
@@ -263,6 +274,20 @@ export function CozyChat() {
 
       {letter === 'reread' && (
         <CozieLetter letter={FIRST_LETTER} mode="reread" onClose={() => setLetter(null)} />
+      )}
+
+      {homeMounted && (
+        <div className={cn('ch-panel', homeOpen && 'is-open')} inert={!homeOpen} aria-hidden={!homeOpen}>
+          <CozieHomePage
+            life={life}
+            profile={profile.profile}
+            onBack={() => setHomeOpen(false)}
+            onTalk={(text) => {
+              setHomeOpen(false);
+              chat.send(text);
+            }}
+          />
+        </div>
       )}
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}

@@ -46,3 +46,22 @@ export function detectSkillTrigger(text: string): CardSkill | null {
   if (has(COZY_LACTATION_KEYWORDS)) return 'lactation';
   return null;
 }
+
+// Danger signs typed in Cozie's home. Cozie's room is for small talk; anything
+// that may need medical attention goes straight to the main chat, where she
+// answers as a nurse and can point to real help.
+export const COZY_DANGER_KEYWORDS = [
+  'fever', 'high temperature', 'not breathing', 'breathing fast', 'turning blue', 'blue lips',
+  'seizure', 'unresponsive', 'limp', 'not feeding', "won't feed", 'no wet diaper', 'blood',
+  'mastitis', 'red and hot', 'lump', 'chest pain', 'heavy bleeding', 'faint',
+  'suicide', 'kill myself', 'hurt myself', 'harm myself', 'hurt the baby', 'harm the baby',
+  "can't stop crying", 'hopeless', 'depressed', 'depression',
+  '发烧', '发热', '高烧', '呼吸', '抽搐', '发紫', '不吃奶', '没有尿', '出血', '流血',
+  '乳腺炎', '红肿', '硬块', '胸痛', '晕倒', '自杀', '伤害自己', '伤害宝宝', '不想活', '抑郁', '绝望',
+] as const;
+
+export function detectDangerSignal(text: string): boolean {
+  if (!text) return false;
+  const low = text.toLowerCase();
+  return COZY_DANGER_KEYWORDS.some((k) => low.includes(k.toLowerCase()));
+}

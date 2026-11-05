@@ -65,19 +65,20 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
   }
 
   const date = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric' });
+  const from = letter.from ?? 'Cozie';
 
   return (
     <div
       className={cn('cz-letter', `is-${phase}`, instant && 'is-instant')}
       onClick={skip}
       role="dialog"
-      aria-label="A letter from Cozie"
+      aria-label={`A letter from ${from}`}
     >
       {!instant && (
         <div className="cz-env" aria-hidden>
           <div className="cz-env__back" />
           <div ref={paperRef} className="cz-env__paper">
-            <span>From Cozie</span>
+            <span>From {from}</span>
             <strong>{letter.salutation}</strong>
             <i />
             <i />
@@ -95,7 +96,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
         <article ref={sheetRef} className="cz-letter__sheet" onClick={(e) => e.stopPropagation()}>
           <header className="cz-letter__head">
             <div>
-              <h2>From Cozie</h2>
+              <h2>From {from}</h2>
               <span>{letter.kicker}</span>
             </div>
             {mode === 'reread' && onClose ? (
@@ -114,7 +115,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
             ))}
             <div className="cz-letter__sign">
               <span>{letter.closing}</span>
-              <strong>Cozie</strong>
+              <strong>{from}</strong>
               <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
             </div>
           </div>
