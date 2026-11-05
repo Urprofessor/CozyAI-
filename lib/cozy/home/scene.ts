@@ -106,3 +106,23 @@ export const pct = {
   y: (v: number) => `${(v / ROOM_H) * 100}%`,
   h: (v: number) => `${(v / ROOM_H) * 100}%`,
 };
+
+/** Halloween dressing: decorations in the room and Cozie in her witch hat
+ *  and cape. Positions in room units; `y` is the top edge. */
+const HW = '/cozie/home/halloween';
+export const HALLOWEEN = {
+  bunting: { x: 28, y: 78, w: 204, src: `${HW}/bunting.webp`, aspect: 0.283 },
+  ghost: { x: 246, y: 96, w: 34, src: `${HW}/ghost.webp`, aspect: 2.429 },
+  pumpkins: { x: 234, y: 344, w: 62, src: `${HW}/pumpkins.webp`, aspect: 0.833 },
+  cozie: {
+    idle: { src: `${HW}/cozie_witch_idle.webp`, top: 0.169 },
+    phone: { src: `${HW}/cozie_witch_phone.webp`, top: 0.169 },
+  },
+};
+
+/** Halloween dressing is on by default around Halloween (Oct 20 – Nov 10). */
+export function isHalloweenSeason(d = new Date()) {
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return (m === 10 && day >= 20) || (m === 11 && day <= 10);
+}

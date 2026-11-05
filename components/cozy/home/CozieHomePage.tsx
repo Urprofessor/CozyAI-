@@ -27,12 +27,14 @@ import {
   CRIB_FRONT,
   FACES,
   FOREGROUND,
+  HALLOWEEN,
   MILA,
   PLACES,
   PROPS,
   ROOM_H,
   ROUTINES,
   SPOTS,
+  isHalloweenSeason,
   pct,
   type MilaMood,
   type Place,
@@ -117,6 +119,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     null
   );
   const [mailOpen, setMailOpen] = useState(false);
+  const [halloween, setHalloween] = useState(() => isHalloweenSeason());
   const [clockOpen, setClockOpen] = useState(false);
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -190,7 +193,12 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           : bubble?.kind === 'spot'
             ? 'look'
             : routine.anim);
-  const art = ANIMS[anim];
+  // In costume she only has two renders: holding the phone, and standing.
+  const art = halloween
+    ? anim === 'phone' || anim === 'phoneup'
+      ? HALLOWEEN.cozie.phone
+      : HALLOWEEN.cozie.idle
+    : ANIMS[anim];
   const at = PLACES[place];
   const bgArt = BACKGROUNDS[clock.slot];
   const milaMood: MilaMood =
@@ -241,7 +249,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         const w = el.offsetWidth;
         const cx = r.left - p.left + r.width / 2;
         const left = Math.min(Math.max(cx - w / 2, 12), p.width - w - 12);
-        const top = r.top - p.top + r.height * ANIMS[anim].top;
+        const top = r.top - p.top + r.height * art.top;
         el.style.left = `${left}px`;
         el.style.top = `${top}px`;
         el.style.setProperty('--tail', `${Math.min(Math.max(cx - left, 22), w - 22)}px`);
@@ -250,7 +258,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [bubbleVisible, anim]);
+  }, [bubbleVisible, art.top]);
 
   // ---------- Chat ----------
 
@@ -489,6 +497,31 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           />
         </button>
 
+        {halloween && (
+          <>
+            <img
+              className="ch-deco"
+              src={HALLOWEEN.bunting.src}
+              alt=""
+              aria-hidden
+              style={{ left: pct.x(HALLOWEEN.bunting.x), top: pct.y(HALLOWEEN.bunting.y), width: pct.x(HALLOWEEN.bunting.w) }}
+            />
+            <img
+              className="ch-deco ch-deco--sway"
+              src={HALLOWEEN.ghost.src}
+              alt=""
+              aria-hidden
+              style={{ left: pct.x(HALLOWEEN.ghost.x), top: pct.y(HALLOWEEN.ghost.y), width: pct.x(HALLOWEEN.ghost.w) }}
+            />
+            <img
+              className="ch-deco"
+              src={HALLOWEEN.pumpkins.src}
+              alt=""
+              aria-hidden
+              style={{ left: pct.x(HALLOWEEN.pumpkins.x), top: pct.y(HALLOWEEN.pumpkins.y), width: pct.x(HALLOWEEN.pumpkins.w) }}
+            />
+          </>
+        )}
         <img
           className="ch-mila"
           src={MILA.src(milaMood, clock.slot)}
@@ -544,7 +577,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
         <button
           type="button"
-          className={cn('ch-cozie', walk && 'is-walking')}
+          className={cn('ch-cozie', walk && 'is-walking', halloween && 'is-costume')}
           style={{
             left: pct.x(at.x),
             top: pct.y(at.y),
@@ -762,6 +795,15 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             实时
           </button>
         </div>
+        <button
+          type="button"
+          className={cn('ch-toggle', halloween && 'is-on')}
+          onClick={() => setHalloween((h) => !h)}
+          aria-pressed={halloween}
+        >
+          <span>万圣节装扮</span>
+          <i aria-hidden />
+        </button>
         <div className="ch-clock-actions">
           <button
             type="button"
