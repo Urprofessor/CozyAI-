@@ -19,7 +19,7 @@ import {
   type LifeClock,
 } from '@/lib/cozy/life/engine';
 import { LIFE_LETTERS, type LifeChoice, type Slot, type SpotId } from '@/lib/cozy/life/script';
-import { URGENT_REPLY, parseAction, topicOf, type Mood } from '@/lib/cozy/life/topics';
+import { URGENT_REPLY, parseAction, topicOf } from '@/lib/cozy/life/topics';
 import { ANIMS, FOOT, type CozieAnim } from '@/lib/cozy/home/anims';
 import {
   BACKGROUNDS,
@@ -46,51 +46,39 @@ interface Props {
   onBack: () => void;
 }
 
-type Bubble = { kind: 'cozie' } | { kind: 'spot'; spot: SpotId } | { kind: 'talk' };
+/** Glass bubble over her head: her current line, or a spot in the room. */
+type Bubble = { kind: 'cozie' } | { kind: 'spot'; spot: SpotId };
 
-interface Talk {
+interface Msg {
   id: number;
-  you: string;
-  reply: string;
-  /** walking → thinking (thought cloud) → reading (phone up, bubble) →
-   *  done (still on the phone) → after (phone down, reacting); or failed */
-  phase: 'walking' | 'thinking' | 'reading' | 'done' | 'after' | 'failed';
-  place: Place;
-  mood: Mood;
-  urgent: boolean;
-}
-
-interface Line {
   who: 'you' | 'cozie';
   text: string;
+  /** Your messages: sent → read (she picked them up) or failed. */
+  status?: 'sent' | 'read' | 'failed';
+  urgent?: boolean;
 }
-
-const MOOD_ANIM: Record<Mood, CozieAnim> = {
-  happy: 'happy',
-  empathy: 'empathy',
-  celebrate: 'celebrate',
-  encourage: 'encourage',
-  stars: 'stars',
-  neutral: 'idle',
-};
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Cozie's home: a full-screen picture-book room. She goes about her day;
- *  when you talk to her she walks to whatever the message is about, thinks,
- *  picks up her phone and answers in a glass bubble over her head. */
+/** How long you wait after your last message before she answers — long
+ *  enough to send a second line, like texting a person. */
+const REPLY_AFTER_MS = 1100;
+
+/** Cozie's home: a full-screen room where she goes about her day. Chatting
+ *  pulls up a glass thread from the bottom; she stays where she is, picks up
+ *  her phone and texts back in a few short messages, like a person would. */
 export function CozieHomePage({ life, profile, onBack }: Props) {
   const persona = useMemo(() => personaFrom(profile), [profile]);
   const [now, setNow] = useState(() => Date.now());
   const [slotOverride, setSlotOverride] = useState<Slot | null>(null);
   const [bubble, setBubble] = useState<Bubble | null>(null);
-  const [talk, setTalk] = useState<Talk | null>(null);
   const [reaction, setReaction] = useState<CozieAnim | null>(null);
-  const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState('');
-  const [echo, setEcho] = useState<{ text: string; key: number } | null>(null);
-  const [history, setHistory] = useState<Line[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [thread, setThread] = useState<Msg[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [cozieTyping, setCozieTyping] = useState(false);
+  const [unseen, setUnseen] = useState(0);
+  const [chatPlace, setChatPlace] = useState<Place | null>(null);
   const [routineIdx, setRoutineIdx] = useState(0);
   const [letter, setLetter] = useState<{ content: LetterContent; mode: 'arrive' | 'reread'; eventId?: string } | null>(
     null
@@ -101,9 +89,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const pageRef = useRef<HTMLDivElement>(null);
   const cozieImgRef = useRef<HTMLImageElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const talkSeq = useRef(0);
-  const talkRef = useRef<Talk | null>(null);
-  talkRef.current = talk;
+  const threadElRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<Msg[]>([]);
+  threadRef.current = thread;
+  const chatOpenRef = useRef(false);
+  chatOpenRef.current = chatOpen;
+  const msgSeq = useRef(0);
+  const replySeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const later = useCallback((key: string, ms: number, fn: () => void) => {
@@ -150,46 +142,28 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   // ---------- Where she is and what she's doing ----------
 
-  const talking = talk !== null;
-  const [walkingNow, setWalkingNow] = useState(false);
-  const place: Place = talk ? talk.place : bubble?.kind === 'spot' ? bubble.spot : routine.place;
-  const holdingPhone = !reaction && (talk?.phase === 'reading' || talk?.phase === 'done');
+  // While chatting she stays exactly where she was.
+  const place: Place =
+    chatOpen && chatPlace ? chatPlace : bubble?.kind === 'spot' ? bubble.spot : routine.place;
+  const [walk, setWalk] = useState<{ dir: number; key: number } | null>(null);
   const anim: CozieAnim =
     reaction ??
-    (walkingNow
+    (walk
       ? 'hop'
-      : talk?.phase === 'walking' || ((typing || draft.length > 0) && !talking)
-        ? 'listen'
-        : talk?.phase === 'thinking'
-          ? 'think'
-          : holdingPhone
-            ? 'phone'
-            : talk?.phase === 'after'
-              ? 'idle'
-              : bubble?.kind === 'spot'
-                ? 'look'
-                : routine.anim);
+      : chatOpen
+        ? 'phone'
+        : draft.length > 0
+          ? 'listen'
+          : bubble?.kind === 'spot'
+            ? 'look'
+            : routine.anim);
   const art = ANIMS[anim];
   const at = PLACES[place];
   const bgArt = BACKGROUNDS[clock.slot];
   const milaMood: MilaMood =
     bubble?.kind === 'spot' && bubble.spot === 'crib' ? 'smile' : clock.slot === 'morning' ? 'awake' : 'sleep';
-  const milaVisible = true;
-
-  // She lifts the phone (a short transition) the moment a reply comes in.
-  const lastPhase = useRef<Talk['phase'] | null>(null);
-  useEffect(() => {
-    const phase = talk?.phase ?? null;
-    const before = lastPhase.current;
-    if ((phase === 'reading' || phase === 'done') && (before === 'walking' || before === 'thinking')) {
-      setReaction('phoneup');
-      later('react', 650, () => setReaction(null));
-    }
-    lastPhase.current = phase;
-  }, [talk?.phase, later]);
 
   // Hop while walking, leaning the way she goes.
-  const [walk, setWalk] = useState<{ dir: number; key: number } | null>(null);
   const lastX = useRef(at.x);
   const lastPlace = useRef(place);
   useEffect(() => {
@@ -198,15 +172,11 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     lastPlace.current = place;
     lastX.current = at.x;
     setWalk({ dir, key: Date.now() });
-    setWalkingNow(true);
-    later('walk', 800, () => {
-      setWalk(null);
-      setWalkingNow(false);
-    });
+    later('walk', 800, () => setWalk(null));
   }, [place, at.x, later]);
 
-  // Drift through her routine while nobody's talking to her.
-  const busy = talking || typing || bubble !== null || letter !== null;
+  // Drift through her routine while nobody's with her.
+  const busy = chatOpen || bubble !== null || letter !== null || draft.length > 0;
   useEffect(() => {
     if (busy) return;
     const t = setTimeout(() => setRoutineIdx((i) => i + 1), routine.ms);
@@ -221,9 +191,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   // ---------- Bubble follows her head ----------
 
-  const bubbleVisible =
-    bubble !== null &&
-    (bubble.kind !== 'talk' || (talk !== null && talk.phase !== 'walking'));
+  const typingOverHead = chatOpen && cozieTyping && bubble === null;
+  const bubbleVisible = bubble !== null || typingOverHead;
   useLayoutEffect(() => {
     if (!bubbleVisible) return;
     let raf = 0;
@@ -248,141 +217,151 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     return () => cancelAnimationFrame(raf);
   }, [bubbleVisible, anim]);
 
-  // ---------- Talking ----------
+  // ---------- Chat ----------
+
+  function openChat() {
+    if (chatOpenRef.current) return;
+    setChatPlace(place);
+    setBubble(null);
+    setUnseen(0);
+    setChatOpen(true);
+    react('phoneup', 650);
+  }
+
+  function closeChat() {
+    if (!chatOpenRef.current) return;
+    setChatOpen(false);
+    setChatPlace(null);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }
+
+  // Keep the newest message in view.
+  useEffect(() => {
+    const el = threadElRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thread.length, cozieTyping, chatOpen]);
 
   function send(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text) return;
     setDraft('');
-    void talkTo(text);
+    openChat();
+    setThread((t) => [...t, { id: ++msgSeq.current, who: 'you', text, status: 'sent' }]);
+    // A new message cancels a reply in progress; she'll answer everything at once.
+    abortRef.current?.abort();
+    replySeq.current++;
+    setCozieTyping(false);
+    later('reply', detectDangerSignal(text) ? 300 : REPLY_AFTER_MS, () => void respond());
   }
 
-  /** One message: she walks over and thinks while the reply is generated in
-   *  parallel; the phone comes up as soon as the words arrive. */
-  async function talkTo(text: string, retry = false) {
-    setHistoryOpen(false);
-    abortRef.current?.abort();
-    clearTimeout(timers.current.close);
-    clearTimeout(timers.current.phoneDown);
-    setReaction(null);
+  function pushCozie(text: string, urgent = false) {
+    setThread((t) => [...t, { id: ++msgSeq.current, who: 'cozie', text, urgent }]);
+    if (!chatOpenRef.current) setUnseen((n) => n + 1);
+  }
 
-    const id = ++talkSeq.current;
-    const alive = () => talkSeq.current === id;
-    const urgent = detectDangerSignal(text);
-    const topic = topicOf(text);
-    const lines = retry ? history : [...history, { who: 'you' as const, text }];
-    if (!retry) setHistory(lines);
-    setEcho({ text, key: id });
-    later('echo', 3800, () => setEcho(null));
-    setBubble({ kind: 'talk' });
-    setTalk({
-      id,
-      you: text,
-      reply: '',
-      phase: 'walking',
-      place: urgent ? 'fridge' : topic.place,
-      mood: urgent ? 'empathy' : topic.mood,
-      urgent,
-    });
-    const patch = (p: Partial<Talk>) => alive() && setTalk((t) => (t && t.id === id ? { ...t, ...p } : t));
+  /** Answer everything you've said since her last message. */
+  async function respond() {
+    const rid = ++replySeq.current;
+    const alive = () => replySeq.current === rid;
+    const all = threadRef.current;
+    const lastCozie = all.map((m) => m.who).lastIndexOf('cozie');
+    const pending = all.slice(lastCozie + 1).filter((m) => m.who === 'you');
+    if (pending.length === 0) return;
+    const said = pending.map((m) => m.text).join('\n');
 
-    // The walk is just animation: the request starts right away.
-    const t0 = Date.now();
-    const WALK_MS = 650;
-    later('think', WALK_MS, () => alive() && setTalk((t) => (t && t.id === id && t.phase === 'walking' ? { ...t, phase: 'thinking' } : t)));
-    const arrived = () => Date.now() - t0 >= WALK_MS;
+    // She picks them up: read, and starts typing.
+    setThread((t) => t.map((m) => (m.who === 'you' && m.status !== 'read' ? { ...m, status: 'read' } : m)));
+    setCozieTyping(true);
 
-    let reply = '';
-    let demo = false;
-    if (urgent) {
-      reply = URGENT_REPLY;
-    } else {
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: ctrl.signal,
-          body: JSON.stringify({
-            mode: 'life',
-            context: `Day ${clock.day} of your week, ${clock.slot}. ${cozieLine(clock, persona)} Mila is ${persona.milaWeeks} weeks old. The user is ${persona.mom}; her baby ${persona.baby} is ${persona.babyWeeks} weeks old.`,
-            messages: lines.slice(-8).map((l) => ({ role: l.who === 'you' ? 'user' : 'assistant', content: l.text })),
-          }),
-        });
-        if (!res.ok || !res.body) {
-          // No model key (local demo): Cozie answers from her script instead.
-          const body = await res.text().catch(() => '');
-          if (res.status === 500 && /not configured/i.test(body)) demo = true;
-          else throw new Error(String(res.status));
-        } else {
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
-          let buf = '';
-          let raw = '';
-          let moved = false;
-          for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buf += decoder.decode(value, { stream: true });
-            const parts = buf.split('\n');
-            buf = parts.pop() ?? '';
-            for (const l of parts) {
-              if (!l.startsWith('0:')) continue;
-              raw += JSON.parse(l.slice(2)) as string;
-              const act = parseAction(raw);
-              if (act.pending) continue;
-              if (!moved) {
-                moved = true;
-                if (act.place || act.mood) patch({ ...(act.place && { place: act.place }), ...(act.mood && { mood: act.mood }) });
-              }
-              reply = act.text;
-              if (reply && arrived()) patch({ phase: 'reading', reply });
-            }
-          }
-          if (!reply.trim()) throw new Error('empty');
-        }
-      } catch (err) {
-        if ((err as Error).name === 'AbortError' || !alive()) return;
-        clearTimeout(timers.current.think);
-        patch({ phase: 'failed' });
-        react('think', 1800);
-        return;
-      }
-      if (demo) reply = topic.fallback;
+    // Messages go out one by one, with a beat of typing between them.
+    let chain = Promise.resolve();
+    let sent = 0;
+    const queue = (line: string, urgent = false) => {
+      const first = sent === 0;
+      sent++;
+      chain = chain.then(async () => {
+        await wait(first ? 350 : Math.min(Math.max(line.length * 45, 650), 1500));
+        if (alive()) pushCozie(line, urgent);
+      });
+    };
+    const finish = async () => {
+      await chain;
+      if (alive()) setCozieTyping(false);
+    };
+
+    if (detectDangerSignal(said)) {
+      splitMessages(URGENT_REPLY).forEach((l) => queue(l, true));
+      return finish();
     }
 
-    // Let her reach the spot before the phone comes up (no longer than the walk).
-    if (!arrived()) await wait(WALK_MS - (Date.now() - t0));
-    if (!alive()) return;
-    reply = reply.trim();
-    patch({ phase: 'reading', reply });
-
-    if (!alive()) return;
-    setHistory((h) => [...h, { who: 'cozie', text: reply }]);
-    patch({ phase: 'done' });
-    // Phone down after a moment, then react.
-    later('phoneDown', 1600, () => {
-      if (!alive()) return;
-      const t = talkRef.current;
-      if (t && t.id === id) {
-        patch({ phase: 'after' });
-        react(MOOD_ANIM[t.mood], 2800);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          mode: 'life',
+          context: `Day ${clock.day} of your week, ${clock.slot}. ${cozieLine(clock, persona)} Mila is ${persona.milaWeeks} weeks old. The user is ${persona.mom}; her baby ${persona.baby} is ${persona.babyWeeks} weeks old.`,
+          messages: all.slice(-16).map((m) => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text })),
+        }),
+      });
+      if (!res.ok || !res.body) {
+        // No model key (local demo): she answers from her script instead.
+        const body = await res.text().catch(() => '');
+        if (res.status === 500 && /not configured/i.test(body)) {
+          splitMessages(topicOf(said).fallback).forEach((l) => queue(l));
+          return finish();
+        }
+        throw new Error(String(res.status));
       }
-    });
-    const readMs = Math.min(Math.max(reply.length * 160, 5000), 15000);
-    later('close', readMs, () => {
-      if (!alive()) return;
-      setTalk(null);
-      setBubble(null);
-    });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let raw = '';
+      let done = 0; // complete lines already queued
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split('\n');
+        buf = parts.pop() ?? '';
+        for (const l of parts) {
+          if (!l.startsWith('0:')) continue;
+          raw += JSON.parse(l.slice(2)) as string;
+        }
+        // Send each finished line as soon as it's written.
+        const text = parseAction(raw).text;
+        const lines = text.split('\n');
+        lines.pop(); // still being written
+        for (const line of lines.slice(done)) {
+          splitMessages(line).forEach((m) => queue(m));
+        }
+        done = Math.max(done, lines.length);
+      }
+      const rest = parseAction(raw).text.split('\n').slice(done).join('\n');
+      splitMessages(rest).forEach((m) => queue(m));
+      if (sent === 0) throw new Error('empty');
+      return finish();
+    } catch (err) {
+      if ((err as Error).name === 'AbortError' || !alive()) return;
+      setCozieTyping(false);
+      const ids = new Set(pending.map((m) => m.id));
+      setThread((t) => t.map((m) => (ids.has(m.id) ? { ...m, status: 'failed' } : m)));
+    }
+  }
+
+  function retry() {
+    setThread((t) => t.map((m) => (m.status === 'failed' ? { ...m, status: 'sent' } : m)));
+    later('reply', 200, () => void respond());
   }
 
   // ---------- Her own things ----------
 
   function openSpot(spot: SpotId) {
-    if (talking) return;
+    closeChat();
     setBubble({ kind: 'spot', spot });
     const ev = views[spot].event;
     if (ev && ev.kind !== 'letter') life.markSeen(ev.id);
@@ -390,7 +369,15 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   function choose(eventId: string, c: LifeChoice) {
     life.answer(eventId, c.id);
-    react(c.pose === 'discover' ? 'look' : c.pose === 'journal' ? 'journal' : MOOD_ANIM[poseMood(c.pose)]);
+    react(
+      c.pose === 'discover'
+        ? 'look'
+        : c.pose === 'journal'
+          ? 'journal'
+          : c.pose === 'empathy' || c.pose === 'celebrate' || c.pose === 'encourage'
+            ? c.pose
+            : 'happy'
+    );
     if (c.toast) showToast(c.toast);
   }
 
@@ -403,19 +390,19 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   }
 
   const title = `Mila · ${persona.milaWeeks} 周 · 第 ${clock.day} 天`;
-  const cozieWidth = COZIE_W;
+  const lastYou = thread.map((m) => m.who).lastIndexOf('you');
 
   return (
-    <div ref={pageRef} className={cn('ch-page', `is-${clock.slot}`)}>
+    <div ref={pageRef} className={cn('ch-page', `is-${clock.slot}`, chatOpen && 'is-chatting')}>
       <div className="ch-stage">
         <button
           type="button"
           className="ch-backdrop"
-          aria-label="收起对话"
+          aria-label="收起"
           tabIndex={-1}
           onClick={() => {
-            if (bubble && bubble.kind !== 'talk') setBubble(null);
-            setHistoryOpen(false);
+            if (chatOpen) closeChat();
+            else setBubble(null);
           }}
         >
           <img
@@ -427,15 +414,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           />
         </button>
 
-        {milaVisible && (
-          <img
-            className="ch-mila"
-            src={MILA.src(milaMood, clock.slot)}
-            alt=""
-            aria-hidden
-            style={{ left: pct.x(MILA.x), top: pct.y(MILA.y), width: pct.x(MILA.w), ['--foot' as string]: MILA.foot }}
-          />
-        )}
+        <img
+          className="ch-mila"
+          src={MILA.src(milaMood, clock.slot)}
+          alt=""
+          aria-hidden
+          style={{ left: pct.x(MILA.x), top: pct.y(MILA.y), width: pct.x(MILA.w), ['--foot' as string]: MILA.foot }}
+        />
         <img
           className="ch-layer ch-layer--crib"
           src={CRIB_FRONT.src(clock.slot)}
@@ -477,9 +462,10 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             aria-label={views[s.id].unread ? `${s.label}，有新内容` : s.label}
           />
         ))}
-        {SPOTS.filter((s) => views[s.id].unread).map((s) => (
-          <span key={`dot-${s.id}`} className="ch-dot" style={{ left: pct.x(s.dot.x), top: pct.y(s.dot.y) }} aria-hidden />
-        ))}
+        {!chatOpen &&
+          SPOTS.filter((s) => views[s.id].unread).map((s) => (
+            <span key={`dot-${s.id}`} className="ch-dot" style={{ left: pct.x(s.dot.x), top: pct.y(s.dot.y) }} aria-hidden />
+          ))}
 
         <button
           type="button"
@@ -487,12 +473,12 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           style={{
             left: pct.x(at.x),
             top: pct.y(at.y),
-            width: pct.x(cozieWidth),
+            width: pct.x(COZIE_W),
             ['--foot' as string]: FOOT,
             ['--lean' as string]: walk ? `${walk.dir * 6}deg` : '0deg',
           }}
           onClick={() => {
-            if (talking) return;
+            if (chatOpen) return;
             setBubble({ kind: 'cozie' });
             react('happy', 1800);
           }}
@@ -536,39 +522,61 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       </header>
 
       {bubbleVisible && (
-        <div
-          ref={bubbleRef}
-          className={cn(
-            'ch-bubble',
-            bubble?.kind === 'talk' && talk?.urgent && 'is-urgent',
-            bubble?.kind === 'talk' && talk?.phase === 'thinking' && 'is-compact'
-          )}
-          role="status"
-          aria-live="polite"
-        >
+        <div ref={bubbleRef} className={cn('ch-bubble', typingOverHead && 'is-compact')} role="status" aria-live="polite">
           {renderBubble()}
         </div>
       )}
 
-      {echo && !historyOpen && (
-        <p key={echo.key} className="ch-echo">
-          {echo.text}
-        </p>
-      )}
-
-      {historyOpen && (
-        <section className="ch-history" aria-label="聊天记录">
-          {history.length === 0 ? (
-            <p className="ch-history__empty">还没聊过。和 Cozie 说点什么吧。</p>
-          ) : (
-            history.map((l, i) => (
-              <p key={i} className={cn('ch-history__line', l.who === 'you' ? 'is-you' : 'is-cozie')}>
-                {l.text}
+      {/* The chat: a glass sheet pulled up from the bottom. */}
+      <section className={cn('ch-chat', chatOpen && 'is-open')} aria-label="和 Cozie 聊天" aria-hidden={!chatOpen}>
+        <button type="button" className="ch-chat__grab" onClick={closeChat} aria-label="收起聊天" tabIndex={chatOpen ? 0 : -1}>
+          <span />
+        </button>
+        <div ref={threadElRef} className="ch-chat__thread">
+          {thread.length === 0 && <p className="ch-chat__empty">Cozie 拿起了手机，等你开口～</p>}
+          {thread.map((m, i) => {
+            const prev = thread[i - 1];
+            const firstOfGroup = !prev || prev.who !== m.who;
+            if (m.who === 'cozie') {
+              return (
+                <div key={m.id} className={cn('ch-msg is-cozie', firstOfGroup && 'is-first')}>
+                  {firstOfGroup ? <img className="ch-msg__avatar" src={FACES.cozie} alt="" /> : <span className="ch-msg__avatar" />}
+                  <div className="ch-msg__col">
+                    <p className={cn('ch-msg__bubble', m.urgent && 'is-urgent')}>{m.text}</p>
+                    {m.urgent && thread[i + 1]?.urgent !== true && (
+                      <button type="button" className="ch-chip is-primary" onClick={() => showToast('演示：这里会拨打你的医生电话')}>
+                        联系医生
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={m.id} className={cn('ch-msg is-you', firstOfGroup && 'is-first')}>
+                <p className="ch-msg__bubble">{m.text}</p>
+                {m.status === 'failed' ? (
+                  <button type="button" className="ch-msg__status is-failed" onClick={retry}>
+                    没发出去 · 重试
+                  </button>
+                ) : (
+                  i === lastYou && m.status === 'read' && <span className="ch-msg__status">已读</span>
+                )}
+              </div>
+            );
+          })}
+          {cozieTyping && (
+            <div className="ch-msg is-cozie is-first">
+              <img className="ch-msg__avatar" src={FACES.cozie} alt="" />
+              <p className="ch-msg__bubble ch-msg__typing" aria-label="Cozie 正在输入">
+                <i />
+                <i />
+                <i />
               </p>
-            ))
+            </div>
           )}
-        </section>
-      )}
+        </div>
+      </section>
 
       <form
         className="ch-input"
@@ -576,24 +584,24 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         onPointerDown={(e) => (e.currentTarget.dataset.y = String(e.clientY))}
         onPointerUp={(e) => {
           const dy = e.clientY - Number(e.currentTarget.dataset.y ?? e.clientY);
-          if (dy < -30) setHistoryOpen(true);
-          if (dy > 30) setHistoryOpen(false);
+          if (dy < -30) openChat();
+          if (dy > 30) closeChat();
         }}
       >
         <button
           type="button"
-          className={cn('ch-input__history', historyOpen && 'is-on')}
-          onClick={() => setHistoryOpen((o) => !o)}
-          aria-label="聊天记录"
-          aria-expanded={historyOpen}
+          className={cn('ch-input__history', chatOpen && 'is-on')}
+          onClick={() => (chatOpen ? closeChat() : openChat())}
+          aria-label={chatOpen ? '收起聊天' : '打开聊天'}
+          aria-expanded={chatOpen}
         >
           <MessageCircleMore size={20} strokeWidth={1.7} />
+          {unseen > 0 && <span className="ch-input__badge">{unseen}</span>}
         </button>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onFocus={() => setTyping(true)}
-          onBlur={() => setTyping(false)}
+          onFocus={openChat}
           placeholder="和 Cozie 说点什么"
           enterKeyHint="send"
           aria-label="和 Cozie 说点什么"
@@ -673,6 +681,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             onClick={() => {
               life.skipDay();
               setSlotOverride('morning');
+              closeChat();
               setBubble({ kind: 'cozie' });
               setClockOpen(false);
             }}
@@ -684,8 +693,9 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             onClick={() => {
               life.restart();
               setSlotOverride(null);
+              closeChat();
               setBubble(null);
-              setHistory([]);
+              setThread([]);
               setClockOpen(false);
             }}
           >
@@ -711,47 +721,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   );
 
   function renderBubble() {
-    if (bubble?.kind === 'talk' && talk) {
-      if (talk.phase === 'thinking') {
-        return (
-          <p className="ch-bubble__typing" aria-label="Cozie 正在回复">
-            <i />
-            <i />
-            <i />
-          </p>
-        );
-      }
-      if (talk.phase === 'failed') {
-        return (
-          <>
-            <p className="ch-bubble__text">刚才信号不太好，你的消息没发出去。</p>
-            <div className="ch-chips">
-              <button type="button" className="ch-chip is-primary" onClick={() => void talkTo(talk.you, true)}>
-                重试
-              </button>
-            </div>
-          </>
-        );
-      }
-      const short = talk.urgent ? talk.reply : clip(talk.reply);
+    if (typingOverHead) {
       return (
-        <>
-          <p className="ch-bubble__text">
-            {short}
-            {short !== talk.reply && (
-              <button type="button" className="ch-bubble__more" onClick={() => setHistoryOpen(true)}>
-                展开
-              </button>
-            )}
-          </p>
-          {talk.urgent && (talk.phase === 'done' || talk.phase === 'after') && (
-            <div className="ch-chips">
-              <button type="button" className="ch-chip is-primary" onClick={() => showToast('演示：这里会拨打你的医生电话')}>
-                联系医生
-              </button>
-            </div>
-          )}
-        </>
+        <p className="ch-bubble__typing" aria-label="Cozie 正在输入">
+          <i />
+          <i />
+          <i />
+        </p>
       );
     }
 
@@ -805,25 +781,27 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   }
 }
 
-/** Near her head only a short line; the full reply lives in the chat history. */
-function clip(text: string, max = 64) {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const end = Math.max(...['。', '！', '？', '.', '!', '?'].map((p) => cut.lastIndexOf(p)));
-  return end > 20 ? text.slice(0, end + 1) : cut + '…';
-}
-
-function poseMood(p: LifeChoice['pose']): Mood {
-  switch (p) {
-    case 'empathy':
-      return 'empathy';
-    case 'celebrate':
-      return 'celebrate';
-    case 'encourage':
-      return 'encourage';
-    default:
-      return 'happy';
+/** Break a reply into text-message sized pieces: one per line, long lines
+ *  split at sentence ends, at most four messages. */
+function splitMessages(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split('\n').map((l) => l.trim()).filter(Boolean)) {
+    if (line.length <= 48) {
+      out.push(line);
+      continue;
+    }
+    const sentences = line.match(/[^。！？!?]+[。！？!?]*/g) ?? [line];
+    let cur = '';
+    for (const s of sentences) {
+      if (cur && (cur + s).length > 48) {
+        out.push(cur);
+        cur = s;
+      } else cur += s;
+    }
+    if (cur) out.push(cur);
   }
+  if (out.length > 4) return [...out.slice(0, 3), out.slice(3).join('')];
+  return out;
 }
 
 function newLabel(spot: SpotId) {

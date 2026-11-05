@@ -531,97 +531,224 @@
   background: var(--ch-dot);
 }
 
-/* ---------- What you just said ---------- */
+/* ---------- Chat: a glass sheet pulled up from the bottom ---------- */
 
-.ch-echo {
-  position: absolute;
-  right: 16px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
-  z-index: 9;
-  max-width: 72%;
-  margin: 0;
-  padding: 8px 14px;
-  border-radius: 18px 18px 6px 18px;
-  background: rgba(119, 5, 35, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #fff;
-  font-size: 14px;
-  line-height: 1.4;
-  animation: ch-echo 3.8s ease forwards;
+/* Pan the room up while chatting so Cozie stays in view above the sheet. */
+.ch-stage {
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes ch-echo {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  8%,
-  80% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
+.ch-page.is-chatting .ch-stage {
+  transform: translate(-50%, calc(-50% - 15cqh));
 }
 
-/* ---------- History (swipe up on the input) ---------- */
-
-.ch-history {
+.ch-chat {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 9;
-  max-height: 52%;
+  height: min(50cqh, 460px);
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 80px);
+  border-radius: 28px 28px 0 0;
+  background: rgba(255, 249, 243, 0.62);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border-top: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 -10px 30px rgba(80, 50, 30, 0.1);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition:
+    transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 420ms;
+}
+
+.ch-chat.is-open {
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ch-chat__grab {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.ch-chat__grab span {
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(36, 15, 27, 0.18);
+}
+
+.ch-chat__thread {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid var(--ch-glass-border);
-  box-shadow: var(--ch-glass-shadow);
-  animation: ch-history-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  gap: 4px;
+  padding: 2px 4px 8px;
+  scroll-behavior: smooth;
 }
 
-@keyframes ch-history-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
+/* Short threads sit at the bottom, next to the input, like a messaging app. */
+.ch-chat__thread > :first-child {
+  margin-top: auto;
 }
 
-.ch-history__line {
-  max-width: 82%;
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.ch-history__line.is-cozie {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.85);
-}
-
-.ch-history__line.is-you {
-  align-self: flex-end;
-  background: rgba(119, 5, 35, 0.82);
-  color: #fff;
-}
-
-.ch-history__empty {
-  margin: 4px 0;
+.ch-chat__empty {
+  margin: auto 0;
   font-size: 13px;
   color: var(--cz-ink-2);
   text-align: center;
+}
+
+.ch-msg {
+  display: flex;
+  animation: ch-msg-in 260ms cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+.ch-msg.is-first {
+  margin-top: 8px;
+}
+
+.ch-msg.is-you {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ch-msg.is-cozie {
+  align-items: flex-end;
+  gap: 8px;
+}
+
+@keyframes ch-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+
+.ch-msg__avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px;
+}
+
+span.ch-msg__avatar {
+  background: none;
+}
+
+.ch-msg__col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 78%;
+}
+
+.ch-msg__bubble {
+  margin: 0;
+  padding: 9px 13px;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ch-msg.is-cozie .ch-msg__bubble {
+  border-radius: 6px 18px 18px 18px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--cz-ink);
+}
+
+.ch-msg.is-cozie:not(.is-first) .ch-msg__bubble {
+  border-radius: 18px;
+}
+
+.ch-msg.is-you .ch-msg__bubble {
+  max-width: 78%;
+  border-radius: 18px 18px 6px 18px;
+  background: rgba(119, 5, 35, 0.88);
+  color: #fff;
+}
+
+.ch-msg.is-you:not(.is-first) .ch-msg__bubble {
+  border-radius: 18px;
+}
+
+.ch-msg__bubble.is-urgent {
+  background: #fff4f5;
+  box-shadow: inset 0 0 0 1px rgba(226, 86, 111, 0.45);
+}
+
+.ch-msg__status {
+  margin-top: 3px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-family: var(--cz-ui);
+  font-size: 11px;
+  color: var(--cz-ink-2);
+}
+
+.ch-msg__status.is-failed {
+  color: var(--ch-dot);
+  cursor: pointer;
+}
+
+.ch-msg__typing {
+  display: flex;
+  gap: 5px;
+  padding: 13px 14px;
+}
+
+.ch-msg__typing i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(36, 15, 27, 0.35);
+  animation: ch-typing 1s ease-in-out infinite;
+}
+
+.ch-msg__typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ch-msg__typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.ch-input__history {
+  position: relative;
+}
+
+.ch-input__badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ch-dot);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
 /* ---------- Glass input ---------- */
@@ -876,7 +1003,8 @@
   .ch-dot,
   .ch-panel,
   .ch-bubble,
-  .ch-echo {
+  .ch-chat,
+  .ch-msg {
     animation: none;
     transition: none;
   }

@@ -1,6 +1,7 @@
-// What a message is about, decided instantly on the device so Cozie can start
-// walking the moment the mom hits send. The model's [[DO:...]] tag can still
-// redirect her once the reply arrives.
+// What a message is about, decided on the device. Cozie no longer walks to
+// the topic (she stays put while chatting); the topic only picks her
+// scripted reply when the model isn't reachable, written as a few short
+// texts separated by line breaks.
 
 import type { Place } from '../home/scene';
 
@@ -19,7 +20,7 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     topic: {
       place: 'table',
       mood: 'encourage',
-      fallback: '我刚好坐在沙发边吸奶呢。规律比单次的量更重要，奶量会慢慢跟上的，别太盯着数字。',
+      fallback: '哈，我也刚吸完一轮\n规律比单次的量更重要，奶量会慢慢跟上的\n别太盯着数字，你已经很努力了',
     },
   },
   {
@@ -27,23 +28,19 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     topic: {
       place: 'crib',
       mood: 'empathy',
-      fallback: '我去看了眼 Mila，刚哄睡。这个阶段夜里醒好几次很常见，我们一起熬过去。',
+      fallback: 'Mila 昨晚也醒了三次……\n这个阶段夜里醒好几次很常见\n我们一起熬过去',
     },
   },
   {
     words: ['尿布', '买', '购物', '日程', '提醒', '体检', '疫苗', '预约', 'diaper', 'buy', 'checkup'],
-    topic: {
-      place: 'calendar',
-      mood: 'stars',
-      fallback: '我翻了下日历，帮你记上了。到时候我提醒你～',
-    },
+    topic: { place: 'calendar', mood: 'stars', fallback: '好呀，我记下了\n到时候提醒你～' },
   },
   {
     words: ['冰箱', '便签', '存奶', '储存', '冷冻', '冷藏', '解冻', 'fridge', 'freeze', 'storage'],
     topic: {
       place: 'fridge',
       mood: 'neutral',
-      fallback: '便签板上钉着我的存奶表：母乳冷藏一般 4 天内用完，冷冻能放更久，解冻后别再冻回去。',
+      fallback: '我便签板上就钉着存奶表\n母乳冷藏一般 4 天内用完，冷冻能放更久\n解冻过的别再冻回去就好',
     },
   },
   {
@@ -51,7 +48,7 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     topic: {
       place: 'shelf',
       mood: 'stars',
-      fallback: '我从书架上翻了翻笔记，这个我也查过。多观察宝宝的状态，拿不准就问问医生，别一个人扛。',
+      fallback: '这个我之前也查过\n多观察宝宝的状态就好\n拿不准就问问医生，别一个人扛',
     },
   },
   {
@@ -59,27 +56,23 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     topic: {
       place: 'sofa',
       mood: 'empathy',
-      fallback: '过来沙发上坐一下吧。累是真的，你已经做得很好了。',
+      fallback: '抱抱你\n累是真的，你已经做得很好了\n今天有没有给自己留一点点时间？',
     },
   },
   {
     words: ['开心', '高兴', '太好了', '笑了', '翻身', '成功', '第一次', 'happy', 'smiled', 'first time'],
-    topic: {
-      place: 'rug',
-      mood: 'celebrate',
-      fallback: '真的吗！太棒了，我要撒花！',
-    },
+    topic: { place: 'rug', mood: 'celebrate', fallback: '真的吗！\n太棒了，我要撒花' },
   },
   {
     words: ['谢谢', '感谢', 'thank'],
-    topic: { place: 'rug', mood: 'encourage', fallback: '不客气呀，能帮上你我也很开心。' },
+    topic: { place: 'rug', mood: 'encourage', fallback: '不客气呀\n能帮上你我也很开心' },
   },
 ];
 
 const DEFAULT_TOPIC: Topic = {
   place: 'rug',
   mood: 'happy',
-  fallback: '嗯嗯，我在听。Mila 刚好睡着，你慢慢说。',
+  fallback: '嗯嗯，我在呢\nMila 刚好睡着，你慢慢说',
 };
 
 export function topicOf(text: string): Topic {
@@ -90,7 +83,7 @@ export function topicOf(text: string): Topic {
 const PLACE_IDS: Place[] = ['crib', 'fridge', 'calendar', 'shelf', 'table', 'mailbox', 'window', 'rug', 'sofa'];
 const MOODS: Mood[] = ['happy', 'empathy', 'celebrate', 'encourage', 'stars', 'neutral'];
 
-/** Pull a leading [[DO:place,mood]] tag off a (partial) reply. */
+/** Strip a leading [[DO:place,mood]] tag (older prompt) off a (partial) reply. */
 export function parseAction(raw: string): { place?: Place; mood?: Mood; text: string; pending: boolean } {
   const trimmed = raw.trimStart();
   if (!trimmed.startsWith('[')) return { text: raw.replace(/\[\[[^\]]*\]\]/g, ''), pending: false };
@@ -103,4 +96,4 @@ export function parseAction(raw: string): { place?: Place; mood?: Mood; text: st
 }
 
 export const URGENT_REPLY =
-  '这个情况需要尽快让医生看看。如果宝宝发烧、呼吸不对劲，或者你有伤害自己的念头，请马上联系医生或拨打 120。我陪着你。';
+  '这个情况需要尽快让医生看看\n如果宝宝发烧、呼吸不对劲，或者你有伤害自己的念头，请马上联系医生或拨打 120\n我陪着你';
