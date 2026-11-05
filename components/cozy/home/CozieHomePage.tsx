@@ -20,11 +20,25 @@ import {
 } from '@/lib/cozy/life/engine';
 import { LIFE_LETTERS, type LifeChoice, type Slot, type SpotId } from '@/lib/cozy/life/script';
 import { URGENT_REPLY, parseAction, topicOf, type Mood } from '@/lib/cozy/life/topics';
-import { ANIMS, type CozieAnim } from '@/lib/cozy/home/anims';
-import { COZIE_W, MILA, PLACES, ROUTINES, SPOTS, pct, type Place } from '@/lib/cozy/home/scene';
+import { ANIMS, FOOT, type CozieAnim } from '@/lib/cozy/home/anims';
+import {
+  BACKGROUNDS,
+  COZIE_W,
+  CRIB_FRONT,
+  FACES,
+  FOREGROUND,
+  MILA,
+  PLACES,
+  PROPS,
+  ROOM_H,
+  ROUTINES,
+  SPOTS,
+  pct,
+  type MilaMood,
+  type Place,
+} from '@/lib/cozy/home/scene';
 import { CozieLetter } from '../CozieLetter';
 import { BottomSheet, showToast } from '../ui';
-import { RoomArt } from './RoomArt';
 
 interface Props {
   life: CozieLife;
@@ -57,7 +71,7 @@ const MOOD_ANIM: Record<Mood, CozieAnim> = {
   celebrate: 'celebrate',
   encourage: 'encourage',
   stars: 'stars',
-  neutral: 'neutral',
+  neutral: 'idle',
 };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -137,21 +151,42 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   // ---------- Where she is and what she's doing ----------
 
   const talking = talk !== null;
+  const [walkingNow, setWalkingNow] = useState(false);
   const place: Place = talk ? talk.place : bubble?.kind === 'spot' ? bubble.spot : routine.place;
   const holdingPhone = !reaction && (talk?.phase === 'reading' || talk?.phase === 'done');
   const anim: CozieAnim =
     reaction ??
-    (talk?.phase === 'walking' || ((typing || draft.length > 0) && !talking)
-      ? 'listening'
-      : talk?.phase === 'thinking'
-        ? 'thinking'
-        : holdingPhone || talk?.phase === 'after'
-          ? 'neutral'
-          : bubble?.kind === 'spot'
-            ? 'discovery'
-            : routine.anim);
+    (walkingNow
+      ? 'hop'
+      : talk?.phase === 'walking' || ((typing || draft.length > 0) && !talking)
+        ? 'listen'
+        : talk?.phase === 'thinking'
+          ? 'think'
+          : holdingPhone
+            ? 'phone'
+            : talk?.phase === 'after'
+              ? 'idle'
+              : bubble?.kind === 'spot'
+                ? 'look'
+                : routine.anim);
   const art = ANIMS[anim];
   const at = PLACES[place];
+  const bgArt = BACKGROUNDS[clock.slot];
+  const milaMood: MilaMood =
+    bubble?.kind === 'spot' && bubble.spot === 'crib' ? 'smile' : clock.slot === 'morning' ? 'awake' : 'sleep';
+  const milaVisible = true;
+
+  // She lifts the phone (a short transition) the moment a reply comes in.
+  const lastPhase = useRef<Talk['phase'] | null>(null);
+  useEffect(() => {
+    const phase = talk?.phase ?? null;
+    const before = lastPhase.current;
+    if ((phase === 'reading' || phase === 'done') && (before === 'walking' || before === 'thinking')) {
+      setReaction('phoneup');
+      later('react', 650, () => setReaction(null));
+    }
+    lastPhase.current = phase;
+  }, [talk?.phase, later]);
 
   // Hop while walking, leaning the way she goes.
   const [walk, setWalk] = useState<{ dir: number; key: number } | null>(null);
@@ -163,7 +198,11 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     lastPlace.current = place;
     lastX.current = at.x;
     setWalk({ dir, key: Date.now() });
-    later('walk', 800, () => setWalk(null));
+    setWalkingNow(true);
+    later('walk', 800, () => {
+      setWalk(null);
+      setWalkingNow(false);
+    });
   }, [place, at.x, later]);
 
   // Drift through her routine while nobody's talking to her.
@@ -308,7 +347,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         if ((err as Error).name === 'AbortError' || !alive()) return;
         clearTimeout(timers.current.think);
         patch({ phase: 'failed' });
-        react('thinking', 1800);
+        react('think', 1800);
         return;
       }
       if (demo) reply = topic.fallback;
@@ -351,7 +390,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
 
   function choose(eventId: string, c: LifeChoice) {
     life.answer(eventId, c.id);
-    react(c.pose === 'discover' ? 'discovery' : c.pose === 'journal' ? 'journal' : MOOD_ANIM[poseMood(c.pose)]);
+    react(c.pose === 'discover' ? 'look' : c.pose === 'journal' ? 'journal' : MOOD_ANIM[poseMood(c.pose)]);
     if (c.toast) showToast(c.toast);
   }
 
@@ -379,24 +418,53 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             setHistoryOpen(false);
           }}
         >
-          <RoomArt slot={clock.slot} layer="back" />
+          <img
+            className="ch-bg"
+            src={bgArt.src}
+            alt=""
+            draggable={false}
+            style={{ top: pct.y(bgArt.top), height: pct.h(bgArt.h) }}
+          />
         </button>
-        <div className="ch-tint" aria-hidden />
 
+        {milaVisible && (
+          <img
+            className="ch-mila"
+            src={MILA.src(milaMood, clock.slot)}
+            alt=""
+            aria-hidden
+            style={{ left: pct.x(MILA.x), top: pct.y(MILA.y), width: pct.x(MILA.w), ['--foot' as string]: MILA.foot }}
+          />
+        )}
         <img
-          className="ch-mila"
-          src={MILA.src}
+          className="ch-layer ch-layer--crib"
+          src={CRIB_FRONT.src(clock.slot)}
           alt=""
           aria-hidden
-          style={{ left: pct.x(MILA.x), top: pct.y(MILA.y), width: pct.x(MILA.w), ['--foot' as string]: MILA.foot }}
+          style={{ left: pct.x(CRIB_FRONT.x), top: pct.y(CRIB_FRONT.y), width: pct.x(CRIB_FRONT.w), height: pct.h(CRIB_FRONT.h) }}
         />
-        <div className="ch-layer ch-layer--crib" aria-hidden>
-          <RoomArt slot={clock.slot} layer="crib" />
-        </div>
         {clock.slot === 'night' && (
-          <span className="ch-zz" style={{ left: pct.x(MILA.x + 14), top: pct.y(MILA.y - 50) }} aria-hidden>
+          <span className="ch-zz" style={{ left: pct.x(MILA.x - 34), top: pct.y(MILA.y - 52) }} aria-hidden>
             z z
           </span>
+        )}
+        {views.mailbox.unread && (
+          <img
+            className="ch-prop"
+            src={PROPS.letter.src}
+            alt=""
+            aria-hidden
+            style={{ left: pct.x(PROPS.letter.x), top: pct.y(PROPS.letter.y), width: pct.x(PROPS.letter.w) }}
+          />
+        )}
+        {views.fridge.unread && (
+          <img
+            className="ch-prop"
+            src={PROPS.note.src}
+            alt=""
+            aria-hidden
+            style={{ left: pct.x(PROPS.note.x), top: pct.y(PROPS.note.y), width: pct.x(PROPS.note.w) }}
+          />
         )}
 
         {SPOTS.map((s) => (
@@ -420,7 +488,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             left: pct.x(at.x),
             top: pct.y(at.y),
             width: pct.x(cozieWidth),
-            ['--foot' as string]: art.foot,
+            ['--foot' as string]: FOOT,
             ['--lean' as string]: walk ? `${walk.dir * 6}deg` : '0deg',
           }}
           onClick={() => {
@@ -434,15 +502,14 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           <span className="ch-cozie__hop" key={walk?.key}>
             <img ref={cozieImgRef} className="ch-cozie__img" src={art.src} alt="" draggable={false} />
           </span>
-          {holdingPhone && (
-            <span className="ch-phone" aria-hidden>
-              <span className="ch-phone__screen" />
-            </span>
-          )}
         </button>
-        <div className="ch-layer ch-layer--front" aria-hidden>
-          <RoomArt slot={clock.slot} layer="front" />
-        </div>
+        <img
+          className="ch-layer ch-layer--front"
+          src={FOREGROUND.src(clock.slot)}
+          alt=""
+          aria-hidden
+          style={{ left: 0, width: '100%', top: pct.y(ROOM_H - FOREGROUND.h), height: pct.h(FOREGROUND.h) }}
+        />
       </div>
 
       <header className="ch-top">
@@ -553,7 +620,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
                     setLetter({ content: l.letter, mode: 'reread' });
                   }}
                 >
-                  <span className="ch-mail__seal">{(l.letter.from ?? 'Cozie').slice(0, 1)}</span>
+                  <img className="ch-mail__seal" src={l.letter.from === 'Mila' ? FACES.mila : FACES.cozie} alt="" />
                   <span className="ch-mail__text">
                     <strong>{l.letter.heading ?? `来自 ${l.letter.from ?? 'Cozie'}`}</strong>
                     <em>

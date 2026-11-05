@@ -44,7 +44,7 @@ export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onOpenHome, ho
           aria-label={homeBadge ? '去 Cozie 家，有新动态' : '去 Cozie 家'}
         >
           <span className="cz-home-btn__face">
-            <img src={`${CZ}/home/cozie_neutral.png`} alt="" draggable={false} />
+            <img src={`${CZ}/home/room/cozie_face.webp`} alt="" draggable={false} />
           </span>
           {homeBadge && <span className="cz-home-btn__dot" aria-hidden />}
         </button>

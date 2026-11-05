@@ -72,10 +72,34 @@
   display: block;
 }
 
+.ch-bg {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
 .ch-layer {
   position: absolute;
-  inset: 0;
+  display: block;
   pointer-events: none;
+}
+
+.ch-prop {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(120, 80, 50, 0.25));
+  animation: ch-prop-in 400ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes ch-prop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.8);
+  }
 }
 
 .ch-layer--crib {
@@ -84,50 +108,6 @@
 
 .ch-layer--front {
   z-index: 5;
-}
-
-.ch-tint {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  transition: background-color 600ms ease;
-}
-
-.is-morning .ch-tint {
-  background: linear-gradient(250deg, rgba(255, 214, 165, 0.28), rgba(255, 230, 200, 0) 60%);
-}
-
-.is-afternoon .ch-tint {
-  background: linear-gradient(250deg, rgba(255, 240, 220, 0.18), rgba(255, 240, 220, 0) 60%);
-}
-
-.is-night .ch-tint {
-  background-color: rgba(120, 86, 120, 0.3);
-  mix-blend-mode: multiply;
-}
-
-/* The pendant lamp's pool of light. */
-.is-night .ch-stage::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 45% 22% at 18% 56%, rgba(255, 214, 140, 0.55), rgba(255, 214, 140, 0) 70%),
-    radial-gradient(ellipse 80% 40% at 50% 80%, rgba(255, 200, 150, 0.25), rgba(255, 200, 150, 0) 70%);
-  mix-blend-mode: screen;
-}
-
-/* Cozie and Mila toward the concept: milky cream body, pink only in the
-   cheeks and ears, warm-lit. */
-.ch-cozie__img {
-  filter: saturate(0.42) sepia(0.14) brightness(1.08) contrast(0.97);
-}
-
-.is-night .ch-cozie__img {
-  filter: saturate(0.42) sepia(0.22) brightness(0.98) contrast(0.97);
 }
 
 /* ---------- Characters ---------- */
@@ -154,7 +134,8 @@
 }
 
 .ch-cozie.is-walking .ch-cozie__hop {
-  animation: ch-hop 266ms ease-in-out 3;
+  transform: rotate(var(--lean));
+  transition: transform 200ms ease;
 }
 
 .ch-cozie__img {
@@ -196,55 +177,11 @@
   }
 }
 
-/* Her phone, held in front while she reads and replies. Placeholder until the
-   C4D render with a phone arrives. */
-.ch-phone {
-  position: absolute;
-  left: 50%;
-  top: calc(var(--foot, 1) * 100% - 38%);
-  width: 22%;
-  aspect-ratio: 0.56;
-  border-radius: 18% / 10%;
-  background: #9fb58c;
-  box-shadow: 0 3px 8px rgba(80, 60, 40, 0.25);
-  transform: translateX(-50%) rotate(-4deg);
-  animation: ch-phone-up 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
-  pointer-events: none;
-}
-
-.ch-phone__screen {
-  position: absolute;
-  inset: 7% 9%;
-  border-radius: 14% / 8%;
-  background: linear-gradient(160deg, #f2f6ec, #d9e5cc);
-}
-
-.ch-phone__screen::after {
-  content: '';
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  top: 30%;
-  height: 10%;
-  border-radius: 4px;
-  background: rgba(90, 110, 70, 0.4);
-  box-shadow: 0 9px 0 rgba(90, 110, 70, 0.25);
-}
-
-@keyframes ch-phone-up {
-  from {
-    transform: translate(-50%, 40%) rotate(-4deg) scale(0.6);
-    opacity: 0;
-  }
-}
-
 .ch-mila {
   position: absolute;
   z-index: 1;
   aspect-ratio: 1;
   transform: translate(-50%, calc(var(--foot, 1) * -100%));
-  /* Same model, tinted peach until Mila has her own render. */
-  filter: saturate(0.4) sepia(0.12) brightness(1.08);
   animation: ch-breathe 3.6s ease-in-out infinite;
   transform-origin: 50% 72%;
   pointer-events: none;
@@ -369,12 +306,13 @@
 
 .ch-top__title span {
   font-size: 12px;
-  color: var(--cz-ink-2);
+  color: var(--cz-ink);
+  opacity: 0.75;
 }
 
-.is-night .ch-top__title strong,
-.is-night .ch-top__title span {
-  color: #fff6ee;
+.ch-top__title strong,
+.ch-top__title span {
+  text-shadow: 0 0 10px rgba(255, 246, 236, 0.95), 0 0 2px rgba(255, 246, 236, 0.9);
 }
 
 .ch-top__mail {
@@ -821,6 +759,8 @@
   flex-shrink: 0;
   width: 42px;
   height: 42px;
+  padding: 5px;
+  object-fit: contain;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -912,7 +852,9 @@
 .cz-home-btn__face img {
   width: 40px;
   height: 40px;
-  transform: translateY(5px) scale(1.55);
+  object-fit: cover;
+  object-position: 50% 80%;
+  transform: scale(1.15);
 }
 
 .cz-home-btn__dot {
@@ -934,8 +876,7 @@
   .ch-dot,
   .ch-panel,
   .ch-bubble,
-  .ch-echo,
-  .ch-phone {
+  .ch-echo {
     animation: none;
     transition: none;
   }
