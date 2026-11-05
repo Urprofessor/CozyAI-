@@ -1,15 +1,12 @@
-// Layout of Cozie's room. Furniture coordinates are in the original 300×400
-// room drawing; the full-screen art adds ART_Y of wall above it and more floor
-// below, for a 300×620 canvas that covers a phone screen. Swapping the
-// placeholder SVG for painted layers only means updating the numbers here.
+// Layout of Cozie's room (the warm attic from the room concept), in the room
+// art's 300×620 canvas, which covers a phone screen. Swapping the placeholder
+// SVG for rendered layers only means updating the numbers here.
 
 import type { Slot, SpotId } from '../life/script';
 import type { CozieAnim } from './anims';
 
 export const ROOM_W = 300;
 export const ROOM_H = 620;
-/** Wall added above the original drawing. */
-export const ART_Y = 150;
 
 export interface Rect {
   x: number;
@@ -33,12 +30,12 @@ export interface SpotDef {
 }
 
 export const SPOTS: SpotDef[] = [
-  { id: 'shelf', label: '书架', hit: { x: 12, y: 90, w: 66, h: 162 }, dot: { x: 72, y: 118 }, stand: { x: 106, y: 282 } },
-  { id: 'calendar', label: '日历', hit: { x: 204, y: 52, w: 52, h: 64 }, dot: { x: 250, y: 60 }, stand: { x: 196, y: 276 } },
-  { id: 'fridge', label: '冰箱便条', hit: { x: 232, y: 124, w: 64, h: 144 }, dot: { x: 284, y: 182 }, stand: { x: 204, y: 296 } },
-  { id: 'crib', label: 'Mila 的小床', hit: { x: 14, y: 270, w: 104, h: 88 }, dot: { x: 112, y: 280 }, stand: { x: 150, y: 352 } },
-  { id: 'table', label: '小边桌', hit: { x: 184, y: 270, w: 74, h: 88 }, dot: { x: 252, y: 280 }, stand: { x: 170, y: 372 } },
-  { id: 'mailbox', label: '信箱', hit: { x: 244, y: 350, w: 52, h: 46 }, dot: { x: 290, y: 356 }, stand: { x: 222, y: 400 } },
+  { id: 'shelf', label: '书架', hit: { x: 10, y: 236, w: 104, h: 196 }, dot: { x: 106, y: 272 }, stand: { x: 132, y: 470 } },
+  { id: 'fridge', label: '便签板', hit: { x: 116, y: 258, w: 58, h: 52 }, dot: { x: 168, y: 264 }, stand: { x: 150, y: 466 } },
+  { id: 'calendar', label: '日历', hit: { x: 122, y: 312, w: 44, h: 42 }, dot: { x: 160, y: 318 }, stand: { x: 152, y: 468 } },
+  { id: 'mailbox', label: '窗台', hit: { x: 222, y: 336, w: 60, h: 34 }, dot: { x: 268, y: 344 }, stand: { x: 196, y: 484 } },
+  { id: 'crib', label: 'Mila 的小床', hit: { x: 198, y: 398, w: 102, h: 92 }, dot: { x: 286, y: 412 }, stand: { x: 186, y: 500 } },
+  { id: 'table', label: '吸奶器小凳', hit: { x: 84, y: 430, w: 58, h: 78 }, dot: { x: 136, y: 436 }, stand: { x: 152, y: 516 } },
 ];
 
 export const SPOT_BY_ID = Object.fromEntries(SPOTS.map((s) => [s.id, s])) as Record<SpotId, SpotDef>;
@@ -48,13 +45,13 @@ export type Place = SpotId | 'window' | 'rug' | 'sofa';
 
 export const PLACES: Record<Place, Point> = {
   ...(Object.fromEntries(SPOTS.map((s) => [s.id, s.stand])) as Record<SpotId, Point>),
-  window: { x: 150, y: 266 },
-  rug: { x: 150, y: 346 },
-  sofa: { x: 92, y: 430 },
+  window: { x: 206, y: 478 },
+  rug: { x: 164, y: 514 },
+  sofa: { x: 52, y: 468 },
 };
 
 /** Cozie's image width (square frames), in room units. */
-export const COZIE_W = 116;
+export const COZIE_W = 136;
 
 /** What she does on her own, by part of the day. She drifts between these
  *  while nobody is talking to her. */
@@ -77,11 +74,10 @@ export const ROUTINES: Record<Slot, Array<{ place: Place; anim: CozieAnim; ms: n
 };
 
 /** Mila in her crib (static render, tinted, until she has her own). */
-export const MILA = { x: 66, y: 324, w: 56, src: '/cozie/home/cozie_neutral.png', foot: 0.72 };
+export const MILA = { x: 252, y: 452, w: 58, src: '/cozie/home/cozie_neutral.png', foot: 0.72 };
 
 export const pct = {
   x: (v: number) => `${(v / ROOM_W) * 100}%`,
-  y: (v: number) => `${((v + ART_Y) / ROOM_H) * 100}%`,
-  /** A height (no offset). */
+  y: (v: number) => `${(v / ROOM_H) * 100}%`,
   h: (v: number) => `${(v / ROOM_H) * 100}%`,
 };

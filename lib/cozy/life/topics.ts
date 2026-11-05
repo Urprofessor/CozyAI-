@@ -19,7 +19,7 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     topic: {
       place: 'table',
       mood: 'encourage',
-      fallback: '我刚好在小边桌这儿吸奶呢。规律比单次的量更重要，奶量会慢慢跟上的，别太盯着数字。',
+      fallback: '我刚好坐在沙发边吸奶呢。规律比单次的量更重要，奶量会慢慢跟上的，别太盯着数字。',
     },
   },
   {
@@ -39,11 +39,11 @@ const RULES: Array<{ words: string[]; topic: Topic }> = [
     },
   },
   {
-    words: ['冰箱', '存奶', '储存', '冷冻', '冷藏', '解冻', 'fridge', 'freeze', 'storage'],
+    words: ['冰箱', '便签', '存奶', '储存', '冷冻', '冷藏', '解冻', 'fridge', 'freeze', 'storage'],
     topic: {
       place: 'fridge',
       mood: 'neutral',
-      fallback: '冰箱上贴着我的存奶表：母乳冷藏一般 4 天内用完，冷冻能放更久，解冻后别再冻回去。',
+      fallback: '便签板上钉着我的存奶表：母乳冷藏一般 4 天内用完，冷冻能放更久，解冻后别再冻回去。',
     },
   },
   {

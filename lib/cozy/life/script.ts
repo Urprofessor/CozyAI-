@@ -64,11 +64,11 @@ export const SLOT_LINES: Record<number, Record<Slot, string>> = {
   },
   2: {
     morning: '今天起得慢。Mila 五点吃的奶，我单手煎了个松饼。',
-    afternoon: '在写一张贴冰箱的便条，有件事想听听你的意见。',
+    afternoon: '在写一张钉便签板的便条，有件事想听听你的意见。',
     night: '抱着 Mila 摇啊摇，透过窗户数星星，数到第十一颗了。',
   },
   3: {
-    morning: '今天心情特别好，有一部分是因为你哦。去门口看看吧。',
+    morning: '今天心情特别好，有一部分是因为你哦。去窗台看看吧。',
     afternoon: '在把体检要问医生的问题写下来，不然到时候准忘。',
     night: '傍晚哭闹又来了。我们摇一摇，哼一哼，熬过去。',
   },
@@ -97,11 +97,11 @@ export const SLOT_LINES: Record<number, Record<Slot, string>> = {
 /** Flavor text when a spot has nothing new today. */
 export const SPOT_IDLE: Record<SpotId, { title: string; text: string }> = {
   crib: { title: 'Mila 的小床', text: 'Mila {milaWeeks} 周大，比{baby}大一周。现在很安静。' },
-  fridge: { title: '冰箱', text: '冰箱贴、一张母乳储存时间表，还有儿科医生的电话。暂时没有新便条。' },
+  fridge: { title: '便签板', text: '钉着一张母乳储存时间表，还有儿科医生的电话。暂时没有新便条。' },
   calendar: { title: '日历', text: '今天日历上没有新安排。' },
   shelf: { title: '书架', text: 'Cozie 的读书笔记都放在这里，她很快会留下新的一张。' },
-  table: { title: '小边桌', text: '她的吸奶器、一个水杯，还有一杯早就凉透的茶。' },
-  mailbox: { title: '信箱', text: '没有新信件。收到的信都在右上角的信箱里。' },
+  table: { title: '吸奶器小凳', text: '沙发边的小凳上放着她的一对吸奶器，粉粉圆圆的。' },
+  mailbox: { title: '窗台', text: '窗台上没有新信件。收到的信都在右上角的信箱里。' },
 };
 
 export const LIFE_EVENTS: LifeEvent[] = [
@@ -132,17 +132,18 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 14 * 60,
     spot: 'calendar',
     kind: 'invite',
-    title: '周四：囤尿布',
-    text: '我们现在都穿 1 号尿布了，而我总是半夜两点发现用完了。要不要一起囤一波？',
+    title: '日历：周四看看尿布',
+    text: '我们现在都穿 1 号尿布，我准备看看家里的还够不够。要一起查一下你家的吗？',
     choices: [
+      { id: 'plenty', label: '还剩不少', reply: '那就好，我先不催你。快用完的时候跟我说一声～' },
       {
-        id: 'list',
-        label: '看看她的清单',
-        reply: '我的清单：1 号尿布、敏感肌湿巾、乳头修护膏，还有备用的吸奶器阀门。已经帮你存好啦。',
+        id: 'low',
+        label: '快用完了，提醒我',
+        reply: '好，周四早上提醒你。想改时间或者不需要了，在提醒里改掉就行。',
         pose: 'celebrate',
-        toast: '购物清单已存到你的提醒里',
+        toast: '已添加周四囤尿布提醒，可随时修改或关闭',
       },
-      { id: 'later', label: '下次吧', reply: '没关系，看到划算的我再叫你。' },
+      { id: 'skip', label: '不用了', reply: '好的～' },
     ],
   },
   {
@@ -151,7 +152,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 19 * 60,
     spot: 'mailbox',
     kind: 'letter',
-    title: '门口的信',
+    title: '窗台上的信',
     text: 'Cozie 给你留了一封欢迎信。',
     letterId: 'welcome',
   },
@@ -163,7 +164,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 9 * 60,
     spot: 'table',
     kind: 'moment',
-    title: '小边桌',
+    title: '吸奶器小凳',
     text: '今天 Mila 趴在我身上睡觉的时候，我顺便吸了奶。用穿戴式的可以一边抱着她一边吸，小小的胜利。',
     choices: [{ id: 'nice', label: '小胜利也算数', reply: '真的算！我已经记进日记了。', pose: 'journal' }],
   },
@@ -173,7 +174,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 15 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: '冰箱上的便条',
+    title: '便签板上的便条',
     text: 'Mila 一看到奶瓶就尖叫，可我老公周一就要回去上班了，我有点慌。{baby}有过这种情况吗？',
     choices: [
       {
@@ -214,13 +215,13 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd2-ask',
-    title: '冰箱上的新便条',
-    text: '昨晚我们试了好几种办法，她喝了 60 毫升！我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
+    title: '便签板上的新便条',
+    text: '昨晚我们试了好几种办法，她喝了 60 毫升！我哭了一小下，是开心的那种。Mila 在窗台上给你留了东西。',
     textByChoice: {
       someone:
-        '你的办法有用！我老公喂她，我出去走了一圈，她喝了 60 毫升。我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
+        '你的办法有用！我老公喂她，我出去走了一圈，她喝了 60 毫升。我哭了一小下，是开心的那种。Mila 在窗台上给你留了东西。',
       nipple:
-        '慢流速奶嘴真的有用！她喝了 60 毫升，只闹了一下。我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
+        '慢流速奶嘴真的有用！她喝了 60 毫升，只闹了一下。我哭了一小下，是开心的那种。Mila 在窗台上给你留了东西。',
     },
     choices: [{ id: 'yay', label: '太好了', reply: '是呀。谢谢你一直在，{mom}。', pose: 'celebrate' }],
   },
@@ -231,7 +232,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'mailbox',
     kind: 'letter',
     requires: 'd2-ask',
-    title: '门口的信',
+    title: '窗台上的信',
     text: 'Mila 给你写了一张感谢卡。',
     letterId: 'mila-thanks',
   },
@@ -281,7 +282,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 14 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: '冰箱上的便条',
+    title: '便签板上的便条',
     text: '认真问一句：你都是怎么挤出时间洗澡的？我每次只有 90 秒，还得开着门。',
     choices: [
       { id: 'nap', label: '趁宝宝午睡', reply: '不洗衣服了去洗澡？好大胆，我喜欢。', pose: 'discover' },
@@ -295,7 +296,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 20 * 60,
     spot: 'table',
     kind: 'moment',
-    title: '小边桌',
+    title: '吸奶器小凳',
     text: '今天一侧胀得有点疼。热敷一下、吸奶、再轻轻按摩，就缓解了。如果出现发红、发热或者我发烧了，我会当天就去看医生。',
   },
 
@@ -307,7 +308,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd4-ask',
-    title: '冰箱上的新便条',
+    title: '便签板上的新便条',
     text: '昨天洗了整整 11 分钟的澡！11 分钟！谢谢你，{mom}。',
     choices: [{ id: 'yay', label: '你值得', reply: '你也值得。今天你也去洗一个吧。', pose: 'celebrate' }],
   },
@@ -318,7 +319,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'shelf',
     kind: 'read',
     title: '读书笔记：情绪低落一直不好',
-    text: '产后头两周爱掉眼泪很常见。但如果难过、焦虑或者麻木的感觉超过两周，或者出现伤害自己或宝宝的念头，请当天就联系医生或心理援助热线。我把号码贴在冰箱上了。求助，也是照顾 Mila 的一部分。',
+    text: '产后头两周爱掉眼泪很常见。但如果难过、焦虑或者麻木的感觉超过两周，或者出现伤害自己或宝宝的念头，请当天就联系医生或心理援助热线。我把号码钉在便签板上了。求助，也是照顾 Mila 的一部分。',
     choices: [{ id: 'thanks', label: '谢谢你', reply: '我是认真的。想聊的时候，我一直都在。', pose: 'empathy' }],
   },
   {
@@ -351,7 +352,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 15 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: '冰箱上的便条',
+    title: '便签板上的便条',
     text: 'Mila 超级讨厌趴着，几秒就开始尖叫。{baby}有什么小窍门吗？',
     choices: [
       { id: 'chest', label: '趴在你胸口', reply: '又是趴趴又是抱抱？天才！', pose: 'discover' },
@@ -368,7 +369,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd6-ask',
-    title: '冰箱上的新便条',
+    title: '便签板上的新便条',
     text: '趴了三分钟，一声都没哭！我们用一场午觉来庆祝。',
     choices: [{ id: 'yay', label: 'Mila 真棒', reply: '她说谢谢你。好吧，她流了口水，意思差不多。', pose: 'celebrate' }],
   },
@@ -387,7 +388,7 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 19 * 60,
     spot: 'mailbox',
     kind: 'letter',
-    title: '门口的信',
+    title: '窗台上的信',
     text: 'Cozie 写下了你们一起度过的第一周。',
     letterId: 'week-one',
   },
@@ -423,7 +424,7 @@ export const LIFE_LETTERS: Record<string, LetterContent> = {
     heading: '来自 Mila',
     dateLocale: 'zh-CN',
     kicker: '一张感谢卡',
-    salutation: '亲爱的{mom}阿姨：',
+    salutation: '亲爱的{mom}：',
     blocks: [
       { kind: 'p', text: '我会用奶瓶喝奶啦！妈妈哭了一小下，她说是开心的那种。' },
       { kind: 'p', text: '妈妈说是你帮了忙，所以这封信是写给你的。我在下面画了一颗星星，画得非常好。' },
