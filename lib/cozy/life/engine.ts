@@ -33,7 +33,7 @@ export interface LifeState {
 
 export interface LifePersona {
   mom: string;
-  /** False when we only have the 'friend' fallback. */
+  /** False when we only have the fallback form of address. */
   momKnown: boolean;
   baby: string;
   babyWeeks: number;
@@ -65,9 +65,9 @@ export const SLOT_MINUTES: Record<Slot, number> = {
 };
 
 export const SLOT_LABELS: Record<Slot, string> = {
-  morning: 'Morning',
-  afternoon: 'Afternoon',
-  night: 'Night',
+  morning: '早上',
+  afternoon: '下午',
+  night: '夜里',
 };
 
 export function slotOf(minutes: number): Slot {
@@ -99,9 +99,9 @@ export function clockFor(state: LifeState, now: number, slotOverride?: Slot | nu
 export function personaFrom(profile: CozyProfile): LifePersona {
   const babyWeeks = weeksOld(profile) ?? 6;
   return {
-    mom: profile.name?.trim() || 'friend',
+    mom: profile.name?.trim() || '亲爱的',
     momKnown: Boolean(profile.name?.trim()),
-    baby: profile.baby?.name?.trim() || 'your little one',
+    baby: profile.baby?.name?.trim() || '你家宝宝',
     babyWeeks,
     milaWeeks: babyWeeks + 1,
   };
@@ -118,12 +118,16 @@ function weeksOld(p: CozyProfile): number | null {
 
 export function fill(text: string, p: LifePersona) {
   return text
-    // 'Auntie friend' reads oddly; without a name Mila just says 'Auntie'.
-    .replaceAll('Auntie {mom}', p.momKnown ? `Auntie ${p.mom}` : 'Auntie')
+    // Without a name: '亲爱的阿姨：' and '亲爱的：', not '亲爱的亲爱的'.
+    .replaceAll('{mom}阿姨', p.momKnown ? `${p.mom}阿姨` : '阿姨')
+    .replaceAll('亲爱的{mom}', p.momKnown ? `亲爱的${p.mom}` : '亲爱的')
     .replaceAll('{mom}', p.mom)
     .replaceAll('{baby}', p.baby)
     .replaceAll('{babyWeeks}', String(p.babyWeeks))
-    .replaceAll('{milaWeeks}', String(p.milaWeeks));
+    .replaceAll('{milaWeeks}', String(p.milaWeeks))
+    // A space between Latin names/numbers and Chinese: 'Noah 今天', not 'Noah今天'.
+    .replace(/([A-Za-z0-9])([一-鿿])/g, '$1 $2')
+    .replace(/([一-鿿])([A-Za-z0-9])/g, '$1 $2');
 }
 
 function isDelivered(e: LifeEvent, clock: LifeClock, answers: Record<string, string>) {

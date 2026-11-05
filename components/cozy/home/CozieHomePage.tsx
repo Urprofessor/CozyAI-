@@ -130,7 +130,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
       setTalk({
         you: text,
         reply:
-          "That sounds important, and I want to give it my full attention. Let's talk properly in the chat. If it feels urgent, please call your doctor or emergency services right now.",
+          '这件事很重要，我想认真听你说。我们去聊天里好好说吧。如果情况紧急，请马上联系医生或拨打急救电话。',
         status: 'done',
         urgent: true,
       });
@@ -175,30 +175,30 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
       if ((err as Error).name === 'AbortError') return;
       setTalk({
         you: text,
-        reply: "Mila just woke up, so I only caught half of that. Sit down with me in the chat and tell me properly?",
+        reply: 'Mila 刚醒，我只听到一半。我们去聊天里坐下来慢慢说？',
         status: 'done',
         urgent: false,
       });
     }
   }
 
-  const title = `Mila · ${persona.milaWeeks} weeks · Day ${clock.day}`;
+  const title = `Mila · ${persona.milaWeeks} 周 · 第 ${clock.day} 天`;
 
   return (
     <div className={cn('ch-page', `is-${clock.slot}`)}>
       <header className="ch-top">
-        <button type="button" className="cz-glass-btn" onClick={onBack} aria-label="Back to chat">
+        <button type="button" className="cz-glass-btn" onClick={onBack} aria-label="返回聊天">
           <ChevronLeft size={24} strokeWidth={1.8} />
         </button>
         <div className="ch-top__title">
-          <strong>Cozie&apos;s home</strong>
+          <strong>Cozie 的家</strong>
           <span>{title}</span>
         </div>
         <button
           type="button"
           className="cz-glass-btn ch-top__mail"
           onClick={() => setMailOpen(true)}
-          aria-label={`Mailbox, ${letters.length} letters`}
+          aria-label={`信箱，${letters.length} 封信`}
         >
           <Mail size={21} strokeWidth={1.7} />
           {letters.length > 0 && <span className="ch-top__count">{letters.length}</span>}
@@ -230,7 +230,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
               className={cn('ch-spot', focus.kind === 'spot' && focus.spot === s.id && 'is-active')}
               style={{ left: pct.x(s.hit.x), top: pct.y(s.hit.y), width: pct.x(s.hit.w), height: pct.y(s.hit.h) }}
               onClick={() => openSpot(s.id)}
-              aria-label={views[s.id].unread ? `${s.label}, something new` : s.label}
+              aria-label={views[s.id].unread ? `${s.label}，有新内容` : s.label}
             />
           ))}
           {SPOTS.filter((s) => views[s.id].unread).map((s) => (
@@ -268,20 +268,20 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
           onChange={(e) => setDraft(e.target.value)}
           onFocus={() => setTyping(true)}
           onBlur={() => setTyping(false)}
-          placeholder="Say something to Cozie"
+          placeholder="和 Cozie 说点什么"
           enterKeyHint="send"
-          aria-label="Say something to Cozie"
+          aria-label="和 Cozie 说点什么"
         />
-        <button type="submit" className="ch-input__send" disabled={!draft.trim()} aria-label="Send">
+        <button type="submit" className="ch-input__send" disabled={!draft.trim()} aria-label="发送">
           <img src="/cozie/icons/send_arrow.svg" alt="" />
         </button>
       </form>
 
-      <BottomSheet open={mailOpen} onClose={() => setMailOpen(false)} label="Mailbox" className="ch-sheet">
-        <h2 className="ch-sheet__title">Mailbox</h2>
-        <p className="ch-sheet__sub">Letters from Cozie and Mila, kept here.</p>
+      <BottomSheet open={mailOpen} onClose={() => setMailOpen(false)} label="信箱" className="ch-sheet">
+        <h2 className="ch-sheet__title">信箱</h2>
+        <p className="ch-sheet__sub">Cozie 和 Mila 写给你的信，都收在这里。</p>
         {letters.length === 0 ? (
-          <p className="ch-sheet__empty">Your first letter arrives this evening.</p>
+          <p className="ch-sheet__empty">第一封信今晚就到。</p>
         ) : (
           <ul className="ch-mail">
             {[...letters].reverse().map((l) => (
@@ -296,9 +296,9 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
                 >
                   <span className="ch-mail__seal">{(l.letter.from ?? 'Cozie').slice(0, 1)}</span>
                   <span className="ch-mail__text">
-                    <strong>From {l.letter.from ?? 'Cozie'}</strong>
+                    <strong>{l.letter.heading ?? `来自 ${l.letter.from ?? 'Cozie'}`}</strong>
                     <em>
-                      Day {l.day} · {l.letter.kicker}
+                      第 {l.day} 天 · {l.letter.kicker}
                     </em>
                   </span>
                 </button>
@@ -308,10 +308,10 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
         )}
       </BottomSheet>
 
-      <BottomSheet open={clockOpen} onClose={() => setClockOpen(false)} label="Demo time" className="ch-sheet">
-        <h2 className="ch-sheet__title">Demo time</h2>
+      <BottomSheet open={clockOpen} onClose={() => setClockOpen(false)} label="演示时间" className="ch-sheet">
+        <h2 className="ch-sheet__title">演示时间</h2>
         <p className="ch-sheet__sub">
-          Cozie&apos;s day follows your clock. For a demo, jump ahead here. Day {clock.day} of 7.
+          Cozie 的一天跟着你的时间走。演示时可以在这里快进。现在是第 {clock.day} 天（共 7 天）。
         </p>
         <div className="ch-clock-opts">
           {(['morning', 'afternoon', 'night'] as Slot[]).map((s) => (
@@ -337,7 +337,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
               setClockOpen(false);
             }}
           >
-            Live time
+            实时
           </button>
         </div>
         <div className="ch-clock-actions">
@@ -352,7 +352,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
               setClockOpen(false);
             }}
           >
-            Skip to tomorrow morning
+            跳到明天早上
           </button>
           <button
             type="button"
@@ -364,7 +364,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
               setClockOpen(false);
             }}
           >
-            Start the week over
+            从第一天重新开始
           </button>
         </div>
       </BottomSheet>
@@ -378,7 +378,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
             if (letter.eventId) life.markSeen(letter.eventId);
             setLetter(null);
             react('celebrate');
-            showToast('Saved to your mailbox.');
+            showToast('已收进信箱');
           }}
         />
       )}
@@ -397,7 +397,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
           {talk.status === 'done' && (
             <div className="ch-chips">
               <button type="button" className={cn('ch-chip', talk.urgent && 'is-primary')} onClick={() => onTalk(talk.you)}>
-                {talk.urgent ? 'Talk to Cozie now' : 'Keep talking in chat'}
+                {talk.urgent ? '现在就去聊天' : '去聊天里继续说'}
               </button>
             </div>
           )}
@@ -418,7 +418,7 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
           {ev?.kind === 'letter' && (
             <div className="ch-chips">
               <button type="button" className="ch-chip is-primary" onClick={() => openArrivingLetter(ev.id, ev.letterId)}>
-                Open the letter
+                拆开这封信
               </button>
             </div>
           )}
@@ -456,17 +456,17 @@ export function CozieHomePage({ life, profile, onBack, onTalk }: Props) {
 function newLabel(spot: SpotId) {
   switch (spot) {
     case 'fridge':
-      return 'Note on the fridge';
+      return '冰箱上的便条';
     case 'crib':
-      return 'Mila did something';
+      return 'Mila 有新动态';
     case 'calendar':
-      return 'Calendar';
+      return '日历';
     case 'shelf':
-      return 'New reading note';
+      return '新的读书笔记';
     case 'table':
-      return 'Side table';
+      return '小边桌';
     case 'mailbox':
-      return 'A letter came';
+      return '来信了';
   }
 }
 

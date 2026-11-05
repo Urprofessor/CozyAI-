@@ -4,6 +4,7 @@
 // engine only decides when each event shows; wording may later be softened by
 // the model, but medical content, rewards and letters never come from it.
 //
+// Copy is Chinese for now (the rest of the demo is still English).
 // Placeholders: {mom}, {baby}, {babyWeeks}, {milaWeeks}.
 
 import type { LetterContent } from '../letters';
@@ -57,50 +58,50 @@ export const DAYS = 7;
 /** What Cozie is doing in each part of the day. */
 export const SLOT_LINES: Record<number, Record<Slot, string>> = {
   1: {
-    morning: "Morning, {mom}! Mila's still asleep, so I'm drinking my tea standing up. Old habit.",
-    afternoon: "Nap time. I'm writing in my journal before she wakes. How's {baby} today?",
-    night: "Night feed. The whole street is dark except my window. If you're up too, hi.",
+    morning: '早呀{mom}！Mila 还没醒，我站着把茶喝完了。老习惯了。',
+    afternoon: '午睡时间。趁她还没醒，我在写日记。{baby}今天怎么样？',
+    night: '夜奶时间。整条街都黑了，只有我家窗户还亮着。你也醒着的话，嗨～',
   },
   2: {
-    morning: 'Slow start today. Mila fed at 5, so I made pancakes with one hand.',
-    afternoon: 'Writing a note for the fridge. I need a second opinion on something.',
-    night: 'Rocking Mila and counting the stars through the window. I got to eleven.',
+    morning: '今天起得慢。Mila 五点吃的奶，我单手煎了个松饼。',
+    afternoon: '在写一张贴冰箱的便条，有件事想听听你的意见。',
+    night: '抱着 Mila 摇啊摇，透过窗户数星星，数到第十一颗了。',
   },
   3: {
-    morning: "I'm in a good mood today, and you're part of the reason. Go look by the door.",
-    afternoon: 'Writing down my questions for the checkup before I forget them.',
-    night: 'Evening fussies again. We sway, we hum, we survive.',
+    morning: '今天心情特别好，有一部分是因为你哦。去门口看看吧。',
+    afternoon: '在把体检要问医生的问题写下来，不然到时候准忘。',
+    night: '傍晚哭闹又来了。我们摇一摇，哼一哼，熬过去。',
   },
   4: {
-    morning: 'Mila slept four hours in a row. I woke up worried because it was too quiet.',
-    afternoon: 'Five minutes to myself. Using them to drink water. Wild, I know.',
-    night: 'Warm compress, pump, bed. In that order. Goodnight, {mom}.',
+    morning: 'Mila 连睡了四个小时！我反而被吓醒了，太安静了。',
+    afternoon: '难得有五分钟自己的时间，我用来……喝水。很疯狂吧。',
+    night: '热敷、吸奶、睡觉，按这个顺序。晚安，{mom}。',
   },
   5: {
-    morning: 'Clean hair! Your shower tip changed my week.',
-    afternoon: "Reading up on something important today. It's on the shelf.",
-    night: "Mila's asleep on my chest. I'm not moving for at least an hour.",
+    morning: '头发是干净的！你教我的洗澡妙招改变了我这一周。',
+    afternoon: '今天在读一些很重要的东西，放在书架上了。',
+    night: 'Mila 趴在我胸口睡着了。我至少一个小时不打算动。',
   },
   6: {
-    morning: 'Mila cooed at the ceiling fan. I think they are friends now.',
-    afternoon: "Tummy time battle, round three. She's winning.",
-    night: 'Quiet night so far. Writing you something for tomorrow.',
+    morning: 'Mila 对着吊扇咿咿呀呀，我觉得它们成朋友了。',
+    afternoon: '趴趴练习第三回合，她又赢了。',
+    night: '今晚还算安静。在给你写点东西，明天给你。',
   },
   7: {
-    morning: "A whole week since you first came over. It went fast, didn't it?",
-    afternoon: 'Packing a little bag for the park. Snacks for me, a hat for Mila.',
-    night: "Week eight starts tomorrow for Mila. {baby} isn't far behind.",
+    morning: '你第一次来我家，已经整整一周了。过得好快呀。',
+    afternoon: '在收拾去公园的小包：给我的零食，给 Mila 的帽子。',
+    night: 'Mila 明天就满 8 周了。{baby}也不远啦。',
   },
 };
 
 /** Flavor text when a spot has nothing new today. */
 export const SPOT_IDLE: Record<SpotId, { title: string; text: string }> = {
-  crib: { title: "Mila's crib", text: 'Mila is {milaWeeks} weeks old, one week ahead of {baby}. Quiet in here for now.' },
-  fridge: { title: 'Fridge', text: 'Magnets, a milk storage chart, and the pediatrician’s number. No new notes.' },
-  calendar: { title: 'Calendar', text: 'Nothing new on the calendar today.' },
-  shelf: { title: 'Bookshelf', text: "Cozie's notes live here. She'll leave a new one soon." },
-  table: { title: 'Side table', text: 'Her pump, a water bottle, and a very cold cup of tea.' },
-  mailbox: { title: 'Mailbox', text: 'No new letters. Your collection is in the mailbox at the top right.' },
+  crib: { title: 'Mila 的小床', text: 'Mila {milaWeeks} 周大，比{baby}大一周。现在很安静。' },
+  fridge: { title: '冰箱', text: '冰箱贴、一张母乳储存时间表，还有儿科医生的电话。暂时没有新便条。' },
+  calendar: { title: '日历', text: '今天日历上没有新安排。' },
+  shelf: { title: '书架', text: 'Cozie 的读书笔记都放在这里，她很快会留下新的一张。' },
+  table: { title: '小边桌', text: '她的吸奶器、一个水杯，还有一杯早就凉透的茶。' },
+  mailbox: { title: '信箱', text: '没有新信件。收到的信都在右上角的信箱里。' },
 };
 
 export const LIFE_EVENTS: LifeEvent[] = [
@@ -111,9 +112,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 7 * 60 + 10,
     spot: 'crib',
     kind: 'moment',
-    title: "Mila's crib",
-    text: "Mila smiled at me this morning. A real one, eyes and all. She's {milaWeeks} weeks, so {baby} might start any day now. Watch for it.",
-    choices: [{ id: 'aww', label: 'Aww', reply: 'Tell me when it happens. I want to hear all about it.', pose: 'empathy' }],
+    title: 'Mila 的小床',
+    text: '今天早上 Mila 冲我笑了，是真的笑，眼睛都弯起来的那种。她 {milaWeeks} 周了，{baby}可能随时也会笑哦，留意一下。',
+    choices: [{ id: 'aww', label: '好可爱', reply: '等{baby}笑了一定要告诉我，我想听你讲。', pose: 'empathy' }],
   },
   {
     id: 'd1-shelf',
@@ -121,9 +122,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 11 * 60,
     spot: 'shelf',
     kind: 'read',
-    title: 'Notes: growth spurts',
-    text: 'Weeks 6 to 8 often bring a growth spurt. Mila wanted to feed almost every hour for two days, then it settled. What helped me: water and snacks next to the feeding chair, and remembering it passes. If feeds stay nonstop for more than a few days, or wet diapers drop, call your pediatrician.',
-    choices: [{ id: 'thanks', label: 'Thanks, Cozie', reply: "Anytime. I'll keep leaving notes on the shelf.", pose: 'encourage' }],
+    title: '读书笔记：猛长期',
+    text: '6 到 8 周常常会遇到一次猛长期。Mila 有两天几乎每小时都要吃，之后就慢慢缓下来了。对我有用的是：喂奶的椅子旁边放好水和零食，然后提醒自己"会过去的"。如果频繁吃奶持续好几天不缓解，或者尿布明显变少，记得联系儿科医生。',
+    choices: [{ id: 'thanks', label: '谢谢 Cozie', reply: '不客气～我会继续把笔记放在书架上。', pose: 'encourage' }],
   },
   {
     id: 'd1-calendar',
@@ -131,17 +132,17 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 14 * 60,
     spot: 'calendar',
     kind: 'invite',
-    title: 'Thursday: diaper run',
-    text: "We're both on size 1 now, and I always run out at 2 am. Want to stock up together?",
+    title: '周四：囤尿布',
+    text: '我们现在都穿 1 号尿布了，而我总是半夜两点发现用完了。要不要一起囤一波？',
     choices: [
       {
         id: 'list',
-        label: 'See her list',
-        reply: 'My list: size 1 diapers, sensitive wipes, nipple balm, and spare pump valves. Saved it for you.',
+        label: '看看她的清单',
+        reply: '我的清单：1 号尿布、敏感肌湿巾、乳头修护膏，还有备用的吸奶器阀门。已经帮你存好啦。',
         pose: 'celebrate',
-        toast: 'Shopping list saved to your reminders.',
+        toast: '购物清单已存到你的提醒里',
       },
-      { id: 'later', label: 'Not now', reply: "No worries. I'll tell you if I spot a good deal." },
+      { id: 'later', label: '下次吧', reply: '没关系，看到划算的我再叫你。' },
     ],
   },
   {
@@ -150,8 +151,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 19 * 60,
     spot: 'mailbox',
     kind: 'letter',
-    title: 'A letter by the door',
-    text: 'Cozie left you a welcome letter.',
+    title: '门口的信',
+    text: 'Cozie 给你留了一封欢迎信。',
     letterId: 'welcome',
   },
 
@@ -162,9 +163,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 9 * 60,
     spot: 'table',
     kind: 'moment',
-    title: 'Side table',
-    text: 'Pumped while Mila napped on me today. With the wearable one I can actually hold her at the same time. Small win.',
-    choices: [{ id: 'nice', label: 'Small wins count', reply: 'They really do. I wrote it in my journal.', pose: 'journal' }],
+    title: '小边桌',
+    text: '今天 Mila 趴在我身上睡觉的时候，我顺便吸了奶。用穿戴式的可以一边抱着她一边吸，小小的胜利。',
+    choices: [{ id: 'nice', label: '小胜利也算数', reply: '真的算！我已经记进日记了。', pose: 'journal' }],
   },
   {
     id: 'd2-ask',
@@ -172,25 +173,25 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 15 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: 'Note on the fridge',
-    text: "Mila screams at the bottle, and my partner goes back to work on Monday. I'm kind of panicking. Did {baby} ever do this?",
+    title: '冰箱上的便条',
+    text: 'Mila 一看到奶瓶就尖叫，可我老公周一就要回去上班了，我有点慌。{baby}有过这种情况吗？',
     choices: [
       {
         id: 'someone',
-        label: 'Let someone else feed',
-        reply: "Oh, so she can't smell me nearby. Trying it tonight. I'll tell you how it goes.",
+        label: '让别人来喂',
+        reply: '对哦，这样她闻不到我的味道。今晚就试试，结果告诉你。',
         pose: 'discover',
       },
       {
         id: 'nipple',
-        label: 'Try a slower nipple',
-        reply: "Good thinking. I'll dig out the size 1 nipples. Thank you.",
+        label: '换慢流速奶嘴',
+        reply: '好主意！我去把 1 段的奶嘴翻出来。谢谢你。',
         pose: 'discover',
       },
       {
         id: 'unsure',
-        label: "I'm not sure",
-        reply: "That's okay. Just saying it out loud helped. I'll ask at the checkup too.",
+        label: '我也不太确定',
+        reply: '没关系，说出来我已经好多了。体检的时候我也问问医生。',
         pose: 'empathy',
       },
     ],
@@ -201,8 +202,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 19 * 60,
     spot: 'crib',
     kind: 'moment',
-    title: "Mila's crib",
-    text: "Mila found her hands today. She stares at them like they're the best show on TV.",
+    title: 'Mila 的小床',
+    text: 'Mila 今天发现了自己的小手，盯着看的样子像在看什么精彩节目。',
   },
 
   // ---------- Day 3 ----------
@@ -213,15 +214,15 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd2-ask',
-    title: 'New note on the fridge',
-    text: 'We tried a few things last night, and she took 60 ml. I cried a little. The happy kind. Mila left you something by the door.',
+    title: '冰箱上的新便条',
+    text: '昨晚我们试了好几种办法，她喝了 60 毫升！我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
     textByChoice: {
       someone:
-        'Your idea worked. My partner fed her while I went for a walk, and she took 60 ml. I cried a little. The happy kind. Mila left you something by the door.',
+        '你的办法有用！我老公喂她，我出去走了一圈，她喝了 60 毫升。我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
       nipple:
-        'The slower nipple worked. She took 60 ml and only fussed once. I cried a little. The happy kind. Mila left you something by the door.',
+        '慢流速奶嘴真的有用！她喝了 60 毫升，只闹了一下。我哭了一小下，是开心的那种。Mila 在门口给你留了东西。',
     },
-    choices: [{ id: 'yay', label: "I'm so glad", reply: 'Me too. Thank you for being there, {mom}.', pose: 'celebrate' }],
+    choices: [{ id: 'yay', label: '太好了', reply: '是呀。谢谢你一直在，{mom}。', pose: 'celebrate' }],
   },
   {
     id: 'd3-mail',
@@ -230,8 +231,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'mailbox',
     kind: 'letter',
     requires: 'd2-ask',
-    title: 'A letter by the door',
-    text: 'Mila wrote you a thank-you note.',
+    title: '门口的信',
+    text: 'Mila 给你写了一张感谢卡。',
     letterId: 'mila-thanks',
   },
   {
@@ -240,9 +241,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 13 * 60,
     spot: 'shelf',
     kind: 'read',
-    title: 'Notes: the evening fussies',
-    text: "Lots of babies get extra fussy in the early evening around now. What we do: dim the lights, fewer visitors, lots of swaying, and feeding more often if she wants it. Crying that sounds different from usual, or comes with fever or poor feeding, is a reason to call your doctor rather than wait it out.",
-    choices: [{ id: 'thanks', label: 'Good to know', reply: 'Evenings are hard. You are not doing anything wrong.', pose: 'empathy' }],
+    title: '读书笔记：傍晚哭闹',
+    text: '这个阶段很多宝宝傍晚会特别闹。我们的做法是：把灯调暗、少一点访客、多抱着摇，她想吃就多喂几次。如果哭声和平时明显不一样，或者伴有发烧、吃奶变差，就别硬扛，直接联系医生。',
+    choices: [{ id: 'thanks', label: '知道了', reply: '傍晚真的很难熬。你没有做错什么。', pose: 'empathy' }],
   },
   {
     id: 'd3-calendar',
@@ -250,17 +251,17 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 17 * 60,
     spot: 'calendar',
     kind: 'invite',
-    title: "Mila's 2-month checkup",
-    text: "It's next week, so I'm writing my questions down now. I always forget them in the room. Want me to remind you about {baby}'s too?",
+    title: 'Mila 的 2 月龄体检',
+    text: '就在下周，我先把要问的问题写下来，不然一进诊室就忘光。要不要我也提醒你{baby}的体检？',
     choices: [
       {
         id: 'yes',
-        label: 'Yes, remind me',
-        reply: "Done. I'll nudge you a week before, with a list of questions.",
+        label: '好，提醒我',
+        reply: '好嘞！提前一周提醒你，还附一份问题清单。',
         pose: 'celebrate',
-        toast: 'Checkup reminder added.',
+        toast: '已添加体检提醒',
       },
-      { id: 'no', label: 'Not yet', reply: "Okay. It's on my calendar if you change your mind." },
+      { id: 'no', label: '先不用', reply: '好的，我写在日历上了，你想要随时说。' },
     ],
   },
 
@@ -271,8 +272,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 7 * 60 + 30,
     spot: 'crib',
     kind: 'moment',
-    title: "Mila's crib",
-    text: 'Four hours of sleep in a row. I checked on her twice because it was too quiet. Ha.',
+    title: 'Mila 的小床',
+    text: '连睡了四个小时！我中间去看了她两次，因为太安静了，哈哈。',
   },
   {
     id: 'd4-ask',
@@ -280,12 +281,12 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 14 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: 'Note on the fridge',
-    text: 'Serious question: how do you find time to shower? Mine take 90 seconds with the door open.',
+    title: '冰箱上的便条',
+    text: '认真问一句：你都是怎么挤出时间洗澡的？我每次只有 90 秒，还得开着门。',
     choices: [
-      { id: 'nap', label: 'While baby naps', reply: 'Instead of doing laundry? Bold. I like it.', pose: 'discover' },
-      { id: 'partner', label: 'Hand over for 15 min', reply: "Asking for help. Okay, I'll try it tonight.", pose: 'discover' },
-      { id: 'bouncer', label: 'Baby in the bathroom', reply: 'In the bouncer, where I can see her. That I can do.', pose: 'discover' },
+      { id: 'nap', label: '趁宝宝午睡', reply: '不洗衣服了去洗澡？好大胆，我喜欢。', pose: 'discover' },
+      { id: 'partner', label: '交给家人 15 分钟', reply: '开口求助……好，今晚就试试。', pose: 'discover' },
+      { id: 'bouncer', label: '把宝宝带进浴室', reply: '放在摇椅里，能一直看着她。这个我能做到。', pose: 'discover' },
     ],
   },
   {
@@ -294,8 +295,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 20 * 60,
     spot: 'table',
     kind: 'moment',
-    title: 'Side table',
-    text: 'One side felt full and tender today. Warm compress, then pumping, then gentle massage, and it eased up. If it gets red, hot, or I get a fever, I call my doctor the same day.',
+    title: '小边桌',
+    text: '今天一侧胀得有点疼。热敷一下、吸奶、再轻轻按摩，就缓解了。如果出现发红、发热或者我发烧了，我会当天就去看医生。',
   },
 
   // ---------- Day 5 ----------
@@ -306,9 +307,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd4-ask',
-    title: 'New note on the fridge',
-    text: 'Eleven-minute shower yesterday. Eleven! Thank you, {mom}.',
-    choices: [{ id: 'yay', label: 'You deserve it', reply: 'So do you. Take one today too.', pose: 'celebrate' }],
+    title: '冰箱上的新便条',
+    text: '昨天洗了整整 11 分钟的澡！11 分钟！谢谢你，{mom}。',
+    choices: [{ id: 'yay', label: '你值得', reply: '你也值得。今天你也去洗一个吧。', pose: 'celebrate' }],
   },
   {
     id: 'd5-shelf',
@@ -316,9 +317,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 12 * 60,
     spot: 'shelf',
     kind: 'read',
-    title: 'Notes: when the blues don’t lift',
-    text: "Teary days in the first two weeks are common. If sadness, worry or numbness lasts longer than that, or you have thoughts of harming yourself or your baby, call your doctor or a crisis line today. I keep the number on the fridge. Asking for help is part of looking after Mila.",
-    choices: [{ id: 'thanks', label: 'Thank you', reply: "I mean it. If you ever need to talk, I'm right here.", pose: 'empathy' }],
+    title: '读书笔记：情绪低落一直不好',
+    text: '产后头两周爱掉眼泪很常见。但如果难过、焦虑或者麻木的感觉超过两周，或者出现伤害自己或宝宝的念头，请当天就联系医生或心理援助热线。我把号码贴在冰箱上了。求助，也是照顾 Mila 的一部分。',
+    choices: [{ id: 'thanks', label: '谢谢你', reply: '我是认真的。想聊的时候，我一直都在。', pose: 'empathy' }],
   },
   {
     id: 'd5-calendar',
@@ -326,11 +327,11 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 16 * 60,
     spot: 'calendar',
     kind: 'invite',
-    title: 'Saturday: park walk',
-    text: 'Mila likes looking at the trees. Fresh air helps me more than coffee. Come with us?',
+    title: '周六：去公园散步',
+    text: 'Mila 喜欢看树。对我来说，出门透透气比咖啡还管用。一起去吗？',
     choices: [
-      { id: 'in', label: "I'm in", reply: "Yay. I'll bring snacks. You bring {baby}.", pose: 'celebrate', toast: 'Saturday walk added.' },
-      { id: 'maybe', label: 'Maybe', reply: 'No pressure at all.' },
+      { id: 'in', label: '我去', reply: '耶！我带零食，你带上{baby}。', pose: 'celebrate', toast: '已添加周六散步' },
+      { id: 'maybe', label: '再看看', reply: '完全没压力～' },
     ],
   },
 
@@ -341,8 +342,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 9 * 60,
     spot: 'crib',
     kind: 'moment',
-    title: "Mila's crib",
-    text: 'Mila cooed back at me. A whole conversation. I have no idea what we agreed on.',
+    title: 'Mila 的小床',
+    text: 'Mila 会回应我的咿呀了！我们聊了好一会儿，虽然我完全不知道达成了什么共识。',
   },
   {
     id: 'd6-ask',
@@ -350,12 +351,12 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 15 * 60,
     spot: 'fridge',
     kind: 'ask',
-    title: 'Note on the fridge',
-    text: 'Mila hates tummy time. Screams within seconds. Any tricks from {baby}?',
+    title: '冰箱上的便条',
+    text: 'Mila 超级讨厌趴着，几秒就开始尖叫。{baby}有什么小窍门吗？',
     choices: [
-      { id: 'chest', label: 'On your chest', reply: 'Tummy time that is also a cuddle? Genius.', pose: 'discover' },
-      { id: 'mirror', label: 'Put a mirror down', reply: 'She does love her own face. Trying it.', pose: 'discover' },
-      { id: 'short', label: 'Short and often', reply: 'One minute at a time. I can do that.', pose: 'discover' },
+      { id: 'chest', label: '趴在你胸口', reply: '又是趴趴又是抱抱？天才！', pose: 'discover' },
+      { id: 'mirror', label: '前面放面镜子', reply: '她确实很爱看自己的脸，试试！', pose: 'discover' },
+      { id: 'short', label: '少量多次', reply: '一次一分钟，这个我能做到。', pose: 'discover' },
     ],
   },
 
@@ -367,9 +368,9 @@ export const LIFE_EVENTS: LifeEvent[] = [
     spot: 'fridge',
     kind: 'follow',
     requires: 'd6-ask',
-    title: 'New note on the fridge',
-    text: 'Three minutes of tummy time without a single scream. We celebrated with a nap.',
-    choices: [{ id: 'yay', label: 'Go Mila', reply: "She says thank you. Well, she drooled. Same thing.", pose: 'celebrate' }],
+    title: '冰箱上的新便条',
+    text: '趴了三分钟，一声都没哭！我们用一场午觉来庆祝。',
+    choices: [{ id: 'yay', label: 'Mila 真棒', reply: '她说谢谢你。好吧，她流了口水，意思差不多。', pose: 'celebrate' }],
   },
   {
     id: 'd7-shelf',
@@ -377,8 +378,8 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 12 * 60,
     spot: 'shelf',
     kind: 'read',
-    title: 'Notes: what week 8 brings',
-    text: 'Around 8 weeks Mila has her checkup and first vaccines, more alert time, and maybe longer night stretches. I made a little list of questions for the doctor. Want me to keep one for {baby} too?',
+    title: '读书笔记：第 8 周会发生什么',
+    text: '8 周左右 Mila 要体检、打第一批疫苗，清醒的时间会变长，夜里可能也能睡得更久一点。我列了一份要问医生的问题，要不要也给{baby}准备一份？',
   },
   {
     id: 'd7-mail',
@@ -386,64 +387,69 @@ export const LIFE_EVENTS: LifeEvent[] = [
     at: 19 * 60,
     spot: 'mailbox',
     kind: 'letter',
-    title: 'A letter by the door',
-    text: 'Cozie wrote about your first week together.',
+    title: '门口的信',
+    text: 'Cozie 写下了你们一起度过的第一周。',
     letterId: 'week-one',
   },
 ];
 
 /** Arriving letters close with one button; rereads use the close icon. */
-const KEEP = [{ id: 'keep', label: 'Keep it', opener: { content: '' } }];
+const KEEP = [{ id: 'keep', label: '收好', opener: { content: '' } }];
 
 export const LIFE_LETTERS: Record<string, LetterContent> = {
   welcome: {
     id: 'welcome',
-    kicker: 'Welcome to my place',
-    salutation: 'Dear {mom},',
+    heading: '来自 Cozie',
+    dateLocale: 'zh-CN',
+    kicker: '欢迎来我家',
+    salutation: '亲爱的{mom}：',
     blocks: [
       {
         kind: 'p',
-        text: "Thank you for coming over. This is where Mila and I live. It's small, a little messy, and there's always a bottle drying somewhere.",
+        text: '谢谢你来我家坐坐。这里就是我和 Mila 住的地方，小小的，有点乱，总有一个奶瓶在某个角落晾着。',
       },
       {
         kind: 'p',
-        text: "Mila is one week ahead of {baby}, so whatever we go through, I'll leave you a note about it. Some days I'll need your advice too.",
+        text: 'Mila 比{baby}大一周，所以我们经历的事情，我都会给你留张便条。有时候，我也会需要你的建议。',
       },
-      { kind: 'emphasis', text: 'Come by whenever you like.' },
+      { kind: 'emphasis', text: '想来就随时来吧。' },
     ],
-    closing: 'See you tomorrow,',
+    closing: '明天见，',
     actions: KEEP,
   },
   'mila-thanks': {
     id: 'mila-thanks',
     from: 'Mila',
-    kicker: 'A thank-you note',
-    salutation: 'Dear Auntie {mom},',
+    heading: '来自 Mila',
+    dateLocale: 'zh-CN',
+    kicker: '一张感谢卡',
+    salutation: '亲爱的{mom}阿姨：',
     blocks: [
-      { kind: 'p', text: 'I drank my milk from the bottle! Mommy cried a little. She says it was the happy kind.' },
-      { kind: 'p', text: 'Mommy says you helped. So this letter is for you. I drew a star at the bottom. It is very good.' },
-      { kind: 'emphasis', text: 'Say hi to {baby} for me.' },
+      { kind: 'p', text: '我会用奶瓶喝奶啦！妈妈哭了一小下，她说是开心的那种。' },
+      { kind: 'p', text: '妈妈说是你帮了忙，所以这封信是写给你的。我在下面画了一颗星星，画得非常好。' },
+      { kind: 'emphasis', text: '帮我跟{baby}打个招呼。' },
     ],
-    closing: 'Love,',
+    closing: '爱你的，',
     actions: KEEP,
   },
   'week-one': {
     id: 'week-one',
-    kicker: 'Our first week',
-    salutation: 'Dear {mom},',
+    heading: '来自 Cozie',
+    dateLocale: 'zh-CN',
+    kicker: '我们的第一周',
+    salutation: '亲爱的{mom}：',
     blocks: [
       {
-        kind: 'milestone',
-        stops: [{ label: 'Week 6' }, { label: 'Week 7', current: true }, { label: 'Week 8' }],
-        text: 'Growth spurts, a first smile, bottle battles and tummy time. A full week for both of our little ones.',
+        kind: 'p',
+        text: '猛长期、第一次笑、和奶瓶的拉锯战、趴趴练习……这一周，两个小家伙都过得很充实。',
       },
       {
         kind: 'p',
-        text: 'You helped me more than you know. The bottle trick, the shower, the tummy time. I wrote every one of them in my journal.',
+        text: '你帮我的比你想象的多。奶瓶的办法、洗澡的时间、趴趴的窍门，我都一条条记进了日记里。',
       },
-      { kind: 'emphasis', text: "Week eight, here we come. Together." },
+      { kind: 'emphasis', text: '第 8 周，我们一起来。' },
     ],
-    closing: 'With you,',
+    closing: '一直陪着你，',
     actions: KEEP,
   },
 };

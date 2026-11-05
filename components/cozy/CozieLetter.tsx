@@ -64,8 +64,9 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
     setPhase('read');
   }
 
-  const date = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric' });
+  const date = new Date().toLocaleString(letter.dateLocale ?? 'en-US', { month: 'short', day: 'numeric' });
   const from = letter.from ?? 'Cozie';
+  const heading = letter.heading ?? `From ${from}`;
 
   return (
     <div
@@ -78,7 +79,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
         <div className="cz-env" aria-hidden>
           <div className="cz-env__back" />
           <div ref={paperRef} className="cz-env__paper">
-            <span>From {from}</span>
+            <span>{heading}</span>
             <strong>{letter.salutation}</strong>
             <i />
             <i />
@@ -96,7 +97,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
         <article ref={sheetRef} className="cz-letter__sheet" onClick={(e) => e.stopPropagation()}>
           <header className="cz-letter__head">
             <div>
-              <h2>From {from}</h2>
+              <h2>{heading}</h2>
               <span>{letter.kicker}</span>
             </div>
             {mode === 'reread' && onClose ? (

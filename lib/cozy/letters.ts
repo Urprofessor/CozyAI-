@@ -29,6 +29,10 @@ export interface LetterContent {
   id: string;
   /** Who signs it. Defaults to Cozie; Cozie's baby writes some too. */
   from?: string;
+  /** Header line; defaults to 'From <from>'. */
+  heading?: string;
+  /** Locale for the date in the header; defaults to en-US. */
+  dateLocale?: string;
   kicker: string; // small line under "From Cozie"
   salutation: string;
   blocks: LetterBlock[];

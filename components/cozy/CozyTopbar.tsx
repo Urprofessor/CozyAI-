@@ -41,7 +41,7 @@ export function CozyTopbar({ title, canSelectBaby, onOpenHistory, onOpenHome, ho
           type="button"
           className="cz-glass-btn cz-home-btn"
           onClick={onOpenHome}
-          aria-label={homeBadge ? "Visit Cozie's home, something new" : "Visit Cozie's home"}
+          aria-label={homeBadge ? '去 Cozie 家，有新动态' : '去 Cozie 家'}
         >
           <span className="cz-home-btn__face">
             <img src={`${CZ}/home/cozie_neutral.png`} alt="" draggable={false} />
