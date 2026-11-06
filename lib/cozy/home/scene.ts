@@ -32,7 +32,7 @@ export interface SpotDef {
 
 export const SPOTS: SpotDef[] = [
   { id: 'shelf', label: '书架', hit: { x: 6, y: 150, w: 104, h: 168 }, dot: { x: 98, y: 168 }, stand: { x: 122, y: 352 } },
-  { id: 'fridge', label: '便签板', hit: { x: 120, y: 147, w: 58, h: 54 }, dot: { x: 174, y: 150 }, stand: { x: 150, y: 342 } },
+  { id: 'fridge', label: '画板', hit: { x: 120, y: 147, w: 58, h: 54 }, dot: { x: 174, y: 150 }, stand: { x: 150, y: 342 } },
   { id: 'calendar', label: '日历', hit: { x: 126, y: 206, w: 48, h: 48 }, dot: { x: 170, y: 210 }, stand: { x: 152, y: 344 } },
   { id: 'mailbox', label: '窗台', hit: { x: 226, y: 226, w: 74, h: 36 }, dot: { x: 282, y: 236 }, stand: { x: 204, y: 356 } },
   { id: 'crib', label: 'Mila 的小床', hit: { x: 186, y: 262, w: 114, h: 86 }, dot: { x: 288, y: 270 }, stand: { x: 178, y: 366 } },
@@ -142,3 +142,6 @@ export const PRENATAL = {
   src: { off: `${DEV}/prenatal_off.webp`, on: `${DEV}/prenatal_on.webp` },
   spot: { hit: { x: 8, y: 376, w: 56, h: 40 }, dot: { x: 56, y: 384 }, stand: { x: 98, y: 414 } },
 };
+
+/** Where the latest drawing is pinned on the wall board (room units). */
+export const BOARD_PIN = { x: 152, y: 168, w: 22 };

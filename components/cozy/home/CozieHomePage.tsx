@@ -23,6 +23,7 @@ import { URGENT_REPLY, parseAction, topicOf } from '@/lib/cozy/life/topics';
 import { ANIMS, FOOT, type CozieAnim } from '@/lib/cozy/home/anims';
 import {
   BACKGROUNDS,
+  BOARD_PIN,
   COZIE_W,
   CRIB_FRONT,
   FACES,
@@ -41,7 +42,9 @@ import {
   type MilaMood,
   type Place,
 } from '@/lib/cozy/home/scene';
+import { useDrawings, type Drawing } from '@/hooks/useDrawings';
 import { CozieLetter } from '../CozieLetter';
+import { DrawingBoard } from './DrawingBoard';
 import { BottomSheet, showToast } from '../ui';
 
 interface Props {
@@ -124,6 +127,14 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const [halloween, setHalloween] = useState(() => isHalloweenSeason());
   const [deviceOn, setDeviceOn] = useState(false);
   const [deviceReply, setDeviceReply] = useState<string | null>(null);
+  // Drawings (作画): made on a full-screen board, pinned to the wall board.
+  const drawingStore = useDrawings();
+  const [drawingOpen, setDrawingOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [viewing, setViewing] = useState<Drawing | null>(null);
+  const [newDrawing, setNewDrawing] = useState(false);
+  const [justPinned, setJustPinned] = useState(false);
+  const latestDrawing = drawingStore.drawings[0] ?? null;
   const [clockOpen, setClockOpen] = useState(false);
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -183,7 +194,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const spots = SPOTS.map((s) =>
     s.id === 'table' && device === 'prenatal' ? { ...s, label: '胎教仪', ...PRENATAL.spot } : s
   );
-  const hasNew = (id: SpotId) => (id === 'table' && device === 'prenatal' ? !deviceOn : views[id].unread);
+  const hasNew = (id: SpotId) =>
+    id === 'table' && device === 'prenatal' ? !deviceOn : views[id].unread || (id === 'fridge' && newDrawing);
   const unread = spots.map((s) => s.id).filter(hasNew);
 
   // ---------- Where she is and what she's doing ----------
@@ -456,6 +468,13 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   function openSpot(spot: SpotId) {
     closeChat();
     setBubble({ kind: 'spot', spot });
+    // The wall board: with nothing new to read, it opens the drawings.
+    if (spot === 'fridge' && !views.fridge.unread && drawingStore.drawings.length > 0) {
+      setBubble(null);
+      setNewDrawing(false);
+      setGalleryOpen(true);
+      return;
+    }
     if (spot === 'table' && device === 'prenatal') {
       setDeviceReply(null);
       return;
@@ -544,6 +563,16 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             aria-hidden
             style={{ left: pct.x(PRENATAL.x), top: pct.y(PRENATAL.y), width: pct.x(PRENATAL.w) }}
           />
+        )}
+        {latestDrawing && (
+          <span
+            key={latestDrawing.id}
+            className={cn('ch-pin', justPinned && 'is-new')}
+            style={{ left: pct.x(BOARD_PIN.x), top: pct.y(BOARD_PIN.y), width: pct.x(BOARD_PIN.w) }}
+            aria-hidden
+          >
+            <img src={latestDrawing.src} alt="" />
+          </span>
         )}
         <img
           className="ch-mila"
@@ -755,6 +784,82 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         </button>
       </form>
 
+      <BottomSheet open={galleryOpen} onClose={() => setGalleryOpen(false)} label="墙上的画板" className="ch-sheet">
+        <h2 className="ch-sheet__title">墙上的画板</h2>
+        <p className="ch-sheet__sub">你给宝宝画的画，都钉在这里。</p>
+        {drawingStore.drawings.length === 0 ? (
+          <p className="ch-sheet__empty">还没有画。用胎教仪的「作画」画第一幅吧。</p>
+        ) : (
+          <ul className="ch-gallery">
+            {drawingStore.drawings.map((d) => (
+              <li key={d.id}>
+                <button type="button" onClick={() => setViewing(d)}>
+                  <img src={d.src} alt={d.title} />
+                  <span>{d.title}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="ch-clock-actions">
+          <button
+            type="button"
+            className="is-primary"
+            onClick={() => {
+              setGalleryOpen(false);
+              setDrawingOpen(true);
+            }}
+          >
+            再画一幅
+          </button>
+        </div>
+      </BottomSheet>
+
+      {viewing && (
+        <div className="ch-viewer" role="dialog" aria-label={viewing.title} onClick={() => setViewing(null)}>
+          <figure onClick={(e) => e.stopPropagation()}>
+            <img src={viewing.src} alt={viewing.title} />
+            <figcaption>
+              <strong>{viewing.title}</strong>
+              <span>{new Date(viewing.createdAt).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>
+            </figcaption>
+            <div className="ch-viewer__actions">
+              <button
+                type="button"
+                onClick={() => {
+                  drawingStore.remove(viewing.id);
+                  setViewing(null);
+                  showToast('已从画板上取下');
+                }}
+              >
+                取下这幅画
+              </button>
+              <button type="button" className="is-primary" onClick={() => setViewing(null)}>
+                好的
+              </button>
+            </div>
+          </figure>
+        </div>
+      )}
+
+      {drawingOpen && (
+        <DrawingBoard
+          defaultTitle={`第 ${clock.day} 天 · 给宝宝的画`}
+          onClose={() => setDrawingOpen(false)}
+          onSave={({ title, src }) => {
+            drawingStore.add({ title, src, day: clock.day });
+            setDrawingOpen(false);
+            setBubble(null);
+            setNewDrawing(true);
+            setJustPinned(true);
+            later('pinned', 1600, () => setJustPinned(false));
+            react('celebrate', 2400);
+            setHeadMsg({ id: -1, text: '我帮你钉到墙上的画板啦' });
+            later('head', 4500, () => setHeadMsg((h) => (h?.id === -1 ? null : h)));
+          }}
+        />
+      )}
+
       <BottomSheet open={mailOpen} onClose={() => setMailOpen(false)} label="信箱" className="ch-sheet">
         <h2 className="ch-sheet__title">信箱</h2>
         <p className="ch-sheet__sub">Cozie 和 Mila 写给你的信，都收在这里。</p>
@@ -942,9 +1047,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    setDeviceReply('我们一起给宝宝画点什么吧，我先画一只小兔子～');
-                    react('journal', 2400);
-                    showToast('演示：这里会打开胎教作画');
+                    setBubble(null);
+                    setDrawingOpen(true);
                   }}
                 >
                   <Palette size={22} strokeWidth={1.6} />
@@ -981,6 +1085,21 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           <p className="ch-bubble__who">{v.title}</p>
           <p className="ch-bubble__text">{v.text}</p>
           {choice && <p className="ch-bubble__reply">{fill(choice.reply, persona)}</p>}
+          {bubble.spot === 'fridge' && drawingStore.drawings.length > 0 && (
+            <div className="ch-chips">
+              <button
+                type="button"
+                className="ch-chip is-new"
+                onClick={() => {
+                  setBubble(null);
+                  setNewDrawing(false);
+                  setGalleryOpen(true);
+                }}
+              >
+                看看我们的画（{drawingStore.drawings.length}）
+              </button>
+            </div>
+          )}
           {ev?.kind === 'letter' && (
             <div className="ch-chips">
               <button type="button" className="ch-chip is-primary" onClick={() => openArrivingLetter(ev.id, ev.letterId)}>

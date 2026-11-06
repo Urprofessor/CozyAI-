@@ -97,7 +97,7 @@ export const SLOT_LINES: Record<number, Record<Slot, string>> = {
 /** Flavor text when a spot has nothing new today. */
 export const SPOT_IDLE: Record<SpotId, { title: string; text: string }> = {
   crib: { title: 'Mila 的小床', text: 'Mila {milaWeeks} 周大，比{baby}大一周。现在很安静。' },
-  fridge: { title: '便签板', text: '钉着一张母乳储存时间表，还有儿科医生的电话。暂时没有新便条。' },
+  fridge: { title: '墙上的画板', text: '钉着母乳储存时间表和儿科医生的电话。你给宝宝画的画也会钉在这里。' },
   calendar: { title: '日历', text: '今天日历上没有新安排。' },
   shelf: { title: '书架', text: 'Cozie 的读书笔记都放在这里，她很快会留下新的一张。' },
   table: { title: '吸奶器小凳', text: '沙发边的小凳上放着她的一对吸奶器，粉粉圆圆的。' },
