@@ -24,6 +24,7 @@ import { ANIMS, FOOT, type CozieAnim } from '@/lib/cozy/home/anims';
 import {
   BACKGROUNDS,
   BOARD_PIN,
+  COMPOSE_ART,
   DRAW_ART,
   COZIE_W,
   CRIB_FRONT,
@@ -31,6 +32,7 @@ import {
   FOREGROUND,
   HALLOWEEN,
   MILA,
+  MOBILE,
   PLACES,
   PRENATAL,
   PROPS,
@@ -46,6 +48,9 @@ import {
 import { useDrawings, type Drawing } from '@/hooks/useDrawings';
 import { CozieLetter } from '../CozieLetter';
 import { DrawingBoard, Framed } from './DrawingBoard';
+import { ComposeBoard } from './ComposeBoard';
+import { useSongs } from '@/hooks/useSongs';
+import { playSong, songLength, type Playback, type Song } from '@/lib/cozy/home/music';
 import { BottomSheet, showToast } from '../ui';
 
 interface Props {
@@ -136,6 +141,15 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   const [newDrawing, setNewDrawing] = useState(false);
   const [justPinned, setJustPinned] = useState(false);
   const latestDrawing = drawingStore.drawings[0] ?? null;
+  // Songs (作曲): written on a full-screen staff, hung on the crib mobile.
+  const songStore = useSongs();
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [songsOpen, setSongsOpen] = useState(false);
+  const [newSong, setNewSong] = useState(false);
+  const [flyNote, setFlyNote] = useState<number | null>(null);
+  const [mobileSpin, setMobileSpin] = useState(false);
+  const [nowPlaying, setNowPlaying] = useState<{ id: string; toBaby: boolean } | null>(null);
+  const playbackRef = useRef<Playback | null>(null);
   const [clockOpen, setClockOpen] = useState(false);
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -202,8 +216,17 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
   // ---------- Where she is and what she's doing ----------
 
   // While chatting she stays exactly where she was.
+  // At night, with songs on the mobile, she plays them to Mila by the crib.
+  const nightSong = clock.slot === 'night' && songStore.songs.length > 0 && routine.place === 'crib';
+  const babyListening = Boolean(nowPlaying?.toBaby) || (nightSong && !chatOpen && bubble === null);
   const place: Place =
-    chatOpen && chatPlace && !away ? chatPlace : bubble?.kind === 'spot' ? bubble.spot : routine.place;
+    chatOpen && chatPlace && !away
+      ? chatPlace
+      : nowPlaying?.toBaby
+        ? 'crib'
+        : bubble?.kind === 'spot'
+          ? bubble.spot
+          : routine.place;
   const [walk, setWalk] = useState<{ dir: number; key: number } | null>(null);
   const anim: CozieAnim =
     reaction ??
@@ -213,14 +236,22 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         ? 'phone'
         : draft.length > 0
           ? 'listen'
-          : bubble?.kind === 'spot'
-            ? 'look'
-            : routine.anim);
+          : nowPlaying
+            ? nowPlaying.toBaby
+              ? 'play_crib'
+              : 'hum'
+            : bubble?.kind === 'spot'
+              ? 'look'
+              : nightSong
+                ? 'play_crib'
+                : routine.anim);
   // In costume she only has two renders: holding the phone, and standing.
   const art = halloween
     ? anim === 'phone' || anim === 'phoneup'
       ? HALLOWEEN.cozie.phone
-      : HALLOWEEN.cozie.idle
+      : anim === 'hum' || anim === 'hum_halloween'
+        ? ANIMS.hum_halloween
+        : HALLOWEEN.cozie.idle
     : ANIMS[anim];
   const at = place === 'table' && device === 'prenatal' ? PRENATAL.spot.stand : PLACES[place];
   const bgArt = BACKGROUNDS[clock.slot];
@@ -464,6 +495,36 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatOpen, away, cozieTyping, draft.length > 0, thread]);
 
+  // ---------- Songs in the room ----------
+
+  function stopSong() {
+    playbackRef.current?.stop();
+    playbackRef.current = null;
+    setNowPlaying(null);
+    setMobileSpin(false);
+  }
+
+  /** Play a song from the mobile; toBaby also sends it "through" the device. */
+  function playSongInRoom(song: Song, toBaby: boolean) {
+    playbackRef.current?.stop();
+    setNowPlaying({ id: song.id, toBaby });
+    setMobileSpin(true);
+    if (toBaby) {
+      if (device === 'prenatal') setDeviceOn(true);
+      setHeadMsg({ id: -3, text: '嘘——我们一起放给宝宝听' });
+      later('head', 4000, () => setHeadMsg((h) => (h?.id === -3 ? null : h)));
+    }
+    playbackRef.current = playSong(song, (i) => {
+      if (i === -1) {
+        playbackRef.current = null;
+        setNowPlaying(null);
+        setMobileSpin(false);
+      }
+    });
+  }
+
+  useEffect(() => () => playbackRef.current?.stop(), []);
+
   // ---------- Her own things ----------
 
   function openSpot(spot: SpotId) {
@@ -541,13 +602,6 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
               style={{ left: pct.x(HALLOWEEN.bunting.x), top: pct.y(HALLOWEEN.bunting.y), width: pct.x(HALLOWEEN.bunting.w) }}
             />
             <img
-              className="ch-deco ch-deco--sway"
-              src={HALLOWEEN.ghost.src}
-              alt=""
-              aria-hidden
-              style={{ left: pct.x(HALLOWEEN.ghost.x), top: pct.y(HALLOWEEN.ghost.y), width: pct.x(HALLOWEEN.ghost.w) }}
-            />
-            <img
               className="ch-deco"
               src={HALLOWEEN.pumpkins.src}
               alt=""
@@ -556,9 +610,43 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             />
           </>
         )}
+        {/* Crib mobile: arm on the room canvas, toys hanging from it. */}
+        <img className="ch-layer ch-mobile-arm" src={MOBILE.arm(clock.slot)} alt="" aria-hidden />
+        <img
+          className={cn('ch-mobile-toys', mobileSpin && halloween && 'is-wobble')}
+          src={halloween ? MOBILE.toysHalloween : mobileSpin ? MOBILE.toysSpin : MOBILE.toys}
+          alt=""
+          aria-hidden
+          style={{ left: pct.x(MOBILE.x), top: pct.y(MOBILE.y), width: pct.x(MOBILE.size) }}
+        />
+        {flyNote && (
+          <img
+            key={flyNote}
+            className="ch-flynote"
+            src={COMPOSE_ART.fly}
+            alt=""
+            aria-hidden
+            style={{ left: pct.x(MOBILE.x + MOBILE.size / 2), top: pct.y(MOBILE.y + 20) }}
+          />
+        )}
+        {babyListening &&
+          COMPOSE_ART.float.map((src, i) => (
+            <img
+              key={src}
+              className="ch-floatnote"
+              src={src}
+              alt=""
+              aria-hidden
+              style={{
+                left: pct.x(MILA.x - 30 + i * 28),
+                top: pct.y(MILA.y - 70 - (i % 2) * 14),
+                animationDelay: `${i * 0.7}s`,
+              }}
+            />
+          ))}
         {device === 'prenatal' && (
           <img
-            className={cn('ch-deco ch-device', deviceOn && 'is-on')}
+            className={cn('ch-deco ch-device', deviceOn && 'is-on', nowPlaying?.toBaby && 'is-playing')}
             src={deviceOn ? PRENATAL.src.on : PRENATAL.src.off}
             alt=""
             aria-hidden
@@ -588,9 +676,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
               type="button"
               className="is-right"
               onClick={() => {
-                setDeviceReply('来编一段摇篮曲吧，宝宝在肚子里也能听见哦。');
-                react('happy', 2400);
-                showToast('演示：这里会打开胎教作曲');
+                setBubble(null);
+                setComposeOpen(true);
               }}
               aria-label="作曲"
             >
@@ -661,6 +748,21 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             <span key={`dot-${s.id}`} className="ch-dot" style={{ left: pct.x(s.dot.x), top: pct.y(s.dot.y) }} aria-hidden />
           ))}
 
+        <button
+          type="button"
+          className="ch-spot"
+          style={{ left: pct.x(MOBILE.hit.x), top: pct.y(MOBILE.hit.y), width: pct.x(MOBILE.hit.w), height: pct.h(MOBILE.hit.h) }}
+          onClick={() => {
+            closeChat();
+            setBubble(null);
+            setNewSong(false);
+            setSongsOpen(true);
+          }}
+          aria-label={newSong ? '床铃：给宝宝的歌，有新歌' : '床铃：给宝宝的歌'}
+        />
+        {!chatOpen && newSong && (
+          <span className="ch-dot" style={{ left: pct.x(MOBILE.dot.x), top: pct.y(MOBILE.dot.y) }} aria-hidden />
+        )}
         <button
           type="button"
           className={cn('ch-cozie', walk && 'is-walking', halloween && 'is-costume')}
@@ -876,6 +978,103 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             </div>
           </figure>
         </div>
+      )}
+
+      <BottomSheet open={songsOpen} onClose={() => setSongsOpen(false)} label="给宝宝的歌" className="ch-sheet">
+        <h2 className="ch-sheet__title">给宝宝的歌</h2>
+        <p className="ch-sheet__sub">你写的歌都挂在床铃上，夜里 Cozie 会放给 Mila 听。</p>
+        {songStore.songs.length === 0 ? (
+          <div className="ch-gallery-empty">
+            <img src={COMPOSE_ART.empty} alt="" />
+            <p className="ch-sheet__empty">还没有歌。用胎教仪的「作曲」写第一首吧。</p>
+          </div>
+        ) : (
+          <ul className="ch-songs">
+            {songStore.songs.map((s) => {
+              const on = nowPlaying?.id === s.id;
+              return (
+                <li
+                  key={s.id}
+                  className={cn('ch-song', on && 'is-on')}
+                  style={{ backgroundImage: `url(${on ? COMPOSE_ART.songCardOn : COMPOSE_ART.songCard})` }}
+                >
+                  <button
+                    type="button"
+                    className="ch-song__play"
+                    onClick={() => (on ? stopSong() : playSongInRoom(s, false))}
+                    aria-label={on ? '暂停' : '播放'}
+                  >
+                    <img src={COMPOSE_ART.ctl(on ? 'btn_pause' : 'btn_play')} alt="" />
+                  </button>
+                  <div className="ch-song__text">
+                    <strong>
+                      {s.title}
+                      {s.voice && <img src={COMPOSE_ART.badgeVoice} alt="含妈妈的哼唱" />}
+                    </strong>
+                    <span>
+                      {INSTRUMENT_LABEL[s.instrument]} · {MOOD_LABEL[s.mood]} · 0:{String(songLength(s)).padStart(2, '0')}
+                      <button
+                        type="button"
+                        className="ch-song__del"
+                        onClick={() => {
+                          if (on) stopSong();
+                          songStore.remove(s.id);
+                          showToast('已从床铃上取下');
+                        }}
+                      >
+                        取下
+                      </button>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="ch-song__device"
+                    onClick={() => {
+                      setSongsOpen(false);
+                      playSongInRoom(s, true);
+                    }}
+                    aria-label="放给宝宝听"
+                  >
+                    <img src={COMPOSE_ART.ctl('btn_to_device', on && nowPlaying?.toBaby ? 'on' : '')} alt="" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="ch-clock-actions">
+          <button
+            type="button"
+            className="is-primary"
+            onClick={() => {
+              setSongsOpen(false);
+              setComposeOpen(true);
+            }}
+          >
+            再写一首
+          </button>
+        </div>
+      </BottomSheet>
+
+      {composeOpen && (
+        <ComposeBoard
+          defaultTitle={`第 ${clock.day} 天 · 给宝宝的歌`}
+          halloween={halloween}
+          onClose={() => setComposeOpen(false)}
+          onSave={(draft) => {
+            songStore.add({ ...draft, day: clock.day });
+            setComposeOpen(false);
+            setBubble(null);
+            setNewSong(true);
+            setFlyNote(Date.now());
+            later('fly', 1100, () => setFlyNote(null));
+            setMobileSpin(true);
+            later('spin', 4200, () => setMobileSpin(false));
+            react(halloween ? 'hum_halloween' : 'hum', 3000);
+            setHeadMsg({ id: -2, text: '我把这首歌挂到床铃上啦' });
+            later('head', 4500, () => setHeadMsg((h) => (h?.id === -2 ? null : h)));
+          }}
+        />
       )}
 
       {drawingOpen && (
@@ -1210,3 +1409,6 @@ export function hasNewAtCozies(life: CozieLife, profile: CozyProfile, now = Date
   const clock = clockFor(life.state, now);
   return unreadSpots(spotViews(life.state, clock, personaFrom(profile))).length > 0;
 }
+
+const INSTRUMENT_LABEL = { musicbox: '音乐盒', harp: '竖琴', piano: '钢琴' } as const;
+const MOOD_LABEL = { sleep: '安睡', happy: '开心', miss: '想你' } as const;

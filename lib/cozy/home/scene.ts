@@ -171,3 +171,40 @@ export const DRAW_ART = {
   card: { src: `${DRAW}/gallery_card.webp`, down: `${DRAW}/gallery_card_down.webp`, aspect: 449 / 330, window: [0.05, 0.035, 0.95, 0.8] },
   viewer: { src: `${DRAW}/viewer_frame.webp`, aspect: 1152 / 900, window: [0.11, 0.09, 0.89, 0.86] },
 };
+
+/** Soft-clay art for the compose feature (docs/cozie-home-art/compose). */
+const CMP = '/cozie/home/compose';
+export const COMPOSE_ART = {
+  bg: `${CMP}/compose_bg.webp`,
+  board: `${CMP}/staff_board.webp`,
+  peek: `${CMP}/cozie_compose_peek.webp`,
+  peekHappy: `${CMP}/cozie_compose_peek_happy.webp`,
+  note: (pitch: number, on = false) => `${CMP}/note_${pitch + 1}${on ? '_on' : ''}.webp`,
+  trail: `${CMP}/note_trail.webp`,
+  fly: `${CMP}/note_fly.webp`,
+  float: [`${CMP}/note_float_1.webp`, `${CMP}/note_float_2.webp`, `${CMP}/note_float_3.webp`],
+  ctl: (name: string, state: '' | 'on' | 'off' = '') => `${CMP}/${name}${state ? `_${state}` : ''}.webp`,
+  voiceChip: `${CMP}/voice_chip.webp`,
+  songCard: `${CMP}/song_card.webp`,
+  songCardOn: `${CMP}/song_card_on.webp`,
+  badgeVoice: `${CMP}/badge_voice.webp`,
+  empty: `${CMP}/songs_empty.webp`,
+};
+
+/** Staff lines on the board art, as fractions of its height (top line =
+ *  highest pitch), and the usable width. Measured from staff_board.png. */
+export const STAFF = { lines: [0.262, 0.381, 0.498, 0.616, 0.73], x0: 0.09, x1: 0.91, aspect: 1200 / 1074 };
+
+/** The crib mobile: arm on the full room canvas, toys hanging from an anchor
+ *  (room units). From the art package's ANCHORS.md. */
+export const MOBILE = {
+  arm: (s: Slot) => `${CMP}/mobile_arm_${s}.webp`,
+  toys: `${CMP}/mobile_toys.webp`,
+  toysSpin: `${CMP}/mobile_toys_spin.webp`,
+  toysHalloween: `${CMP}/mobile_toys_halloween.webp`,
+  x: 201.3,
+  y: 164.8,
+  size: 82.6,
+  hit: { x: 196, y: 150, w: 94, h: 100 },
+  dot: { x: 282, y: 176 },
+};

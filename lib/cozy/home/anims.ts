@@ -19,7 +19,11 @@ export type CozieAnim =
   | 'fold'
   | 'phone'
   | 'phoneup'
-  | 'hop';
+  | 'hop'
+  | 'hum'
+  | 'hum_halloween'
+  | 'play_crib'
+  | 'record_listen';
 
 export const FOOT = 290 / 320;
 
@@ -40,6 +44,10 @@ const TOP: Record<CozieAnim, number> = {
   phone: 0.172,
   phoneup: 0.203,
   hop: 0.119,
+  hum: 0.166,
+  hum_halloween: 0.172,
+  play_crib: 0.169,
+  record_listen: 0.172,
 };
 
 export const ANIMS = Object.fromEntries(
