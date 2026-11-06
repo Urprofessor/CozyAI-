@@ -140,7 +140,10 @@ export const PRENATAL = {
   w: 44,
   aspect: 0.64,
   src: { off: `${DEV}/prenatal_off.webp`, on: `${DEV}/prenatal_on.webp` },
-  spot: { hit: { x: 8, y: 376, w: 56, h: 40 }, dot: { x: 56, y: 384 }, stand: { x: 98, y: 414 } },
+  spot: { hit: { x: 8, y: 376, w: 56, h: 40 }, dot: { x: 56, y: 384 }, stand: { x: 142, y: 414 } },
+  /** 作画 / 作曲 buttons floating over the device once it's on. */
+  create: { x: 14, y: 330, w: 92 },
+  buttons: { draw: `${DEV}/btn_draw.webp`, music: `${DEV}/btn_music.webp` },
 };
 
 /** Where the latest drawing is pinned on the wall board (room units). */

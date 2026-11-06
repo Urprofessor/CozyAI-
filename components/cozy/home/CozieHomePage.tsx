@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ChevronLeft, Clock3, Mail, MessageCircleMore, Music, Palette, X } from 'lucide-react';
+import { ChevronLeft, Clock3, Mail, MessageCircleMore, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CozieLife } from '@/hooks/useCozieLife';
 import type { CozyProfile } from '@/lib/cozy/profile';
@@ -564,6 +564,39 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             style={{ left: pct.x(PRENATAL.x), top: pct.y(PRENATAL.y), width: pct.x(PRENATAL.w) }}
           />
         )}
+        {device === 'prenatal' && deviceOn && bubble?.kind === 'spot' && bubble.spot === 'table' && (
+          <div
+            className="ch-create-float"
+            style={{ left: pct.x(PRENATAL.create.x), top: pct.y(PRENATAL.create.y), width: pct.x(PRENATAL.create.w) }}
+          >
+            <svg className="ch-create-float__arc" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
+              <path d="M18 52 V40 Q18 8 50 8 Q82 8 82 40 V52" fill="none" />
+            </svg>
+            <button
+              type="button"
+              className="is-left"
+              onClick={() => {
+                setBubble(null);
+                setDrawingOpen(true);
+              }}
+              aria-label="作画"
+            >
+              <img src={PRENATAL.buttons.draw} alt="" />
+            </button>
+            <button
+              type="button"
+              className="is-right"
+              onClick={() => {
+                setDeviceReply('来编一段摇篮曲吧，宝宝在肚子里也能听见哦。');
+                react('happy', 2400);
+                showToast('演示：这里会打开胎教作曲');
+              }}
+              aria-label="作曲"
+            >
+              <img src={PRENATAL.buttons.music} alt="" />
+            </button>
+          </div>
+        )}
         {latestDrawing && (
           <span
             key={latestDrawing.id}
@@ -1042,30 +1075,8 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             </>
           ) : (
             <>
-              <p className="ch-bubble__text">{deviceReply ?? '选择你的创作'}</p>
-              <div className="ch-create">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBubble(null);
-                    setDrawingOpen(true);
-                  }}
-                >
-                  <Palette size={22} strokeWidth={1.6} />
-                  作画
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeviceReply('来编一段摇篮曲吧，宝宝在肚子里也能听见哦。');
-                    react('happy', 2400);
-                    showToast('演示：这里会打开胎教作曲');
-                  }}
-                >
-                  <Music size={22} strokeWidth={1.6} />
-                  作曲
-                </button>
-              </div>
+              {/* The 作画 / 作曲 buttons float over the device itself. */}
+              <p className="ch-bubble__text">{deviceReply ?? '选择你的创作吧，作画还是作曲？'}</p>
             </>
           )}
         </>
