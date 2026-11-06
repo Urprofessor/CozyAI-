@@ -24,6 +24,7 @@ import { ANIMS, FOOT, type CozieAnim } from '@/lib/cozy/home/anims';
 import {
   BACKGROUNDS,
   BOARD_PIN,
+  DRAW_ART,
   COZIE_W,
   CRIB_FRONT,
   FACES,
@@ -44,7 +45,7 @@ import {
 } from '@/lib/cozy/home/scene';
 import { useDrawings, type Drawing } from '@/hooks/useDrawings';
 import { CozieLetter } from '../CozieLetter';
-import { DrawingBoard } from './DrawingBoard';
+import { DrawingBoard, Framed } from './DrawingBoard';
 import { BottomSheet, showToast } from '../ui';
 
 interface Props {
@@ -604,7 +605,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
             style={{ left: pct.x(BOARD_PIN.x), top: pct.y(BOARD_PIN.y), width: pct.x(BOARD_PIN.w) }}
             aria-hidden
           >
-            <img src={latestDrawing.src} alt="" />
+            <Framed frame={DRAW_ART.pinned} src={latestDrawing.src} pin={DRAW_ART.pin} />
           </span>
         )}
         <img
@@ -821,14 +822,16 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
         <h2 className="ch-sheet__title">墙上的画板</h2>
         <p className="ch-sheet__sub">你给宝宝画的画，都钉在这里。</p>
         {drawingStore.drawings.length === 0 ? (
-          <p className="ch-sheet__empty">还没有画。用胎教仪的「作画」画第一幅吧。</p>
+          <div className="ch-gallery-empty">
+            <img src={DRAW_ART.empty} alt="" />
+            <p className="ch-sheet__empty">还没有画。用胎教仪的「作画」画第一幅吧。</p>
+          </div>
         ) : (
           <ul className="ch-gallery">
             {drawingStore.drawings.map((d) => (
               <li key={d.id}>
-                <button type="button" onClick={() => setViewing(d)}>
-                  <img src={d.src} alt={d.title} />
-                  <span>{d.title}</span>
+                <button type="button" onClick={() => setViewing(d)} aria-label={d.title}>
+                  <Framed frame={DRAW_ART.card} src={d.src} caption={d.title} />
                 </button>
               </li>
             ))}
@@ -851,7 +854,7 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
       {viewing && (
         <div className="ch-viewer" role="dialog" aria-label={viewing.title} onClick={() => setViewing(null)}>
           <figure onClick={(e) => e.stopPropagation()}>
-            <img src={viewing.src} alt={viewing.title} />
+            <Framed frame={DRAW_ART.viewer} src={viewing.src} alt={viewing.title} className="ch-viewer__frame" />
             <figcaption>
               <strong>{viewing.title}</strong>
               <span>{new Date(viewing.createdAt).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>

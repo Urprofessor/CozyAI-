@@ -1,31 +1,36 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Eraser, RotateCcw, Trash2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { FACES } from '@/lib/cozy/home/scene';
+import { DRAW_ART } from '@/lib/cozy/home/scene';
 
-// Full-screen drawing board for the prenatal device's 作画. Strokes are kept
-// as data (normalised 0–1 coordinates) so undo and resizing simply redraw.
-// On save Cozie signs a little bunny in the corner, then the picture is
-// exported as a ~600px JPEG.
+// Full-screen drawing board for the prenatal device's 作画, skinned with the
+// soft-clay art in public/cozie/home/drawing. Strokes are kept as data
+// (normalised 0–1 coordinates) on a transparent canvas over the paper
+// texture, so undo, the eraser and resizing all just redraw. On save Cozie
+// stamps her signature and the picture is exported as a ~600px JPEG.
 
 const PAPER = '#fffaf2';
 const COLORS = [
-  { name: '豆沙粉', value: '#d98e98' },
-  { name: '鼠尾草绿', value: '#8fa77c' },
-  { name: '蜂蜜黄', value: '#e6b85c' },
-  { name: '天空蓝', value: '#86a9c9' },
-  { name: '薰衣草紫', value: '#a48bb8' },
-  { name: '可可棕', value: '#7a5a48' },
-];
-const SIZES = [4, 9, 16]; // on a 360px-wide board; scaled with it
+  { id: 'rose', name: '豆沙粉', value: '#d98e98' },
+  { id: 'sage', name: '鼠尾草绿', value: '#8fa77c' },
+  { id: 'honey', name: '蜂蜜黄', value: '#e6b85c' },
+  { id: 'sky', name: '天空蓝', value: '#86a9c9' },
+  { id: 'lilac', name: '薰衣草紫', value: '#a48bb8' },
+  { id: 'cocoa', name: '可可棕', value: '#7a5a48' },
+] as const;
+const SIZES = [
+  { id: 's', label: '细', width: 4 },
+  { id: 'm', label: '中', width: 9 },
+  { id: 'l', label: '粗', width: 16 },
+] as const; // widths on a 360px-wide board, scaled with it
 
 const CHEERS = ['这个颜色好温柔', '宝宝一定会喜欢', '画得真好看', '慢慢画，不着急', '我也想画一个～'];
 
 interface Stroke {
   color: string;
-  size: number; // relative to a 360px-wide board
+  size: number;
   erase: boolean;
   points: Array<[number, number]>;
 }
@@ -36,14 +41,23 @@ interface Props {
   onSave: (drawing: { title: string; src: string }) => void;
 }
 
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const strokesRef = useRef<Stroke[]>([]);
   const currentRef = useRef<Stroke | null>(null);
-  const [count, setCount] = useState(0); // strokes, for re-render
-  const [color, setColor] = useState(COLORS[0].value);
-  const [size, setSize] = useState(SIZES[1]);
+  const [count, setCount] = useState(0);
+  const [color, setColor] = useState<string>(COLORS[0].value);
+  const [size, setSize] = useState<number>(SIZES[1].width);
   const [erase, setErase] = useState(false);
   const [cheer, setCheer] = useState<string | null>('来画点什么吧～');
   const [signing, setSigning] = useState(false);
@@ -52,49 +66,48 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
   const toolRef = useRef({ color, size, erase });
   toolRef.current = { color, size, erase };
 
-  const draw = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number, s: Stroke) => {
+  // Strokes only; the paper shows through from behind the canvas.
+  const paint = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number, s: Stroke) => {
     const k = w / 360;
+    ctx.save();
+    ctx.globalCompositeOperation = s.erase ? 'destination-out' : 'source-over';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = s.erase ? PAPER : s.color;
-    ctx.fillStyle = ctx.strokeStyle;
+    ctx.strokeStyle = s.color;
+    ctx.fillStyle = s.color;
     ctx.lineWidth = s.size * k * (s.erase ? 2.2 : 1);
     const pts = s.points;
     if (pts.length === 1) {
       ctx.beginPath();
-      ctx.arc(pts[0][0] * w, pts[0][1] * h, (ctx.lineWidth as number) / 2, 0, Math.PI * 2);
+      ctx.arc(pts[0][0] * w, pts[0][1] * h, ctx.lineWidth / 2, 0, Math.PI * 2);
       ctx.fill();
-      return;
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] * w, pts[0][1] * h);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const mx = ((pts[i][0] + pts[i + 1][0]) / 2) * w;
+        const my = ((pts[i][1] + pts[i + 1][1]) / 2) * h;
+        ctx.quadraticCurveTo(pts[i][0] * w, pts[i][1] * h, mx, my);
+      }
+      const last = pts[pts.length - 1];
+      ctx.lineTo(last[0] * w, last[1] * h);
+      ctx.stroke();
     }
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0] * w, pts[0][1] * h);
-    for (let i = 1; i < pts.length - 1; i++) {
-      const mx = ((pts[i][0] + pts[i + 1][0]) / 2) * w;
-      const my = ((pts[i][1] + pts[i + 1][1]) / 2) * h;
-      ctx.quadraticCurveTo(pts[i][0] * w, pts[i][1] * h, mx, my);
-    }
-    const last = pts[pts.length - 1];
-    ctx.lineTo(last[0] * w, last[1] * h);
-    ctx.stroke();
+    ctx.restore();
   }, []);
 
-  const redraw = useCallback(
-    (withSignature = false) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const dpr = window.devicePixelRatio || 1;
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = PAPER;
-      ctx.fillRect(0, 0, w, h);
-      for (const s of strokesRef.current) draw(ctx, w, h, s);
-      if (withSignature) drawSignature(ctx, w, h);
-    },
-    [draw]
-  );
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    for (const s of strokesRef.current) paint(ctx, w, h, s);
+    if (currentRef.current) paint(ctx, w, h, currentRef.current);
+  }, [paint]);
 
   // Size the canvas to its box (crisp on high-DPI screens).
   useLayoutEffect(() => {
@@ -108,13 +121,19 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
       canvas.height = Math.round(r.height * dpr);
       canvas.style.width = `${r.width}px`;
       canvas.style.height = `${r.height}px`;
-      redraw(signing);
+      redraw();
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [redraw, signing]);
+  }, [redraw]);
+
+  // Warm the export images.
+  useEffect(() => {
+    void loadImage(DRAW_ART.texture).catch(() => {});
+    void loadImage(DRAW_ART.signature).catch(() => {});
+  }, []);
 
   // Cozie cheers you on now and then while you draw.
   useEffect(() => {
@@ -122,10 +141,10 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
     setCheer(CHEERS[Math.floor(Math.random() * CHEERS.length)]);
   }, [count]);
   useEffect(() => {
-    if (!cheer) return;
+    if (!cheer || signing) return;
     const t = setTimeout(() => setCheer(null), 2600);
     return () => clearTimeout(t);
-  }, [cheer]);
+  }, [cheer, signing]);
 
   function point(e: React.PointerEvent<HTMLCanvasElement>): [number, number] {
     const r = e.currentTarget.getBoundingClientRect();
@@ -136,14 +155,14 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
     if (signing) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     currentRef.current = { ...toolRef.current, points: [point(e)] };
-    redrawLive();
+    redraw();
   }
 
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
     const s = currentRef.current;
     if (!s) return;
     s.points.push(point(e));
-    redrawLive();
+    redraw();
   }
 
   function up() {
@@ -152,17 +171,6 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
     strokesRef.current = [...strokesRef.current, s];
     currentRef.current = null;
     setCount(strokesRef.current.length);
-  }
-
-  // Finished strokes plus the one in progress.
-  function redrawLive() {
-    redraw();
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    const s = currentRef.current;
-    if (!canvas || !ctx || !s) return;
-    const dpr = window.devicePixelRatio || 1;
-    draw(ctx, canvas.width / dpr, canvas.height / dpr, s);
   }
 
   function undo() {
@@ -177,32 +185,52 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
     redraw();
   }
 
-  function save() {
+  async function save() {
     if (count === 0 || signing) return;
-    // Cozie adds her little signature, then the picture goes up on the board.
+    // Cozie stamps her signature, then the picture goes up on the board.
     setSigning(true);
     setCheer('我也签个名～');
-    redraw(true);
-    setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const out = document.createElement('canvas');
-      const W = 600;
-      const ratio = canvas.height / canvas.width;
-      out.width = W;
-      out.height = Math.round(W * ratio);
-      const ctx = out.getContext('2d');
-      if (!ctx) return;
-      ctx.fillStyle = PAPER;
-      ctx.fillRect(0, 0, out.width, out.height);
-      for (const s of strokesRef.current) draw(ctx, out.width, out.height, s);
-      drawSignature(ctx, out.width, out.height);
-      onSave({ title: defaultTitle, src: out.toDataURL('image/jpeg', 0.86) });
-    }, 1100);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const [texture, signature] = await Promise.all([
+      loadImage(DRAW_ART.texture).catch(() => null),
+      loadImage(DRAW_ART.signature).catch(() => null),
+      new Promise((r) => setTimeout(r, 1100)),
+    ]);
+    const W = 600;
+    const H = Math.round((W * canvas.height) / canvas.width);
+    // Strokes on their own layer (so the eraser cuts back to the paper)...
+    const ink = document.createElement('canvas');
+    ink.width = W;
+    ink.height = H;
+    const inkCtx = ink.getContext('2d');
+    // ...over the paper.
+    const out = document.createElement('canvas');
+    out.width = W;
+    out.height = H;
+    const ctx = out.getContext('2d');
+    if (!ctx || !inkCtx) return;
+    for (const s of strokesRef.current) paint(inkCtx, W, H, s);
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, W, H);
+    if (texture) {
+      const pattern = ctx.createPattern(texture, 'repeat');
+      if (pattern) {
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+    ctx.drawImage(ink, 0, 0);
+    if (signature) {
+      const sw = W * 0.2;
+      const sh = (sw * signature.height) / signature.width;
+      ctx.drawImage(signature, W - sw - W * 0.04, H - sh - W * 0.04, sw, sh);
+    }
+    onSave({ title: defaultTitle, src: out.toDataURL('image/jpeg', 0.86) });
   }
 
   return (
-    <div className="ch-draw" role="dialog" aria-label="作画">
+    <div className="ch-draw" role="dialog" aria-label="作画" style={{ backgroundImage: `url(${DRAW_ART.bg})` }}>
       <header className="ch-draw__top">
         <button
           type="button"
@@ -219,7 +247,7 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
       </header>
 
       <div className="ch-draw__paper">
-        <div ref={wrapRef} className="ch-draw__canvas">
+        <div ref={wrapRef} className="ch-draw__canvas" style={{ backgroundImage: `url(${DRAW_ART.texture})` }}>
           <canvas
             ref={canvasRef}
             onPointerDown={down}
@@ -228,57 +256,66 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
             onPointerCancel={up}
             aria-label="画布"
           />
+          {signing && <img className="ch-draw__signature" src={DRAW_ART.signature} alt="Cozie 的签名" />}
         </div>
+        <img className="ch-draw__frame" src={DRAW_ART.frame} alt="" aria-hidden />
         <div className="ch-draw__cozie" aria-live="polite">
-          <img src={FACES.cozie} alt="" />
+          <img src={cheer ? DRAW_ART.peekHappy : DRAW_ART.peek} alt="" />
           {cheer && <span key={cheer}>{cheer}</span>}
         </div>
       </div>
 
-      <footer className="ch-draw__tools">
+      <footer className="ch-draw__tools" style={{ backgroundImage: `url(${DRAW_ART.tray})` }}>
         <div className="ch-draw__colors">
-          {COLORS.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              className={cn(!erase && color === c.value && 'is-on')}
-              style={{ background: c.value }}
-              onClick={() => {
-                setColor(c.value);
-                setErase(false);
-              }}
-              aria-label={c.name}
-            />
-          ))}
+          {COLORS.map((c) => {
+            const on = !erase && color === c.value;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className={cn('ch-draw__swatch', on && 'is-on')}
+                onClick={() => {
+                  setColor(c.value);
+                  setErase(false);
+                }}
+                aria-label={c.name}
+                aria-pressed={on}
+              >
+                <img src={DRAW_ART.swatch(c.id, on)} alt="" />
+              </button>
+            );
+          })}
           <button
             type="button"
-            className={cn('ch-draw__eraser', erase && 'is-on')}
+            className={cn('ch-draw__swatch', erase && 'is-on')}
             onClick={() => setErase((v) => !v)}
             aria-label="橡皮擦"
+            aria-pressed={erase}
           >
-            <Eraser size={18} strokeWidth={1.8} />
+            <img src={erase ? DRAW_ART.tool('eraser_on') : DRAW_ART.tool('eraser')} alt="" />
           </button>
         </div>
         <div className="ch-draw__row">
           <div className="ch-draw__sizes">
             {SIZES.map((s) => (
               <button
-                key={s}
+                key={s.id}
                 type="button"
-                className={cn(size === s && 'is-on')}
-                onClick={() => setSize(s)}
-                aria-label={s === SIZES[0] ? '细' : s === SIZES[1] ? '中' : '粗'}
+                className={cn('ch-draw__tool', size === s.width && 'is-on')}
+                onClick={() => setSize(s.width)}
+                aria-label={s.label}
+                aria-pressed={size === s.width}
               >
-                <i style={{ width: s + 2, height: s + 2 }} />
+                <img src={DRAW_ART.tool(`size_${s.id}`)} alt="" />
               </button>
             ))}
           </div>
           <div className="ch-draw__actions">
-            <button type="button" onClick={undo} disabled={count === 0} aria-label="撤销">
-              <RotateCcw size={18} strokeWidth={1.8} />
+            <button type="button" className="ch-draw__tool" onClick={undo} disabled={count === 0} aria-label="撤销">
+              <img src={DRAW_ART.tool(count === 0 ? 'undo_off' : 'undo')} alt="" />
             </button>
-            <button type="button" onClick={clear} disabled={count === 0} aria-label="清空">
-              <Trash2 size={18} strokeWidth={1.8} />
+            <button type="button" className="ch-draw__tool" onClick={clear} disabled={count === 0} aria-label="清空">
+              <img src={DRAW_ART.tool(count === 0 ? 'clear_off' : 'clear')} alt="" />
             </button>
           </div>
         </div>
@@ -304,44 +341,47 @@ export function DrawingBoard({ defaultTitle, onClose, onSave }: Props) {
   );
 }
 
-/** Cozie's little bunny signature, bottom right. */
-function drawSignature(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  const k = w / 360;
-  const x = w - 46 * k;
-  const y = h - 40 * k;
-  ctx.save();
-  ctx.lineWidth = 1.6 * k;
-  ctx.strokeStyle = '#c98f97';
-  // ears
-  ctx.fillStyle = '#f6d3d8';
-  for (const dx of [-6, 6]) {
-    ctx.beginPath();
-    ctx.ellipse(x + dx * k, y - 16 * k, 4 * k, 9 * k, (dx / 6) * 0.25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-  // head
-  ctx.fillStyle = '#fff5f2';
-  ctx.beginPath();
-  ctx.ellipse(x, y, 13 * k, 11 * k, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  // face
-  ctx.fillStyle = '#5a3d36';
-  for (const dx of [-4.5, 4.5]) {
-    ctx.beginPath();
-    ctx.arc(x + dx * k, y - 1 * k, 1.4 * k, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(232, 150, 160, 0.6)';
-  for (const dx of [-8, 8]) {
-    ctx.beginPath();
-    ctx.ellipse(x + dx * k, y + 3 * k, 2.6 * k, 1.6 * k, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = '#b98088';
-  ctx.font = `italic ${10 * k}px Georgia, serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Cozie', x, y + 22 * k);
-  ctx.restore();
+interface FrameArt {
+  src: string;
+  aspect: number; // height / width
+  window: number[]; // left, top, right, bottom (fractions)
+}
+
+/** A saved drawing inside one of the clay frames (pinned card, gallery card,
+ *  wooden viewer frame). The frames have an opaque card centre, so the
+ *  drawing is laid into the frame's window. */
+export function Framed({
+  frame,
+  src,
+  alt = '',
+  pin,
+  caption,
+  className,
+}: {
+  frame: FrameArt;
+  src: string;
+  alt?: string;
+  pin?: string;
+  caption?: string;
+  className?: string;
+}) {
+  const [l, t, r, b] = frame.window;
+  return (
+    <span className={cn('ch-framed', className)} style={{ aspectRatio: `1 / ${frame.aspect}` }}>
+      <img className="ch-framed__frame" src={frame.src} alt="" draggable={false} />
+      <img
+        className="ch-framed__art"
+        src={src}
+        alt={alt}
+        draggable={false}
+        style={{ left: `${l * 100}%`, top: `${t * 100}%`, width: `${(r - l) * 100}%`, height: `${(b - t) * 100}%` }}
+      />
+      {caption && (
+        <span className="ch-framed__caption" style={{ top: `${b * 100}%` }}>
+          {caption}
+        </span>
+      )}
+      {pin && <img className="ch-framed__pin" src={pin} alt="" draggable={false} />}
+    </span>
+  );
 }

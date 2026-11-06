@@ -147,4 +147,27 @@ export const PRENATAL = {
 };
 
 /** Where the latest drawing is pinned on the wall board (room units). */
-export const BOARD_PIN = { x: 152, y: 168, w: 22 };
+export const BOARD_PIN = { x: 151, y: 162, w: 22 };
+
+/** Soft-clay art for the drawing feature (docs/cozie-home-art/drawing). */
+const DRAW = '/cozie/home/drawing';
+export const DRAW_ART = {
+  bg: `${DRAW}/draw_bg.webp`,
+  texture: `${DRAW}/paper_texture.webp`,
+  frame: `${DRAW}/paper_frame.webp`,
+  tray: `${DRAW}/tray.webp`,
+  peek: `${DRAW}/cozie_peek.webp`,
+  peekHappy: `${DRAW}/cozie_peek_happy.webp`,
+  signature: `${DRAW}/signature.webp`,
+  empty: `${DRAW}/gallery_empty.webp`,
+  pin: `${DRAW}/pin.webp`,
+  pinSage: `${DRAW}/pin_sage.webp`,
+  swatch: (id: string, on: boolean) => `${DRAW}/sw_${id}${on ? '_on' : ''}.webp`,
+  tool: (name: string) => `${DRAW}/tool_${name}.webp`,
+  save: { normal: `${DRAW}/btn_save.webp`, down: `${DRAW}/btn_save_down.webp`, off: `${DRAW}/btn_save_off.webp` },
+  /** Frames with an opaque card centre: the drawing sits in `window`
+   *  (fractions of the frame: left, top, right, bottom). */
+  pinned: { src: `${DRAW}/pinned_frame.webp`, aspect: 419 / 300, window: [0.07, 0.05, 0.92, 0.8] },
+  card: { src: `${DRAW}/gallery_card.webp`, down: `${DRAW}/gallery_card_down.webp`, aspect: 449 / 330, window: [0.05, 0.035, 0.95, 0.8] },
+  viewer: { src: `${DRAW}/viewer_frame.webp`, aspect: 1152 / 900, window: [0.11, 0.09, 0.89, 0.86] },
+};
