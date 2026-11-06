@@ -135,14 +135,15 @@ const DEV = '/cozie/home/device';
 /** The prenatal device, on the floor in front of the laundry basket (left of
  *  the rug). `y` is the top edge. */
 export const PRENATAL = {
-  x: 14,
-  y: 384,
+  x: 24,
+  y: 392,
   w: 44,
-  aspect: 0.64,
+  aspect: 0.672,
   src: { off: `${DEV}/prenatal_off.webp`, on: `${DEV}/prenatal_on.webp` },
-  spot: { hit: { x: 8, y: 376, w: 56, h: 40 }, dot: { x: 56, y: 384 }, stand: { x: 142, y: 414 } },
-  /** 作画 / 作曲 buttons floating over the device once it's on. */
-  create: { x: 14, y: 330, w: 92 },
+  spot: { hit: { x: 18, y: 384, w: 58, h: 42 }, dot: { x: 64, y: 392 }, stand: { x: 150, y: 422 } },
+  /** 作画 / 作曲 sit on one circle centred on the device: radius, the two
+   *  buttons' angles (degrees, 0 = right, -90 = straight up) and size. */
+  create: { r: 46, angles: [-118, -62], size: 34 },
   buttons: { draw: `${DEV}/btn_draw.webp`, music: `${DEV}/btn_music.webp` },
 };
 

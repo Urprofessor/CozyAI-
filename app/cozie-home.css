@@ -1564,16 +1564,16 @@ span.ch-msg__avatar {
   color: #fff;
 }
 
-/* 作画 / 作曲 floating over the activated device, joined by a soft arc. */
-.ch-create-float {
+/* 作画 / 作曲 on a circle centred on the activated device. */
+.ch-create-ring {
   position: absolute;
   z-index: 5;
-  aspect-ratio: 100 / 60;
+  aspect-ratio: 1;
   pointer-events: none;
   animation: ch-prop-in 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
-.ch-create-float__arc {
+.ch-create-ring svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1581,44 +1581,36 @@ span.ch-msg__avatar {
   overflow: visible;
 }
 
-.ch-create-float__arc path {
+.ch-create-ring path {
+  fill: none;
   stroke: rgba(176, 210, 160, 0.9);
   stroke-width: 1.6;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
-.ch-create-float button {
+.ch-create-ring button {
   position: absolute;
-  top: 0;
-  width: 44%;
   aspect-ratio: 1;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: none;
+  transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: pointer;
   filter: drop-shadow(0 4px 8px rgba(120, 80, 50, 0.25));
   transition: transform 150ms ease;
 }
 
-.ch-create-float button:active {
-  transform: scale(0.94);
+.ch-create-ring button:active {
+  transform: translate(-50%, -50%) scale(0.94);
 }
 
-.ch-create-float button img {
+.ch-create-ring button img {
   display: block;
   width: 100%;
   border-radius: 50%;
-}
-
-.ch-create-float .is-left {
-  left: -4%;
-}
-
-.ch-create-float .is-right {
-  right: -4%;
 }
 
 /* ---------- Compose (作曲): page, crib mobile, songs ---------- */

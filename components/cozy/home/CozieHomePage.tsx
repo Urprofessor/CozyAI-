@@ -654,36 +654,16 @@ export function CozieHomePage({ life, profile, onBack }: Props) {
           />
         )}
         {device === 'prenatal' && deviceOn && bubble?.kind === 'spot' && bubble.spot === 'table' && (
-          <div
-            className="ch-create-float"
-            style={{ left: pct.x(PRENATAL.create.x), top: pct.y(PRENATAL.create.y), width: pct.x(PRENATAL.create.w) }}
-          >
-            <svg className="ch-create-float__arc" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
-              <path d="M18 52 V40 Q18 8 50 8 Q82 8 82 40 V52" fill="none" />
-            </svg>
-            <button
-              type="button"
-              className="is-left"
-              onClick={() => {
-                setBubble(null);
-                setDrawingOpen(true);
-              }}
-              aria-label="作画"
-            >
-              <img src={PRENATAL.buttons.draw} alt="" />
-            </button>
-            <button
-              type="button"
-              className="is-right"
-              onClick={() => {
-                setBubble(null);
-                setComposeOpen(true);
-              }}
-              aria-label="作曲"
-            >
-              <img src={PRENATAL.buttons.music} alt="" />
-            </button>
-          </div>
+          <CreateRing
+            onDraw={() => {
+              setBubble(null);
+              setDrawingOpen(true);
+            }}
+            onCompose={() => {
+              setBubble(null);
+              setComposeOpen(true);
+            }}
+          />
         )}
         {latestDrawing && (
           <span
@@ -1412,3 +1392,41 @@ export function hasNewAtCozies(life: CozieLife, profile: CozyProfile, now = Date
 
 const INSTRUMENT_LABEL = { musicbox: '音乐盒', harp: '竖琴', piano: '钢琴' } as const;
 const MOOD_LABEL = { sleep: '安睡', happy: '开心', miss: '想你' } as const;
+
+/** 作画 / 作曲 on one circle centred on the prenatal device, joined by an arc
+ *  of that circle. All in room units (x and y share a scale). */
+function CreateRing({ onDraw, onCompose }: { onDraw: () => void; onCompose: () => void }) {
+  const { x, y, w, aspect, create } = PRENATAL;
+  const cx = x + w / 2;
+  const cy = y + (w * aspect) / 2;
+  const { r, angles, size } = create;
+  const d = 2 * r + size; // box around the circle and the buttons
+  const at = (deg: number) => {
+    const rad = (deg * Math.PI) / 180;
+    return { x: d / 2 + r * Math.cos(rad), y: d / 2 + r * Math.sin(rad) };
+  };
+  const arcFrom = at(-162);
+  const arcTo = at(-18);
+  const buttons = [
+    { pos: at(angles[0]), src: PRENATAL.buttons.draw, label: '作画', onClick: onDraw },
+    { pos: at(angles[1]), src: PRENATAL.buttons.music, label: '作曲', onClick: onCompose },
+  ];
+  return (
+    <div className="ch-create-ring" style={{ left: pct.x(cx - d / 2), top: pct.y(cy - d / 2), width: pct.x(d) }}>
+      <svg viewBox={`0 0 ${d} ${d}`} aria-hidden>
+        <path d={`M${arcFrom.x} ${arcFrom.y} A${r} ${r} 0 0 1 ${arcTo.x} ${arcTo.y}`} />
+      </svg>
+      {buttons.map((b) => (
+        <button
+          key={b.label}
+          type="button"
+          onClick={b.onClick}
+          aria-label={b.label}
+          style={{ left: `${(b.pos.x / d) * 100}%`, top: `${(b.pos.y / d) * 100}%`, width: `${(size / d) * 100}%` }}
+        >
+          <img src={b.src} alt="" />
+        </button>
+      ))}
+    </div>
+  );
+}
