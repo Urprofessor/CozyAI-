@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { cn } from '@/lib/utils';
 import type { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import type { DatedLabel, SavedProfileMemory } from '@/lib/cozy/memory-profile';
 import {
@@ -17,12 +16,10 @@ import {
   type AnyField,
   type AnySection,
   type Dimension,
-  type MemoryPerson,
 } from '@/lib/cozy/memory-profile-demo';
-import { BottomSheet, ConfirmDialog, showToast } from '../ui';
+import { ConfirmDialog, showToast } from '../ui';
 import { MemoryEditSheet } from './MemoryEditSheet';
 import { MemoryOrbit } from './MemoryOrbit';
-import { Portrait } from './Portrait';
 
 type Memory = ReturnType<typeof useMemoryProfile>;
 
@@ -39,7 +36,6 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [lastDim, setLastDim] = useState<Dimension | null>(null);
-  const [viewAll, setViewAll] = useState(false);
   const [editing, setEditing] = useState<AnyEntry | null>(null);
   const [sheetEntry, setSheetEntry] = useState<AnyEntry | null>(null);
   const [forgetting, setForgetting] = useState<AnyEntry | null>(null);
@@ -83,12 +79,6 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
           <Chevron dir="left" />
         </button>
         <h1 className="mp-topbar__title">Memory profile</h1>
-        {people.length > 1 && (
-          <button type="button" className="mp-topbar__all" onClick={() => setViewAll(true)}>
-            View all
-            <Chevron dir="right" small />
-          </button>
-        )}
       </header>
 
       <div className="mp-scroll">
@@ -134,37 +124,6 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
         </div>
       </div>
 
-      <BottomSheet open={viewAll} onClose={() => setViewAll(false)} label="Everyone Cozie remembers">
-        <div className="cz-sheet__grabber" />
-        <div className="mp-all">
-          <h2 className="mp-all__title">Everyone</h2>
-          <ul>
-            {people.map((p, i) => (
-              <li key={p.key}>
-                <button
-                  type="button"
-                  className={cn('mp-all__row', i === safeIndex && 'is-selected')}
-                  aria-current={i === safeIndex ? 'true' : undefined}
-                  onClick={() => {
-                    select(i);
-                    setViewAll(false);
-                  }}
-                >
-                  <span className="mp-all__thumb">
-                    <Portrait name={p.name} personKey={p.key} src={p.portraitUrl} />
-                  </span>
-                  <span className="mp-all__text">
-                    <strong>{p.name}</strong>
-                    <span>{personSubtitle(p)}</span>
-                  </span>
-                  {i === safeIndex && <span className="mp-all__check" aria-hidden />}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </BottomSheet>
-
       <MemoryEditSheet
         open={editing !== null}
         entry={sheetEntry}
@@ -199,10 +158,6 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
   );
 }
 
-function personSubtitle(p: MemoryPerson) {
-  if (p.subject.kind === 'mom') return 'You';
-  return p.ageLabel ? p.ageLabel.replace(/ old$/, '') : 'Baby';
-}
 
 // ---------- Sections ----------
 

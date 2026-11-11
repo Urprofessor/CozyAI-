@@ -49,20 +49,6 @@
   text-overflow: ellipsis;
 }
 
-.mp-topbar__all {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 44px;
-  padding: 0 6px;
-  border: 0;
-  background: none;
-  color: var(--mp-frame);
-  font-family: var(--cz-ui);
-  font-size: 15px;
-  font-weight: 600;
-}
-
 .mp-scroll {
   flex: 1;
   min-height: 0;
@@ -479,85 +465,6 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--cz-ink-2);
-}
-
-/* ---------- View all sheet ---------- */
-
-.mp-all {
-  padding: 12px 16px 20px;
-  overflow-y: auto;
-}
-
-.mp-all__title {
-  margin: 0 8px 8px;
-  font-family: var(--cz-brand);
-  font-size: 22px;
-  font-weight: 400;
-}
-
-.mp-all ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mp-all__row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 8px;
-  border: 0;
-  border-radius: 16px;
-  background: none;
-  text-align: left;
-  font-family: var(--cz-ui);
-  color: var(--cz-ink);
-}
-
-.mp-all__row.is-selected {
-  background: var(--cz-fill);
-}
-
-.mp-all__thumb {
-  position: relative;
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.mp-all__thumb .mp-portrait {
-  width: 100%;
-  height: 100%;
-}
-
-.mp-all__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.mp-all__text strong {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
-.mp-all__text span {
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--cz-ink-2);
-}
-
-.mp-all__check {
-  width: 10px;
-  height: 10px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: var(--mp-frame);
 }
 
 /* ---------- Edit sheet ---------- */

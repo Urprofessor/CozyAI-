@@ -12,11 +12,17 @@ const FRAME = 0.345; // centre frame size, as a fraction of the orbit width
 const ORBIT_SECONDS = 36;
 const DRAG_START_PX = 8;
 
+/** Everyone shares the circle evenly; two or fewer people stay 120° apart so
+ *  nobody hides straight behind the front frame. */
+function angleStepFor(n: number) {
+  return (2 * Math.PI) / Math.max(n, 3);
+}
+
 /** Pose for a relative slot (0 = centre, ±1 = neighbours; fractional while
- *  dragging). Frames ride a tilted circle, 60° apart: the front one is full
- *  size, the ones going round the back shrink, dim and rise. */
-export function getPortraitPose(slot: number) {
-  const angle = slot * (Math.PI / 3);
+ *  dragging). Frames ride a tilted circle: the front one is full size, the
+ *  ones going round the back shrink, dim and rise. */
+export function getPortraitPose(slot: number, angleStep = Math.PI / 3) {
+  const angle = slot * angleStep;
   const depth = (1 + Math.cos(angle)) / 2;
   return {
     x: Math.sin(angle) * 112,
@@ -26,9 +32,6 @@ export function getPortraitPose(slot: number) {
     zIndex: Math.round(depth * 100),
   };
 }
-
-/** Horizontal px per slot near the front, for turning a drag into slots. */
-const STEP_PX = 112 * Math.sin(Math.PI / 3);
 
 /** Orbit layout for a given width: frame size, the front frame's centre, the
  *  decorative orbit line and the overall height. */
@@ -101,7 +104,9 @@ export function MemoryOrbit({
   }, [dragDx, reduced]);
 
   const L = layout(w);
-  const step = STEP_PX * L.k || 1;
+  const angleStep = angleStepFor(n);
+  // Horizontal px from the front frame to a neighbour: one slot of drag.
+  const step = 112 * Math.sin(angleStep) * L.k || 1;
   const circular = n >= 3;
 
   // Selection changes rotate the orbit the short way round, from wherever it
@@ -279,16 +284,12 @@ export function MemoryOrbit({
       {w > 0 &&
         people.map((person, i) => {
           const r = rel(i);
-          const pose = getPortraitPose(r);
-          // 60° apart, a short family doesn't close the circle: fade frames
-          // out before they reach the seam at the back, where they would
-          // jump from one side to the other.
-          const seam = circular ? Math.min(1, Math.max(0, (n / 2 - Math.abs(r)) * 2)) : 1;
-          const opacity = pose.opacity * seam;
-          const hidden = opacity < 0.05;
+          const pose = getPortraitPose(r, angleStep);
+          const opacity = pose.opacity;
           const selected = i === index;
-          // Names belong to the neighbours, not the front or back frames.
-          const label = Math.max(0, 1 - Math.abs(Math.abs(r) - 1) * 2) * seam;
+          // Names sit under frames out at the sides; the front one has its name
+          // below the orbit and one straight behind would collide with it.
+          const label = Math.sin(r * angleStep) ** 2;
           return (
             <div
               key={person.key}
@@ -297,7 +298,6 @@ export function MemoryOrbit({
                 left: L.cx + pose.x * L.k,
                 top: L.cy + pose.y * L.k,
                 zIndex: pose.zIndex,
-                visibility: hidden ? 'hidden' : undefined,
               }}
             >
               <button
@@ -311,7 +311,6 @@ export function MemoryOrbit({
                 }}
                 aria-label={person.name}
                 aria-current={selected ? 'true' : undefined}
-                tabIndex={hidden ? -1 : 0}
                 onClick={() => !selected && onSelect(i)}
               >
                 <Portrait name={person.name} personKey={person.key} src={person.portraitUrl} />
