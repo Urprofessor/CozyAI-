@@ -5,42 +5,42 @@ import { cn } from '@/lib/utils';
 import type { MemoryPerson } from '@/lib/cozy/memory-profile-demo';
 import { Portrait } from './Portrait';
 
-// Geometry, as fractions of the orbit's width (from the Memory profile design).
-const G = {
-  height: 0.47,
-  center: { size: 0.345, y: 0.185 },
-  side: { size: 0.17, y: 0.17, dx: 0.335 },
-  back: { size: 0.12, y: 0.12 },
-  ellipse: { cy: 0.29, rx: 0.47, ry: 0.14 },
-};
+// The pose numbers below are px for a 358px-wide orbit (375pt phone, 8px
+// gutters) and scale with the orbit's actual width.
+const REF_WIDTH = 358;
+const FRAME = 0.345; // centre frame size, as a fraction of the orbit width
 const ORBIT_SECONDS = 36;
 const DRAG_START_PX = 8;
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-/** Where a frame sits for a relative slot r (0 = centre, ±1 = sides, beyond
- *  that it slips behind the orbit and fades out). */
-function slot(r: number, w: number) {
-  const a = Math.abs(r);
-  const x = w / 2 + Math.sin((Math.max(-2, Math.min(2, r)) * Math.PI) / 2) * G.side.dx * w;
-  if (a <= 1) {
-    return {
-      x,
-      y: lerp(G.center.y, G.side.y, a) * w,
-      size: lerp(G.center.size, G.side.size, a) * w,
-      opacity: 1,
-      label: a,
-    };
-  }
-  const t = Math.min(a - 1, 1);
-  const opacity = Math.max(0, 1 - t * 2);
+/** Pose for a relative slot (0 = centre, ±1 = neighbours; fractional while
+ *  dragging). Frames ride a tilted circle, 60° apart: the front one is full
+ *  size, the ones going round the back shrink, dim and rise. */
+export function getPortraitPose(slot: number) {
+  const angle = slot * (Math.PI / 3);
+  const depth = (1 + Math.cos(angle)) / 2;
   return {
-    x,
-    y: lerp(G.side.y, G.back.y, t) * w,
-    size: lerp(G.side.size, G.back.size, t) * w,
-    opacity,
-    label: opacity,
+    x: Math.sin(angle) * 112,
+    y: (Math.cos(angle) - 1) * 32,
+    scale: 0.46 + depth ** 3 * 0.54,
+    opacity: 0.45 + depth * 0.55,
+    zIndex: Math.round(depth * 100),
   };
+}
+
+/** Horizontal px per slot near the front, for turning a drag into slots. */
+const STEP_PX = 112 * Math.sin(Math.PI / 3);
+
+/** Orbit layout for a given width: frame size, the front frame's centre, the
+ *  decorative orbit line and the overall height. */
+function layout(w: number) {
+  const k = w / REF_WIDTH;
+  const size = FRAME * w;
+  // Leave room above the front frame for one riding round the back.
+  const backTop = 64 * k + (0.46 * size) / 2;
+  const cy = Math.max(size / 2, backTop) + 10;
+  const ecy = cy - 16 * k + size * 0.15;
+  const ery = cy + size / 2 + 0.06 * w - ecy;
+  return { k, size, cx: w / 2, cy, ecy, erx: 0.47 * w, ery, height: ecy + ery + 10 };
 }
 
 function usePrefersReducedMotion() {
@@ -100,7 +100,8 @@ export function MemoryOrbit({
     else svg.unpauseAnimations();
   }, [dragDx, reduced]);
 
-  const step = G.side.dx * w || 1;
+  const L = layout(w);
+  const step = STEP_PX * L.k || 1;
   const circular = n >= 3;
 
   // Selection changes rotate the orbit the short way round, from wherever it
@@ -198,11 +199,7 @@ export function MemoryOrbit({
     }
   }
 
-  const { cy, rx, ry } = G.ellipse;
-  const ecx = w / 2;
-  const ecy = cy * w;
-  const erx = rx * w;
-  const ery = ry * w;
+  const { cx: ecx, ecy, erx, ery } = L;
   // Starts at the left end and travels the front (lower) arc first.
   const d = `M ${ecx - erx} ${ecy} A ${erx} ${ery} 0 1 0 ${ecx + erx} ${ecy} A ${erx} ${ery} 0 1 0 ${ecx - erx} ${ecy}`;
   const restAngle = (50 * Math.PI) / 180;
@@ -212,7 +209,7 @@ export function MemoryOrbit({
     <div
       ref={rootRef}
       className={cn('mp-orbit', dragDx !== null && 'is-dragging')}
-      style={{ height: G.height * w || undefined }}
+      style={{ height: L.height || undefined }}
       role="group"
       aria-label="People Cozie remembers. Use the left and right arrow keys to switch."
       onPointerDown={onPointerDown}
@@ -229,7 +226,7 @@ export function MemoryOrbit({
       }}
     >
       {w > 0 && (
-        <svg ref={svgRef} className="mp-orbit__track" width={w} height={G.height * w} aria-hidden>
+        <svg ref={svgRef} className="mp-orbit__track" width={w} height={L.height} aria-hidden>
           <defs>
             <radialGradient id={`${pathId}-glow`}>
               <stop offset="0%" stopColor="#ffd98a" stopOpacity="0.9" />
@@ -282,25 +279,36 @@ export function MemoryOrbit({
       {w > 0 &&
         people.map((person, i) => {
           const r = rel(i);
-          const s = slot(r, w);
+          const pose = getPortraitPose(r);
+          // 60° apart, a short family doesn't close the circle: fade frames
+          // out before they reach the seam at the back, where they would
+          // jump from one side to the other.
+          const seam = circular ? Math.min(1, Math.max(0, (n / 2 - Math.abs(r)) * 2)) : 1;
+          const opacity = pose.opacity * seam;
+          const hidden = opacity < 0.05;
           const selected = i === index;
-          const hidden = s.opacity < 0.05;
+          // Names belong to the neighbours, not the front or back frames.
+          const label = Math.max(0, 1 - Math.abs(Math.abs(r) - 1) * 2) * seam;
           return (
             <div
               key={person.key}
               className="mp-orbit__item"
               style={{
-                left: s.x,
-                top: s.y - s.size / 2,
-                opacity: s.opacity,
-                zIndex: 100 - Math.round(Math.abs(r) * 10),
+                left: L.cx + pose.x * L.k,
+                top: L.cy + pose.y * L.k,
+                zIndex: pose.zIndex,
                 visibility: hidden ? 'hidden' : undefined,
               }}
             >
               <button
                 type="button"
                 className={cn('mp-frame', selected && 'is-selected')}
-                style={{ width: s.size, height: s.size }}
+                style={{
+                  width: L.size,
+                  height: L.size,
+                  opacity,
+                  transform: `translate(-50%, -50%) scale(${pose.scale})`,
+                }}
                 aria-label={person.name}
                 aria-current={selected ? 'true' : undefined}
                 tabIndex={hidden ? -1 : 0}
@@ -308,7 +316,11 @@ export function MemoryOrbit({
               >
                 <Portrait name={person.name} personKey={person.key} src={person.portraitUrl} />
               </button>
-              <span className="mp-orbit__name" style={{ opacity: s.label }} aria-hidden>
+              <span
+                className="mp-orbit__name"
+                style={{ top: (L.size * pose.scale) / 2 + 8, opacity: label }}
+                aria-hidden
+              >
                 {person.name}
               </span>
             </div>
