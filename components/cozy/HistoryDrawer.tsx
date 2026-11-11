@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { CozySession } from '@/lib/cozy/types';
 import { ConfirmDialog, CZ } from './ui';
+import { Portrait } from './memory/Portrait';
 
 interface Props {
   open: boolean;
@@ -14,6 +15,9 @@ interface Props {
   onDelete: (id: string) => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
+  onOpenMemory: () => void;
+  /** Mom's portrait for the Memory profile banner thumbnail. */
+  memoryPortrait?: { name: string; src?: string };
 }
 
 /** App HistoryComponent + AgentChatHistoryMenu: a left drawer revealed by
@@ -29,6 +33,8 @@ export function HistoryDrawer({
   onDelete,
   onNewChat,
   onOpenSettings,
+  onOpenMemory,
+  memoryPortrait,
 }: Props) {
   const [menuFor, setMenuFor] = useState<{ id: string; top: number } | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -99,6 +105,19 @@ export function HistoryDrawer({
     <>
       <aside className={cn('cz-history', open && 'is-open')} aria-label="Chat history" aria-hidden={!open}>
         <h2 className="cz-history__heading">Chat history</h2>
+
+        <button type="button" className="cz-memory-banner" onClick={onOpenMemory}>
+          <span className="cz-memory-banner__thumb" aria-hidden>
+            <Portrait name={memoryPortrait?.name ?? 'C'} personKey="mom" src={memoryPortrait?.src} />
+          </span>
+          <span className="cz-memory-banner__text">
+            <strong>Memory profile</strong>
+            <span>What Cozie remembers</span>
+          </span>
+          <svg className="cz-memory-banner__chev" width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+            <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
         <div ref={listRef} className="cz-history__list" onScroll={() => setMenuFor(null)}>
           {sessions.length === 0 ? (

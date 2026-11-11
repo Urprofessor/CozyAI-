@@ -29,6 +29,8 @@ import { logPump, toggleSession } from '@/lib/cozy/lactation';
 import type { CardSkill } from '@/lib/cozy/keywords';
 import { useCozieLife } from '@/hooks/useCozieLife';
 import { CozieHomePage, hasNewAtCozies } from './home/CozieHomePage';
+import { useMemoryProfile } from '@/hooks/useMemoryProfile';
+import { MemoryProfilePage } from './memory/MemoryProfilePage';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -95,6 +97,12 @@ export function CozyChat() {
   const life = useCozieLife();
   const [homeOpen, setHomeOpen] = useState(false);
   const [homeMounted, setHomeMounted] = useState(false);
+  // Memory profile: a second-level page opened from the history drawer. The
+  // drawer stays open underneath, so Back returns to it.
+  const memory = useMemoryProfile();
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [memoryMounted, setMemoryMounted] = useState(false);
+  const [draft, setDraft] = useState<{ text: string; key: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -206,6 +214,11 @@ export function CozyChat() {
           setHistoryOpen(false);
           setTimeout(() => setSettingsOpen(true), 280);
         }}
+        onOpenMemory={() => {
+          setMemoryMounted(true);
+          setMemoryOpen(true);
+        }}
+        memoryPortrait={{ name: memory.profile.mom.displayName, src: memory.profile.mom.portraitUrl }}
       />
 
       <div className={cn('cz-page', isHome ? 'is-home' : 'is-chat')}>
@@ -246,6 +259,7 @@ export function CozyChat() {
           onRemoveImage={chat.removeImage}
           onSend={chat.send}
           onStop={chat.stop}
+          draft={draft}
         />
       </div>
 
@@ -282,6 +296,21 @@ export function CozyChat() {
             life={life}
             profile={profile.profile}
             onBack={() => setHomeOpen(false)}
+          />
+        </div>
+      )}
+
+      {memoryMounted && (
+        <div className={cn('ch-panel', memoryOpen && 'is-open')} inert={!memoryOpen} aria-hidden={!memoryOpen}>
+          <MemoryProfilePage
+            memory={memory}
+            onBack={() => setMemoryOpen(false)}
+            onUpdateInChat={(text) => {
+              // Back to the current chat with a draft the user sends.
+              setMemoryOpen(false);
+              setHistoryOpen(false);
+              setDraft({ text, key: Date.now() });
+            }}
           />
         </div>
       )}

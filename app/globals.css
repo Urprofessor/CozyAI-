@@ -3,6 +3,7 @@
 @import './cozie-chat.css';
 @import './cozie-letter.css';
 @import './cozie-home.css';
+@import './cozie-memory.css';
 
 @tailwind base;
 @tailwind components;

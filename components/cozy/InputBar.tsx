@@ -14,6 +14,9 @@ interface Props {
   onStop: () => void;
   /** Keyboard (touch focus) state, so the page can hide home/quick access. */
   onKeyboardChange?: (open: boolean) => void;
+  /** Text placed in the field for the user to review and send (Memory
+   *  profile's "Update in chat"). A new `key` re-applies it. */
+  draft?: { text: string; key: number } | null;
 }
 
 // Metrics from the App's InputBoxComponent.
@@ -36,6 +39,7 @@ export function InputBar({
   onSend,
   onStop,
   onKeyboardChange,
+  draft,
 }: Props) {
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
@@ -61,6 +65,19 @@ export function InputBar({
       document.documentElement.classList.remove('kb-open');
     };
   }, []);
+
+  useEffect(() => {
+    if (!draft) return;
+    setText(draft.text.slice(0, STORAGE_LIMIT));
+    // Focus once the panels have slid away; the user sends it themselves.
+    const t = setTimeout(() => {
+      const el = taRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.setSelectionRange(el.value.length, el.value.length);
+    }, 420);
+    return () => clearTimeout(t);
+  }, [draft?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasText = text.trim().length > 0;
   const hasContent = hasText || pendingImages.length > 0;
