@@ -237,6 +237,9 @@ export function applyOverrides(profile: MemoryProfile, o: MemoryOverrides): Memo
 
 // ---------- Seed ----------
 
+// Painted portraits, 512px square. Emma has none yet and keeps the placeholder.
+const PORTRAITS = '/cozie/memory';
+
 /** Fictional demo profile. Dates are relative to `now` so ages stay right. */
 export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
   const daysAgo = (n: number, hour = 10) => {
@@ -280,6 +283,7 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
     userId: 'demo-clara',
     mom: {
       displayName: 'Clara',
+      portraitUrl: `${PORTRAITS}/clara.webp`,
       sections: {
         about: {
           entries: [
@@ -322,6 +326,7 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
       {
         babyId: 'noah',
         displayName: 'Noah',
+        portraitUrl: `${PORTRAITS}/noah.webp`,
         sections: {
           basics: {
             entries: [
@@ -356,6 +361,7 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
       {
         babyId: 'mia',
         displayName: 'Mia',
+        portraitUrl: `${PORTRAITS}/mia.webp`,
         sections: {
           basics: {
             entries: [
