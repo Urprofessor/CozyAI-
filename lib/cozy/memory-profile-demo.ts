@@ -1,6 +1,6 @@
 // Demo data and local edits for the Memory Profile page. The chat's
 // `CozyProfile` (profile.ts) keeps serving chat and the lactation plan; this
-// is a separate, fictional profile (Clara + three children) so the page can
+// is a separate, fictional profile (Clara + two children) so the page can
 // show multiple babies before a real memory API exists.
 
 import {
@@ -237,7 +237,7 @@ export function applyOverrides(profile: MemoryProfile, o: MemoryOverrides): Memo
 
 // ---------- Seed ----------
 
-// Painted portraits, 512px square. Emma has none yet and keeps the placeholder.
+// Painted portraits, 512px square. A person without one gets a placeholder.
 const PORTRAITS = '/cozie/memory';
 
 /** Fictional demo profile. Dates are relative to `now` so ages stay right. */
@@ -381,21 +381,6 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
               text: 'You said Mia naps once a day after lunch. You’ve asked how to keep Mia’s bedtime steady now that Noah is home.',
               entryIds: ['mia-sleep-1', 'mia-sleep-2'],
             },
-          },
-        },
-      },
-      {
-        babyId: 'emma',
-        displayName: 'Emma',
-        sections: {
-          basics: {
-            entries: [
-              { id: 'emma-nickname', kind: 'field', field: 'nickname', value: 'Em', source: chat, updatedAt: daysAgo(25) },
-              { id: 'emma-birth', kind: 'field', field: 'birthDate', value: monthsAgo(51, 12), source: momcozy, updatedAt: daysAgo(30) },
-            ],
-          },
-          sleep: {
-            entries: [mem('emma-sleep-1', 'fact', 'You said Emma sometimes wakes from bad dreams and comes to your room.', 5)],
           },
         },
       },
