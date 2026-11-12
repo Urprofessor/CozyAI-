@@ -1,12 +1,13 @@
 // Fixed display order for the dimensions supported by each profile.
 export const MOM_MEMORY_DIMENSIONS = [
-  'about',
+  'carePreferences',
   'recentConcerns',
+  'about',
   'importantDates',
   'health',
 ] as const;
 
-export const BABY_MEMORY_DIMENSIONS = ['basics', 'feeding', 'sleep'] as const;
+export const BABY_MEMORY_DIMENSIONS = ['feeding', 'sleep', 'recentConcerns', 'basics'] as const;
 
 export type MomDimension = (typeof MOM_MEMORY_DIMENSIONS)[number];
 export type BabyDimension = (typeof BABY_MEMORY_DIMENSIONS)[number];
@@ -61,15 +62,19 @@ export interface MemorySection<Fields extends keyof MemoryFieldValues = never> {
 }
 
 export interface MomMemorySections {
+  carePreferences?: MemorySection;
   about?: MemorySection<'occupation' | 'hobby'>;
   recentConcerns?: MemorySection<'recentConcern'>;
   importantDates?: MemorySection<'importantDate'>;
   health?: MemorySection<'medicalHistory'>;
 }
 
-export type BabyMemorySections = Partial<Record<Exclude<BabyDimension, 'basics'>, MemorySection<'recentConcern'>>> & {
+export interface BabyMemorySections {
+  feeding?: MemorySection;
+  sleep?: MemorySection;
+  recentConcerns?: MemorySection<'recentConcern'>;
   basics?: MemorySection<'nickname' | 'birthDate' | 'ageText' | 'importantDate'>;
-};
+}
 
 interface ProfilePortrait {
   displayName: string;

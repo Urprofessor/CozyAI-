@@ -49,6 +49,30 @@
   text-overflow: ellipsis;
 }
 
+.mp-people-toggle,
+.mp-people button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mp-frame);
+  font: 600 14px var(--cz-ui);
+}
+
+.mp-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-people button[aria-current] {
+  background: var(--cz-fill);
+}
+
 .mp-scroll {
   flex: 1;
   min-height: 0;
@@ -221,7 +245,6 @@
 
 .mp-body {
   margin: 20px 16px 0;
-  padding-top: 24px;
   border-top: 1px solid var(--mp-line);
   animation: mpFade 260ms ease both;
 }
@@ -233,15 +256,6 @@
   }
 }
 
-.mp-body__title {
-  margin: 0 4px 8px;
-  font-family: var(--cz-brand);
-  font-size: 28px;
-  font-weight: 400;
-  line-height: 34px;
-  overflow-wrap: anywhere;
-}
-
 .mp-empty {
   margin: 12px 4px;
   font-size: 15px;
@@ -250,14 +264,11 @@
 }
 
 .mp-section {
-  padding: 18px 4px 4px;
+  padding: 16px 4px;
 }
 
-.mp-section__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+.mp-section + .mp-section {
+  border-top: 1px solid var(--mp-line);
 }
 
 .mp-section__title {
@@ -266,16 +277,6 @@
   font-size: 20px;
   font-weight: 400;
   line-height: 26px;
-}
-
-.mp-section__hide {
-  border: 0;
-  background: none;
-  padding: 4px 0;
-  color: var(--mp-frame);
-  font-family: var(--cz-ui);
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .mp-summary {
@@ -438,9 +439,17 @@
   text-align: left;
 }
 
-.mp-reveal__action {
+.mp-section-toggle {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--mp-frame);
-  font-weight: 600;
+}
+
+.mp-section-toggle .mp-section__title {
+  margin: 0;
+  color: var(--cz-ink);
 }
 
 /* ---------- Edit sheet ---------- */

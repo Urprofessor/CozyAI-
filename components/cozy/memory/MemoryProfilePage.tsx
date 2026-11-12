@@ -31,7 +31,9 @@ interface Props {
  *  edit or forget what Cozie remembers about them, by dimension. */
 export function MemoryProfilePage({ memory, onBack }: Props) {
   const { people, editEntry, forgetEntry } = memory;
-  const [index, setIndex] = useState(0);
+  // The demo Home does not expose a selected baby. Start with the first baby.
+  const [index, setIndex] = useState(() => people.length > 1 ? 1 : 0);
+  const [showPeople, setShowPeople] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [editing, setEditing] = useState<AnyEntry | null>(null);
   const [sheetEntry, setSheetEntry] = useState<AnyEntry | null>(null);
@@ -42,6 +44,7 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
 
   function select(i: number) {
     setIndex(i);
+    setShowPeople(false);
   }
 
   function toggle(dim: Dimension) {
@@ -66,9 +69,25 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
           <Chevron dir="left" />
         </button>
         <h1 className="mp-topbar__title">Memory profile</h1>
+        {people.length > 1 && (
+          <button type="button" className="mp-people-toggle" aria-expanded={showPeople} onClick={() => setShowPeople(!showPeople)}>
+            {showPeople ? 'Hide list' : 'View all'}
+          </button>
+        )}
       </header>
 
       <div className="mp-scroll">
+        {showPeople && (
+          <ul className="mp-people" aria-label="Family profiles">
+            {people.map((member, i) => (
+              <li key={member.key}>
+                <button type="button" aria-current={i === safeIndex ? 'true' : undefined} onClick={() => select(i)}>
+                  {member.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <MemoryOrbit people={people} index={safeIndex} onSelect={select} />
 
         <div className="mp-identity" aria-live="polite">
@@ -77,12 +96,9 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
         </div>
 
         <div key={person.key} className="mp-body">
-          <h3 className="mp-body__title">About {person.name}</h3>
-
           {person.sections.length === 0 ? (
             <p className="mp-empty">
               Cozie doesn’t remember anything about {person.subject.kind === 'mom' ? 'you' : person.name} yet.
-              Share a little in chat and it will show up here.
             </p>
           ) : (
             person.sections.map(({ dim, section }) => (
@@ -120,7 +136,7 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
       {forgetting && (
         <ConfirmDialog
           title="Forget this?"
-          message="Cozie won’t use it in future answers. You can’t undo this."
+          message="This removes the item from the memory profile. You can’t undo this."
           confirmLabel="Forget"
           onCancel={() => setForgetting(null)}
           onConfirm={() => {
@@ -157,19 +173,20 @@ function SectionView({
   const memories = section.entries.filter((e): e is SavedProfileMemory => e.kind === 'memory');
   const summary = validSummary(section);
   const hidden = dim === 'health';
-  const [revealed, setRevealed] = useState(!hidden);
+  const [showHealth, setShowHealth] = useState(false);
   const listId = `mp-list-${dim}`;
 
-  if (hidden && !revealed) {
+  if (dim === 'basics' || hidden) {
+    const open = hidden ? showHealth : expanded;
     return (
       <section className="mp-section">
-        <h4 className="mp-section__title">{label}</h4>
-        <button type="button" className="mp-reveal" aria-expanded={false} onClick={() => setRevealed(true)}>
-          <span>
-            {section.entries.length} {section.entries.length === 1 ? 'item' : 'items'} · hidden for privacy
-          </span>
-          <span className="mp-reveal__action">Show</span>
+        <button type="button" className="mp-reveal mp-section-toggle" aria-expanded={open} onClick={hidden ? () => setShowHealth(!showHealth) : onToggle}>
+          <span className="mp-section__title">{label}</span>
+          <Chevron dir={open ? 'up' : 'right'} small />
         </button>
+        {open && (
+          <SectionEntries fields={fields} memories={memories} listId={listId} onEdit={onEdit} onForget={onForget} />
+        )}
       </section>
     );
   }
@@ -180,15 +197,35 @@ function SectionView({
 
   return (
     <section className="mp-section">
-      <div className="mp-section__head">
-        <h4 className="mp-section__title">{label}</h4>
-        {hidden && (
-          <button type="button" className="mp-section__hide" aria-expanded onClick={() => setRevealed(false)}>
-            Hide
-          </button>
-        )}
-      </div>
+      <h3 className="mp-section__title">{label}</h3>
 
+      {summarised && <p className="mp-summary">{summary.text}</p>}
+      {summarised && (
+        <button
+          type="button"
+          className="mp-more"
+          aria-expanded={expanded}
+          aria-controls={expanded ? listId : undefined}
+          onClick={onToggle}
+        >
+          {expanded ? 'Hide memories' : `View ${memories.length} memories`}
+          <Chevron dir={expanded ? 'up' : 'down'} small />
+        </button>
+      )}
+      <SectionEntries fields={fields} memories={showList ? memories : []} listId={listId} onEdit={onEdit} onForget={onForget} />
+    </section>
+  );
+}
+
+function SectionEntries({ fields, memories, listId, onEdit, onForget }: {
+  fields: AnyField[];
+  memories: SavedProfileMemory[];
+  listId: string;
+  onEdit: (entry: AnyEntry) => void;
+  onForget: (entry: AnyEntry) => void;
+}) {
+  return (
+    <>
       {fields.length > 0 && (
         <dl className="mp-fields">
           {fields.map((f) => (
@@ -196,10 +233,7 @@ function SectionView({
           ))}
         </dl>
       )}
-
-      {summarised && <p className="mp-summary">{summary.text}</p>}
-
-      {showList && (
+      {memories.length > 0 && (
         <ul className="mp-memories" id={listId}>
           {memories.map((m) => (
             <li key={m.id} className="mp-memory">
@@ -222,19 +256,7 @@ function SectionView({
         </ul>
       )}
 
-      {summarised && (
-        <button
-          type="button"
-          className="mp-more"
-          aria-expanded={expanded}
-          aria-controls={expanded ? listId : undefined}
-          onClick={onToggle}
-        >
-          {expanded ? 'Hide memories' : `View ${memories.length} memories`}
-          <Chevron dir={expanded ? 'up' : 'down'} small />
-        </button>
-      )}
-    </section>
+    </>
   );
 }
 

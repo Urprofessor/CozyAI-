@@ -37,11 +37,12 @@ export interface MemoryPerson {
 // ---------- Labels ----------
 
 export const DIMENSION_LABELS: Record<Dimension, string> = {
-  about: 'Work & interests',
-  recentConcerns: 'Recently on your mind',
+  carePreferences: 'Care goals & preferences',
+  about: 'About me',
+  recentConcerns: 'Recently discussed',
   importantDates: 'Important dates',
-  health: 'Health',
-  basics: 'Basics',
+  health: 'Health information',
+  basics: 'Basic information',
   feeding: 'Feeding',
   sleep: 'Sleep',
 };
@@ -127,7 +128,7 @@ export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson
       subject: { kind: 'mom' },
       name: profile.mom.displayName,
       portraitUrl: profile.mom.portraitUrl,
-      sections: orderedSections(momSections, MOM_MEMORY_DIMENSIONS),
+      sections: orderedSections(momSections, MOM_MEMORY_DIMENSIONS, now),
     },
   ];
   for (const baby of profile.babies) {
@@ -143,7 +144,7 @@ export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson
       ageLabel: birth
         ? ageFromBirthDate(birth.value as string, now)
         : (ageText?.value as string | undefined),
-      sections: orderedSections(sections, BABY_MEMORY_DIMENSIONS),
+      sections: orderedSections(sections, BABY_MEMORY_DIMENSIONS, now),
     });
   }
   return people;
@@ -151,11 +152,21 @@ export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson
 
 function orderedSections(
   sections: Partial<Record<Dimension, AnySection>>,
-  order: readonly Dimension[]
+  order: readonly Dimension[],
+  now: Date
 ): MemoryPerson['sections'] {
+  const cutoff = startOfDay(now);
+  cutoff.setDate(cutoff.getDate() - 14);
   return order.flatMap((dim) => {
     const section = sections[dim];
-    return section && section.entries.length ? [{ dim, section }] : [];
+    if (!section) return [];
+    const entries = dim === 'recentConcerns'
+      ? section.entries.filter((entry) => {
+          if (entry.kind === 'memory') return parseDate(entry.createdAt) >= cutoff;
+          return entry.field === 'recentConcern' && parseDate(entry.value.date) >= cutoff;
+        })
+      : section.entries;
+    return entries.length ? [{ dim, section: { ...section, entries } }] : [];
   });
 }
 
@@ -264,10 +275,8 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
       displayName: 'Clara',
       portraitUrl: `${PORTRAITS}/clara.webp`,
       sections: {
-        about: {
+        carePreferences: {
           entries: [
-            { id: 'clara-occupation', kind: 'field', field: 'occupation', value: 'Product designer', source: chat, updatedAt: daysAgo(12) },
-            { id: 'clara-hobby', kind: 'field', field: 'hobby', value: 'Weekend hikes', source: chat, updatedAt: daysAgo(5) },
             mem('clara-about-1', 'event', 'You said you’re getting ready to go back to work in January.', 9),
             mem('clara-about-2', 'preference', 'You said you like short, practical answers you can read one-handed.', 20),
           ],
@@ -276,15 +285,20 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
             entryIds: ['clara-about-1', 'clara-about-2'],
           },
         },
+        about: {
+          entries: [
+            { id: 'clara-occupation', kind: 'field', field: 'occupation', value: 'Product designer', source: chat, updatedAt: daysAgo(12) },
+            { id: 'clara-hobby', kind: 'field', field: 'hobby', value: 'Weekend hikes', source: chat, updatedAt: daysAgo(5) },
+          ],
+        },
         recentConcerns: {
           entries: [
             mem('clara-rc-1', 'event', 'You asked how to keep up your milk supply once you’re back at work.', 2),
-            mem('clara-rc-2', 'event', 'You asked whether waking every three hours at night is typical at 6 weeks.', 4),
             mem('clara-rc-3', 'emotion', 'You said evenings feel overwhelming when Noah cluster-feeds.', 6),
           ],
           summary: {
-            text: 'You’ve asked about pumping once you’re back at work and about night wakes at 6 weeks. You said evenings feel hard during cluster feeds.',
-            entryIds: ['clara-rc-1', 'clara-rc-2', 'clara-rc-3'],
+            text: 'You’ve asked about pumping once you’re back at work. You said evenings feel hard during cluster feeds.',
+            entryIds: ['clara-rc-1', 'clara-rc-3'],
           },
         },
         importantDates: {
@@ -317,22 +331,32 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
             entries: [
               mem('noah-feed-1', 'fact', 'You said Noah usually has a bottle before bed.', 3),
               mem('noah-feed-2', 'fact', 'You said Noah feeds about every 3 hours during the day.', 8),
-              mem('noah-feed-3', 'event', 'You asked how many ounces to put in each of Noah’s bottles.', 11),
             ],
             summary: {
-              text: 'You said Noah usually has a bottle before bed and feeds about every 3 hours. You’ve also asked how much to put in each bottle.',
-              entryIds: ['noah-feed-1', 'noah-feed-2', 'noah-feed-3'],
+              text: 'You said Noah usually has a bottle before bed and feeds about every 3 hours during the day.',
+              entryIds: ['noah-feed-1', 'noah-feed-2'],
             },
           },
           sleep: {
             entries: [
-              mem('noah-sleep-1', 'event', 'You asked how to handle Noah’s night wakes around 2 a.m.', 1),
               mem('noah-sleep-2', 'fact', 'You said gentle rocking usually settles Noah back to sleep.', 4),
-              mem('noah-sleep-3', 'event', 'You asked whether Noah’s short daytime naps are normal.', 10),
+              mem('noah-sleep-quiet', 'fact', 'You said a quiet room usually helps Noah settle.', 6),
             ],
             summary: {
-              text: 'You’ve asked about Noah’s night wakes and short daytime naps. You said gentle rocking usually settles Noah back to sleep.',
-              entryIds: ['noah-sleep-1', 'noah-sleep-2', 'noah-sleep-3'],
+              text: 'You said gentle rocking and a quiet room usually help Noah settle.',
+              entryIds: ['noah-sleep-2', 'noah-sleep-quiet'],
+            },
+          },
+          recentConcerns: {
+            entries: [
+              mem('noah-sleep-1', 'event', 'You asked how to handle Noah’s night wakes around 2 a.m.', 1),
+              mem('clara-rc-2', 'event', 'You asked whether waking every three hours at night is typical at 6 weeks.', 4),
+              mem('noah-sleep-3', 'event', 'You asked whether Noah’s short daytime naps are normal.', 10),
+              mem('noah-feed-3', 'event', 'You asked how many ounces to put in each of Noah’s bottles.', 11),
+            ],
+            summary: {
+              text: 'You recently asked about Noah’s night wakes, short naps, and how much to put in each bottle.',
+              entryIds: ['noah-sleep-1', 'clara-rc-2', 'noah-sleep-3', 'noah-feed-3'],
             },
           },
         },
@@ -352,14 +376,10 @@ export function buildDemoMemoryProfile(now = new Date()): MemoryProfile {
             entries: [mem('mia-feed-1', 'preference', 'You said Mia is a picky eater but always finishes a banana.', 13)],
           },
           sleep: {
-            entries: [
-              mem('mia-sleep-1', 'fact', 'You said Mia naps once a day, from about 1 to 3 p.m.', 6),
-              mem('mia-sleep-2', 'event', 'You asked how to keep Mia’s bedtime steady now that Noah is home.', 2),
-            ],
-            summary: {
-              text: 'You said Mia naps once a day after lunch. You’ve asked how to keep Mia’s bedtime steady now that Noah is home.',
-              entryIds: ['mia-sleep-1', 'mia-sleep-2'],
-            },
+            entries: [mem('mia-sleep-1', 'fact', 'You said Mia naps once a day, from about 1 to 3 p.m.', 6)],
+          },
+          recentConcerns: {
+            entries: [mem('mia-sleep-2', 'event', 'You asked how to keep Mia’s bedtime steady now that Noah is home.', 2)],
           },
         },
       },
