@@ -57,27 +57,6 @@ export const FIELD_LABELS: Record<FieldName, string> = {
   ageText: 'Age',
 };
 
-/** "Update in chat" draft, naming the person and (when known) the dimension. */
-export function updateDraft(person: MemoryPerson, dim: Dimension | null): string {
-  const lead = 'I’d like to update what you remember about';
-  if (person.subject.kind === 'mom') {
-    const mine: Partial<Record<Dimension, string>> = {
-      about: 'my work and interests',
-      recentConcerns: 'what’s been on my mind',
-      importantDates: 'my important dates',
-      health: 'my health',
-    };
-    return `${lead} ${(dim && mine[dim]) || 'me'}.`;
-  }
-  const theirs: Partial<Record<Dimension, string>> = {
-    basics: 'details',
-    feeding: 'feeding',
-    sleep: 'sleep',
-  };
-  const part = dim && theirs[dim];
-  return part ? `${lead} ${person.name}’s ${part}.` : `${lead} ${person.name}.`;
-}
-
 // ---------- Formatting ----------
 
 export function formatShortDate(iso: string): string {

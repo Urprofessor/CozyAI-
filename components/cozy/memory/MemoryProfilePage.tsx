@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import type { DatedLabel, SavedProfileMemory } from '@/lib/cozy/memory-profile';
 import {
@@ -10,7 +10,6 @@ import {
   formatShortDate,
   isEditable,
   sourceLabel,
-  updateDraft,
   validSummary,
   type AnyEntry,
   type AnyField,
@@ -26,16 +25,14 @@ type Memory = ReturnType<typeof useMemoryProfile>;
 interface Props {
   memory: Memory;
   onBack: () => void;
-  onUpdateInChat: (draft: string) => void;
 }
 
 /** Memory profile: switch between mom and each baby on the orbit, then read,
  *  edit or forget what Cozie remembers about them, by dimension. */
-export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
+export function MemoryProfilePage({ memory, onBack }: Props) {
   const { people, editEntry, forgetEntry } = memory;
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const [lastDim, setLastDim] = useState<Dimension | null>(null);
   const [editing, setEditing] = useState<AnyEntry | null>(null);
   const [sheetEntry, setSheetEntry] = useState<AnyEntry | null>(null);
   const [forgetting, setForgetting] = useState<AnyEntry | null>(null);
@@ -43,16 +40,12 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
   const safeIndex = Math.min(index, people.length - 1);
   const person = people[safeIndex];
 
-  // The dimension "Update in chat" names belongs to the person on screen.
-  useEffect(() => setLastDim(null), [person.key]);
-
   function select(i: number) {
     setIndex(i);
   }
 
   function toggle(dim: Dimension) {
     const key = `${person.key}:${dim}`;
-    setLastDim(dim);
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -61,15 +54,9 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
     });
   }
 
-  function openEdit(entry: AnyEntry, dim: Dimension) {
-    setLastDim(dim);
+  function openEdit(entry: AnyEntry) {
     setSheetEntry(entry);
     setEditing(entry);
-  }
-
-  function confirmForget(entry: AnyEntry, dim: Dimension) {
-    setLastDim(dim);
-    setForgetting(entry);
   }
 
   return (
@@ -105,22 +92,11 @@ export function MemoryProfilePage({ memory, onBack, onUpdateInChat }: Props) {
                 section={section}
                 expanded={expanded.has(`${person.key}:${dim}`)}
                 onToggle={() => toggle(dim)}
-                onEdit={(e) => openEdit(e, dim)}
-                onForget={(e) => confirmForget(e, dim)}
+                onEdit={openEdit}
+                onForget={setForgetting}
               />
             ))
           )}
-
-          <div className="mp-update">
-            <button
-              type="button"
-              className="mp-update__btn"
-              onClick={() => onUpdateInChat(updateDraft(person, lastDim))}
-            >
-              Update in chat
-            </button>
-            <p>Cozie opens your chat with a draft. You send it when you’re ready.</p>
-          </div>
         </div>
       </div>
 

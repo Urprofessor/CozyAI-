@@ -102,7 +102,6 @@ export function CozyChat() {
   const memory = useMemoryProfile();
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memoryMounted, setMemoryMounted] = useState(false);
-  const [draft, setDraft] = useState<{ text: string; key: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -259,7 +258,6 @@ export function CozyChat() {
           onRemoveImage={chat.removeImage}
           onSend={chat.send}
           onStop={chat.stop}
-          draft={draft}
         />
       </div>
 
@@ -302,16 +300,7 @@ export function CozyChat() {
 
       {memoryMounted && (
         <div className={cn('ch-panel', memoryOpen && 'is-open')} inert={!memoryOpen} aria-hidden={!memoryOpen}>
-          <MemoryProfilePage
-            memory={memory}
-            onBack={() => setMemoryOpen(false)}
-            onUpdateInChat={(text) => {
-              // Back to the current chat with a draft the user sends.
-              setMemoryOpen(false);
-              setHistoryOpen(false);
-              setDraft({ text, key: Date.now() });
-            }}
-          />
+          <MemoryProfilePage memory={memory} onBack={() => setMemoryOpen(false)} />
         </div>
       )}
 

@@ -443,30 +443,6 @@
   font-weight: 600;
 }
 
-.mp-update {
-  margin-top: 32px;
-  text-align: center;
-}
-
-.mp-update__btn {
-  width: 100%;
-  height: 50px;
-  border: 1px solid var(--mp-frame);
-  border-radius: 25px;
-  background: transparent;
-  color: var(--mp-frame);
-  font-family: var(--cz-ui);
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.mp-update p {
-  margin: 10px 12px 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--cz-ink-2);
-}
-
 /* ---------- Edit sheet ---------- */
 
 .mp-edit__body {
