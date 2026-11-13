@@ -585,3 +585,97 @@
   font-weight: 500;
   color: var(--cz-accent);
 }
+
+/* Optional data connections in the first letter. */
+.cz-connections {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed #d9b8bf;
+}
+
+.cz-connections h3 {
+  margin: 0 0 6px;
+  color: #790a30;
+  font: 400 24px/1.2 var(--cz-brand);
+}
+
+.cz-letter__body .cz-connections p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cz-connections__stack {
+  display: grid;
+  padding-bottom: 4px;
+}
+
+.cz-connections__card {
+  position: relative;
+  border: 1px solid #fff9;
+  border-radius: 20px;
+  background: linear-gradient(120deg, #fff4f1, #f7cbd4);
+  color: #790a30;
+  box-shadow: 0 5px 16px #790a301a;
+}
+
+.cz-connections__card[data-source='devices'] {
+  background: linear-gradient(120deg, #faedf2, #efc9d9);
+}
+
+.cz-connections__card + .cz-connections__card {
+  margin: -8px 0 0 10px;
+}
+
+.cz-connections__card > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: inherit;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cz-connections__card:first-child > button {
+  padding-bottom: 20px;
+}
+
+.cz-connections__card strong,
+.cz-connections__card small {
+  display: block;
+}
+
+.cz-connections__card strong {
+  font: 400 20px/1.1 var(--cz-brand);
+}
+
+.cz-connections__card small {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.cz-connections__card svg {
+  width: 100%;
+  height: auto;
+}
+
+.cz-connections__card button[aria-expanded='true'] .cz-connections__chevron {
+  transform: rotate(180deg);
+}
+
+.cz-connections__details {
+  padding: 0 14px 20px;
+}
+
+.cz-letter__body .cz-connections .cz-connections__preview {
+  margin-bottom: 0;
+  font-size: 12px;
+}

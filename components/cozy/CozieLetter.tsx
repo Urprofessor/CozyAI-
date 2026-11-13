@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { LetterAction, LetterBlock, LetterContent } from '@/lib/cozy/letters';
 import { CZ, MaskIcon } from './ui';
+import { LetterConnections } from './LetterConnections';
 
 type Phase = 'arrive' | 'seal' | 'open' | 'rise' | 'read';
 
@@ -119,6 +120,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
               <strong>{from}</strong>
               <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
             </div>
+            {mode === 'arrive' && letter.offerDataConnections && <LetterConnections />}
           </div>
 
           {mode === 'arrive' && onAction && (

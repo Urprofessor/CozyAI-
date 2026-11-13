@@ -38,12 +38,14 @@ export interface LetterContent {
   blocks: LetterBlock[];
   closing: string;
   actions: LetterAction[];
+  offerDataConnections?: boolean;
 }
 
 export const LETTER_CARD = '__LETTER_FROM_COZIE__';
 
 export const FIRST_LETTER: LetterContent = {
   id: 'first',
+  offerDataConnections: true,
   kicker: 'Your first letter',
   salutation: 'Dear Clara,',
   blocks: [
