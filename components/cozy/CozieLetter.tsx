@@ -32,6 +32,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
   const [instant, setInstant] = useState(mode === 'reread');
   const paperRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
+  const connectionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (mode === 'reread') return;
@@ -68,6 +69,14 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
   const date = new Date().toLocaleString(letter.dateLocale ?? 'en-US', { month: 'short', day: 'numeric' });
   const from = letter.from ?? 'Cozie';
   const heading = letter.heading ?? `From ${from}`;
+  const offerConnections = mode === 'arrive' && letter.offerDataConnections;
+  const skipConnection = letter.actions.find((action) => action.quiet);
+
+  function openConnections() {
+    const section = connectionsRef.current;
+    section?.scrollIntoView({ block: 'start' });
+    section?.querySelector('button')?.focus({ preventScroll: true });
+  }
 
   return (
     <div
@@ -95,9 +104,10 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
       )}
 
       {phase === 'read' && (
-        <article ref={sheetRef} className="cz-letter__sheet" onClick={(e) => e.stopPropagation()}>
+        <article ref={sheetRef} className={cn('cz-letter__sheet', letter.offerDataConnections && 'cz-letter__sheet--illustrated')} onClick={(e) => e.stopPropagation()}>
           <header className="cz-letter__head">
             <div>
+              {letter.offerDataConnections && <span className="cz-letter__brand">momcozy</span>}
               <h2>{heading}</h2>
               <span>{letter.kicker}</span>
             </div>
@@ -111,7 +121,18 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
           </header>
 
           <div className="cz-letter__body">
-            <p className="cz-letter__salutation">{letter.salutation}</p>
+            {letter.offerDataConnections ? (
+              <div className="cz-letter__greeting">
+                <p className="cz-letter__salutation">{letter.salutation}</p>
+                <svg viewBox="0 0 132 122" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M77 28c-2-14 7-23 19-23 13 0 21 11 19 23-1 7-6 14-14 16M56 47c-6-13 3-27 17-29 16-3 30 7 29 21-1 9-6 15-13 18M57 47c5-14 17-18 32-8 3 5 3 17-2 23-6 8-18 8-24 1-4-4-6-10-6-16Z" />
+                  <path d="M66 51v3m12-2v3m-11 5c3 2 6 2 9-1m-3 9c0 6-5 9-9 11m25-17c1 8 9 11 16 15 12 7 18 20 16 38M38 97c-6-6-5-17 1-23 7-8 20-8 27 0 6 7 5 16 0 23m-29-13c7 1 12-2 14-8 3 5 9 7 15 7m-21 6c2 2 5 2 7 0m5 4c2 1 4 0 5-1" />
+                  <path d="M91 82c-13 1-27 12-40 23m53-9c-18 0-34 18-50 22-12 3-23-2-25-11-2-7 2-14 7-18" />
+                </svg>
+              </div>
+            ) : (
+              <p className="cz-letter__salutation">{letter.salutation}</p>
+            )}
             {letter.blocks.map((b, i) => (
               <Block key={i} block={b} />
             ))}
@@ -120,12 +141,26 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
               <strong>{from}</strong>
               <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
             </div>
-            {mode === 'arrive' && letter.offerDataConnections && <LetterConnections />}
+            {offerConnections && (
+              <div ref={connectionsRef}>
+                <LetterConnections />
+              </div>
+            )}
           </div>
 
           {mode === 'arrive' && onAction && (
             <footer className="cz-letter__actions">
-              {letter.actions.map((a, i) => (
+              {offerConnections && (
+                <button type="button" className="cz-letter__btn is-primary" onClick={openConnections}>
+                  Connect data
+                </button>
+              )}
+              {offerConnections && skipConnection && (
+                <button type="button" className="cz-letter__btn is-quiet" onClick={() => onAction(skipConnection)}>
+                  Continue without connecting
+                </button>
+              )}
+              {!offerConnections && letter.actions.map((a, i) => (
                 <button
                   key={a.id}
                   type="button"
