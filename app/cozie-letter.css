@@ -238,10 +238,6 @@
   color: #790a30;
 }
 
-.cz-letter__sheet--illustrated .cz-letter__actions {
-  flex-direction: column;
-}
-
 @keyframes czLetterRise {
   from {
     opacity: 0;
@@ -451,6 +447,35 @@
 
 .cz-letter__btn:active {
   opacity: 0.85;
+}
+
+.cz-letter__connection-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 0 12px;
+}
+
+.cz-letter__btn.cz-letter__connect {
+  max-width: 100%;
+  padding: 0 28px;
+  border: 1px solid #b87386;
+  background: linear-gradient(120deg, #fff4f1, #f7cbd4);
+  color: #790a30;
+  font-family: var(--cz-brand);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.cz-letter__connection-actions .is-quiet {
+  min-height: 44px;
+  height: auto;
+  padding: 6px 0;
+  color: #790a30;
+  text-decoration: underline;
+  white-space: normal;
+  cursor: pointer;
 }
 
 /* Milestone: stops on a track, the current one highlighted. */

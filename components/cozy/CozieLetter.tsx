@@ -136,31 +136,33 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
             {letter.blocks.map((b, i) => (
               <Block key={i} block={b} />
             ))}
+            {offerConnections && (
+              <>
+                <div ref={connectionsRef}>
+                  <LetterConnections />
+                </div>
+                <div className="cz-letter__connection-actions">
+                  <button type="button" className="cz-letter__btn cz-letter__connect" onClick={openConnections}>
+                    Connect data
+                  </button>
+                  {onAction && skipConnection && (
+                    <button type="button" className="cz-letter__btn is-quiet" onClick={() => onAction(skipConnection)}>
+                      Continue without connecting
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
             <div className="cz-letter__sign">
               <span>{letter.closing}</span>
               <strong>{from}</strong>
               <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
             </div>
-            {offerConnections && (
-              <div ref={connectionsRef}>
-                <LetterConnections />
-              </div>
-            )}
           </div>
 
-          {mode === 'arrive' && onAction && (
+          {mode === 'arrive' && onAction && !offerConnections && (
             <footer className="cz-letter__actions">
-              {offerConnections && (
-                <button type="button" className="cz-letter__btn is-primary" onClick={openConnections}>
-                  Connect data
-                </button>
-              )}
-              {offerConnections && skipConnection && (
-                <button type="button" className="cz-letter__btn is-quiet" onClick={() => onAction(skipConnection)}>
-                  Continue without connecting
-                </button>
-              )}
-              {!offerConnections && letter.actions.map((a, i) => (
+              {letter.actions.map((a, i) => (
                 <button
                   key={a.id}
                   type="button"
