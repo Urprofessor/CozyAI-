@@ -5,16 +5,14 @@ import { useEffect, useState } from 'react';
 /** Which first-run intro Cozie shows. Reviewers flip between them from the
  *  desktop demo panel to compare:
  *  - film:  A · the full-screen intro video with Get started over it
- *  - guide: B · a three-step guided intro (animated mini-phone hero, title,
- *           Continue) in the style of iOS first-run sheets
- *  - steps: C · three intro steps + one permissions step with a progress bar,
- *           then a checkmark and Cozie opens the chat herself (no letter) */
-export type IntroVariant = 'film' | 'guide' | 'steps';
+ *  - guide: B · four guided steps (three iOS-style animated mini-phone pages
+ *           and a permissions page) with a progress bar
+ *  Both end in the From Cozie letter. */
+export type IntroVariant = 'film' | 'guide';
 
 export const INTRO_VARIANTS: { id: IntroVariant; tag: string; label: string; note: string }[] = [
   { id: 'film', tag: 'A', label: 'Intro film', note: 'Full-screen video, then Get started.' },
-  { id: 'guide', tag: 'B', label: 'Guided intro', note: 'Three animated steps with Continue.' },
-  { id: 'steps', tag: 'C', label: 'Intro + permissions', note: '3 steps, 1 permissions page, then Cozie speaks first.' },
+  { id: 'guide', tag: 'B', label: 'Guided intro', note: 'Four short steps, then Get started.' },
 ];
 
 const KEY = 'cozyIntroVariant';
@@ -25,7 +23,8 @@ export const REPLAY_INTRO_EVENT = 'cozie:replay-intro';
 function read(): IntroVariant {
   try {
     const v = localStorage.getItem(KEY);
-    return v === 'guide' || v === 'steps' ? v : 'film';
+    // 'steps' was a short-lived option C; it became B.
+    return v === 'guide' || v === 'steps' ? 'guide' : 'film';
   } catch {
     return 'film';
   }

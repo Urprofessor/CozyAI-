@@ -1,180 +1,66 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useCozyVisible } from '@/components/shell/cozyClose';
 import { CZ, showToast, ToastHost } from './ui';
+import { MiniPhone, Skel, usePhase, WelcomeHero } from './IntroHeroes';
 
 interface Props {
+  /** Called after the checkmark: the From Cozie letter arrives next. */
   onStart: () => void;
   onClose: () => void;
 }
 
-const reducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* ───────────── Step 2 hero: what Cozie remembers ───────────── */
 
-/** Steps through `count` phases every `ms`, looping. Reduced motion parks on
- *  `rest`. Drives the hero animations so their beats stay in sync. */
-export function usePhase(count: number, ms: number, rest = 0) {
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    if (reducedMotion()) {
-      setPhase(rest);
-      return;
-    }
-    const id = window.setInterval(() => setPhase((p) => (p + 1) % count), ms);
-    return () => window.clearInterval(id);
-  }, [count, ms, rest]);
-  return phase;
-}
+const KNOWN = [
+  ['baby', 'Baby', 'Noah · 6 weeks'],
+  ['feed', 'Feeding', 'Mixed'],
+  ['pump', 'Pumping', '~6× a day'],
+  ['device', 'Pump', 'Momcozy M5'],
+  ['sleep', 'Sleep', 'Short naps lately'],
+] as const;
 
-/* ───────────── Mini phone ───────────── */
-
-export function MiniPhone({ children, className }: { children: ReactNode; className?: string }) {
+function MemoryHero() {
+  // 0 empty · 1–5 rows fill in · 6–8 hold with "Updated" pill
+  const phase = usePhase(9, 900, 8);
   return (
-    <div className={cn('cz-guide-phone', className)} aria-hidden="true">
-      {children}
-    </div>
-  );
-}
-
-export function Skel({ w, tone }: { w: string; tone?: 'dark' | 'soft' }) {
-  return <span className={cn('cz-guide-skel', tone && `is-${tone}`)} style={{ width: w }} />;
-}
-
-/* Ring chart drawn as stroked circles; each arc animates its dash in. */
-function Ring({
-  r,
-  color,
-  frac,
-  start = 0,
-  width = 9,
-  delay = 0,
-  track = true,
-}: {
-  r: number;
-  color: string;
-  frac: number;
-  start?: number;
-  width?: number;
-  delay?: number;
-  track?: boolean;
-}) {
-  const c = 2 * Math.PI * r;
-  return (
-    <>
-      {track && <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeOpacity="0.16" strokeWidth={width} />}
-      <circle
-        className="cz-guide-arc"
-        cx="60"
-        cy="60"
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={width}
-        strokeLinecap="round"
-        strokeDasharray={`${c * frac} ${c}`}
-        style={{ ['--len' as string]: c * frac, animationDelay: `${delay}ms` }}
-        transform={`rotate(${-90 + start * 360} 60 60)`}
-      />
-    </>
-  );
-}
-
-/* Step 1 hero — the "Today" screen with three metrics swiping past:
- * feeds → sleep → Cozie, and back. */
-const METRICS = ['feeds', 'sleep', 'cozie'] as const;
-const PINGPONG = [0, 1, 2, 1];
-
-export function WelcomeHero() {
-  const beat = usePhase(PINGPONG.length, 2400);
-  const slide = PINGPONG[beat];
-  return (
-    <MiniPhone>
-      <div className="cz-guide-chips">
-        {METRICS.map((m, i) => (
-          <span key={m} className={cn('cz-guide-chip', i === slide && 'is-on')}>
-            <i className={`cz-guide-chip__dot is-${m}`} />
-            <span className="cz-guide-chip__lines">
-              <Skel w="22px" tone="soft" />
-              <Skel w="30px" />
-            </span>
-          </span>
+    <MiniPhone className="cz-steps-mem">
+      <div className="cz-steps-mem__head">
+        <img src={`${CZ}/ip/Cozy_Magic_Light.webp`} alt="" draggable={false} />
+        <span>
+          <b>What Cozie knows</b>
+          <Skel w="64px" tone="soft" />
+        </span>
+      </div>
+      <ul className="cz-steps-mem__list">
+        {KNOWN.map(([icon, label, value], i) => (
+          <li key={icon} className={cn(phase > i && 'is-in')}>
+            <i className={`cz-steps-mem__icon is-${icon}`} />
+            <span className="cz-steps-mem__label">{label}</span>
+            <span className="cz-steps-mem__value">{value}</span>
+            <i className="cz-steps-mem__check" />
+          </li>
         ))}
-      </div>
-
-      <div className="cz-guide-track" style={{ transform: `translateX(${slide * -100}%)` }}>
-        <div className={cn('cz-guide-slide', slide === 0 && 'is-on')}>
-          <svg viewBox="0 0 120 120" className="cz-guide-ringsvg">
-            <Ring r={48} color="var(--colors-brands-mom-700)" frac={0.6} width={14} />
-            <Ring r={48} color="var(--colors-brands-mom-500)" frac={0.22} start={0.66} width={14} delay={250} track={false} />
-            <Ring r={48} color="var(--colors-brands-parenting-300)" frac={0.06} start={0.92} width={14} delay={400} track={false} />
-          </svg>
-          <span className="cz-guide-metric">
-            <b>6</b>
-            <small>feeds</small>
-          </span>
-        </div>
-
-        <div className={cn('cz-guide-slide', slide === 1 && 'is-on')}>
-          <svg viewBox="0 0 120 120" className="cz-guide-ringsvg">
-            <Ring r={50} color="var(--colors-brands-care-500)" frac={0.78} width={10} />
-            <Ring r={37} color="var(--colors-brands-family-500)" frac={0.56} width={10} delay={120} />
-            <Ring r={24} color="var(--colors-brands-parenting-500)" frac={0.88} width={10} delay={240} />
-          </svg>
-          <span className="cz-guide-metric cz-guide-metric--sm">
-            <b>14h</b>
-          </span>
-        </div>
-
-        <div className={cn('cz-guide-slide', slide === 2 && 'is-on')}>
-          <span className="cz-guide-halo">
-            <i />
-            <i />
-            <i />
-            <img src={`${CZ}/ip/Cozy_Magic_Light.webp`} alt="" draggable={false} />
-          </span>
-        </div>
-      </div>
-
-      <div className="cz-guide-copy">
-        <Skel w="44%" tone="dark" />
-        <Skel w="86%" />
-        <Skel w="70%" />
-      </div>
-
-      <div className="cz-guide-split">
-        <span className="cz-guide-bars">
-          {[38, 62, 30, 84, 56, 92, 48].map((h, i) => (
-            <i key={i} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
-          ))}
-        </span>
-        <span className="cz-guide-stripes">
-          <i className="is-mom" />
-          <i className="is-care" />
-          <i className="is-family" />
-          <i className="is-parenting" />
-        </span>
-      </div>
-      <div className="cz-guide-copy">
-        <Skel w="58%" tone="dark" />
-        <Skel w="90%" />
+      </ul>
+      <span className={cn('cz-steps-mem__pill', phase >= 6 && 'is-in')}>Updated just now</span>
+      <div className="cz-guide-copy cz-steps-mem__tail">
+        <Skel w="40%" tone="dark" />
+        <Skel w="88%" />
+        <Skel w="72%" />
       </div>
     </MiniPhone>
   );
 }
 
-/* Step 2 hero — a question asked at night, Cozie typing, replying, and a
- * plan card lifting out of the phone. */
-const PLAN = [
-  ['9:00 pm', 'Feed', true],
-  ['12:30 am', 'Pump', true],
-  ['3:00 am', 'Feed', false],
-] as const;
+/* ───────────── Step 3 hero: asks before assuming ───────────── */
 
-function ChatHero() {
-  // 0 empty · 1 question · 2 typing · 3 reply · 4 card · 5–7 card lifted (held)
-  const phase = usePhase(8, 1100, 5);
+const CHIPS = ['Wakes a lot', 'Hard to settle', 'Something seems off'];
+
+function HonestHero() {
+  // 0 empty · 1 question · 2 Cozie asks · 3 chips · 4 chip picked · 5 reply · 6–7 hold
+  const phase = usePhase(8, 1050, 6);
   const at = (n: number) => phase >= n;
   return (
     <MiniPhone className="cz-guide-phone--chat">
@@ -182,92 +68,195 @@ function ChatHero() {
         <img src={`${CZ}/ip/Cozy_Magic_Light.webp`} alt="" draggable={false} />
         <span>Cozie</span>
       </div>
-
       <div className="cz-guide-thread">
-        <p className="cz-guide-msg is-cozie is-in">Good evening, Clara. How was today?</p>
-        <p className={cn('cz-guide-msg is-me', at(1) && 'is-in')}>Is 6 feeds a day enough at 6 weeks?</p>
-        <p className={cn('cz-guide-typing', phase === 2 && 'is-in')}>
-          <i />
-          <i />
-          <i />
+        <p className={cn('cz-guide-msg is-me', at(1) && 'is-in')}>Noah&apos;s been sleeping badly</p>
+        <p className={cn('cz-guide-msg is-cozie', at(2) && 'is-in')}>
+          I&apos;d love to help. What&apos;s been happening at night?
         </p>
-        <p className={cn('cz-guide-msg is-cozie', at(3) && 'is-in')}>
-          That&apos;s very typical at this stage. Here&apos;s a gentle plan for tonight.
-        </p>
-        <div className={cn('cz-guide-plan', at(4) && 'is-in', at(5) && 'is-lifted')}>
-          <strong>Tonight&apos;s rhythm</strong>
-          {PLAN.map(([time, what, done]) => (
-            <span key={time} className="cz-guide-plan__row">
-              <i className={cn('cz-guide-plan__check', done && 'is-done')} />
-              <em>{time}</em>
-              <span>{what}</span>
+        <div className={cn('cz-steps-chips', at(3) && 'is-in')}>
+          {CHIPS.map((c, i) => (
+            <span key={c} className={cn(i === 1 && at(4) && 'is-picked')} style={{ transitionDelay: `${i * 70}ms` }}>
+              {c}
             </span>
           ))}
         </div>
+        <p className={cn('cz-guide-msg is-cozie', at(5) && 'is-in')}>
+          Thanks — that helps. Let&apos;s find what settles him tonight.
+        </p>
       </div>
     </MiniPhone>
   );
 }
 
-/* ───────────── Steps ───────────── */
+/* ───────────── Icons ───────────── */
 
-const STEPS = [
+const PROMISES: { icon: ReactNode; title: string; text: string }[] = [
   {
-    hero: <WelcomeHero />,
-    title: 'Welcome to Cozie',
-    body: 'Cozie learns your rhythm — feeds, sleep and pumping — and turns it into gentle suggestions made for you and your baby.',
-    cta: 'Continue',
+    icon: (
+      <>
+        <path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 5 4.5Z" />
+        <path d="M10 9.2a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.3M12 14.3h.01" />
+      </>
+    ),
+    title: 'Asks first',
+    text: 'Clarifies what’s going on before giving advice.',
   },
   {
-    hero: <ChatHero />,
-    title: 'Ask anything, any hour',
-    body: 'From 3 a.m. feeds to a new pumping plan, Cozie answers in seconds and remembers what matters, so you never start over.',
-    cta: 'Next',
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 8v8M8 12h8" />
+      </>
+    ),
+    title: 'Knows its limits',
+    text: 'Tells you plainly when something needs a doctor.',
   },
-] as const;
+  {
+    icon: (
+      <>
+        <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+        <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+      </>
+    ),
+    title: 'Private by default',
+    text: 'Your chats and data stay yours.',
+  },
+];
 
-function PrivacyIcon() {
+function LineIcon({ children }: { children: ReactNode }) {
   return (
-    <svg className="cz-guide-lockicon" viewBox="0 0 64 64" aria-hidden="true">
-      <path
-        d="M32 56S8 41.5 8 23.5C8 15.5 14 10 21 10c4.8 0 8.6 2.6 11 6.4C34.4 12.6 38.2 10 43 10c7 0 13 5.5 13 13.5C56 41.5 32 56 32 56Z"
-        fill="var(--colors-brands-mom-700)"
-      />
-      <rect x="24" y="28" width="16" height="13" rx="3" fill="#fff" />
-      <path d="M27 28v-3.5a5 5 0 0 1 10 0V28" fill="none" stroke="#fff" strokeWidth="2.6" />
-      <circle cx="32" cy="34.5" r="1.8" fill="var(--colors-brands-mom-700)" />
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      {children}
     </svg>
   );
 }
 
-/** B · Guided intro: three first-run steps in the iOS onboarding-sheet style —
- *  an animated mini phone on top, title and body below, one primary button —
- *  ending on the privacy page with the agreement and Get started. */
+/* ───────────── Step 4: permissions ───────────── */
+
+type PermState = 'off' | 'working' | 'on';
+
+function PermissionCards() {
+  const [health, setHealth] = useState<PermState>('off');
+  const [remind, setRemind] = useState<PermState>('off');
+
+  function connectHealth() {
+    if (health !== 'off') return;
+    setHealth('working');
+    window.setTimeout(() => setHealth('on'), 900);
+  }
+
+  async function turnOnReminders() {
+    if (remind !== 'off') return;
+    setRemind('working');
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+    } catch {
+      /* unsupported (e.g. iOS Safari outside a home-screen app) */
+    }
+    setRemind('on');
+    showToast('Reminders are on. Cozie will nudge you gently.');
+  }
+
+  return (
+    <div className="cz-steps-perms">
+      <div className="cz-steps-perm">
+        <span className="cz-steps-perm__icon is-health" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path d="M12 20s-7-4.4-7-9.6C5 7.9 6.9 6 9.2 6c1.2 0 2.2.6 2.8 1.5C12.6 6.6 13.6 6 14.8 6 17.1 6 19 7.9 19 10.4 19 15.6 12 20 12 20Z" fill="currentColor" />
+          </svg>
+        </span>
+        <div className="cz-steps-perm__copy">
+          <strong>Connect Apple Health &amp; devices</strong>
+          <span>Sleep, feeds and pump sessions come in on their own — no typing.</span>
+        </div>
+        <PermButton state={health} onClick={connectHealth} label="Connect" doneLabel="Connected" />
+      </div>
+
+      <div className="cz-steps-perm cz-steps-perm--remind">
+        <div className="cz-steps-banner" aria-hidden="true">
+          <img src={`${CZ}/icons/cozie_tab.png`} alt="" />
+          <span>
+            <b>Cozie</b>
+            <em>now</em>
+            <span>Pump session in 10 min. You&apos;re on track today.</span>
+          </span>
+        </div>
+        <div className="cz-steps-perm__row">
+          <span className="cz-steps-perm__icon is-remind" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z" />
+              <path d="M10 20.5a2 2 0 0 0 4 0" />
+            </svg>
+          </span>
+          <div className="cz-steps-perm__copy">
+            <strong>Turn on gentle reminders</strong>
+            <span>Pump times, and a heads-up when Noah&apos;s sleep changes.</span>
+          </div>
+          <PermButton state={remind} onClick={turnOnReminders} label="Turn on" doneLabel="On" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PermButton({ state, onClick, label, doneLabel }: { state: PermState; onClick: () => void; label: string; doneLabel: string }) {
+  return (
+    <button
+      type="button"
+      className={cn('cz-steps-perm__btn', state !== 'off' && `is-${state}`)}
+      onClick={onClick}
+      disabled={state !== 'off'}
+      aria-live="polite"
+    >
+      {state === 'working' ? <i className="cz-steps-spin" aria-label="Working" /> : state === 'on' ? `✓ ${doneLabel}` : label}
+    </button>
+  );
+}
+
+/* ───────────── Flow ───────────── */
+
+const TOTAL = 4;
+
+/** B · Guided intro: three Apple-style steps (animated mini phone, title,
+ *  body), a permissions page and a checkmark, then the From Cozie letter —
+ *  the same ending as the intro film. A progress bar shows the four steps. */
 export function GuidedIntro({ onStart, onClose }: Props) {
   const visible = useCozyVisible();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState<1 | -1>(1);
-  const [agreed, setAgreed] = useState(false);
-  const [prompt, setPrompt] = useState(false);
+  const [done, setDone] = useState(false);
+  const doneTimer = useRef<number | undefined>(undefined);
 
-  // Start over from the first step every time Cozie is opened.
   useEffect(() => {
     if (visible) {
       setStep(0);
       setDir(1);
+      setDone(false);
     }
   }, [visible]);
+  useEffect(() => () => window.clearTimeout(doneTimer.current), []);
 
   const go = (to: number) => {
     setDir(to > step ? 1 : -1);
     setStep(to);
   };
+  const finish = () => {
+    setDone(true);
+    // The checkmark stays up under the letter, which rises over it.
+    doneTimer.current = window.setTimeout(onStart, 1100);
+  };
   const comingSoon = (label: string) => showToast(`${label} is coming soon.`);
-  const last = step === STEPS.length;
-  const s = STEPS[step as 0 | 1];
+  const runKey = `${step}-${visible}`;
 
   return (
-    <div className={cn('cz-guide', last && 'is-plain')}>
+    <div className={cn('cz-guide cz-steps', step === 3 && 'is-plain', step === 2 && 'is-tall-body')}>
+      <div className="cz-steps-progress" aria-label={`Step ${step + 1} of ${TOTAL}`}>
+        {Array.from({ length: TOTAL }, (_, i) => (
+          <i key={i} className={cn(i <= step && 'is-on')} />
+        ))}
+      </div>
       {step > 0 && (
         <button type="button" className="cz-glass-btn cz-guide__back" onClick={() => go(step - 1)} aria-label="Back">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -279,117 +268,97 @@ export function GuidedIntro({ onStart, onClose }: Props) {
         <img src={`${CZ}/icons/settings_close.svg`} alt="" width={22} height={22} draggable={false} />
       </button>
 
-      {!last && (
-        <div className="cz-guide__hero" key={`hero-${step}-${visible}`}>
-          {s.hero}
+      {step < 3 && (
+        <div className="cz-guide__hero" key={`hero-${runKey}`}>
+          {step === 0 && <WelcomeHero />}
+          {step === 1 && <MemoryHero />}
+          {step === 2 && <HonestHero />}
         </div>
       )}
 
-      <div
-        className={cn('cz-guide__body', dir < 0 && 'is-back')}
-        key={`body-${step}-${visible}`}
-        aria-live="polite"
-      >
-        {last ? (
+      <div className={cn('cz-guide__body', dir < 0 && 'is-back')} key={`body-${runKey}`} aria-live="polite">
+        {step === 0 && (
           <>
-            <PrivacyIcon />
-            <h2 className="cz-guide__title">Your data stays yours</h2>
+            <h2 className="cz-guide__title">Here for you, even at 3 a.m.</h2>
             <p className="cz-guide__text">
-              What you share with Cozie is encrypted and used only to personalise your guidance.
+              Cozie keeps an eye on feeds, sleep and pumping, and checks in when you need it.
             </p>
-            <p className="cz-guide__text">We never sell your data, and no one reads your chats to advertise to you.</p>
-            <p className="cz-guide__text">
-              You can see what Cozie remembers, edit it or reset it at any time in Settings.
-            </p>
-            <button type="button" className="cz-guide__more" onClick={() => comingSoon('Privacy statement')}>
-              Learn more
-            </button>
           </>
-        ) : (
+        )}
+        {step === 1 && (
           <>
-            <h2 className="cz-guide__title">{s.title}</h2>
-            <p className="cz-guide__text">{s.body}</p>
+            <h2 className="cz-guide__title">You never have to start over</h2>
+            <p className="cz-guide__text">
+              Cozie remembers Noah, your routine and your devices, so every chat picks up where you left off.
+            </p>
+          </>
+        )}
+        {step === 2 && (
+          <>
+            <h2 className="cz-guide__title">Honest when it matters</h2>
+            <ul className="cz-steps-promises">
+              {PROMISES.map((p) => (
+                <li key={p.title}>
+                  <span className="cz-steps-promises__icon">
+                    <LineIcon>{p.icon}</LineIcon>
+                  </span>
+                  <span>
+                    <b>{p.title}</b>
+                    {p.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {step === 3 && (
+          <>
+            <h2 className="cz-guide__title">Let Cozie help a little more</h2>
+            <p className="cz-guide__text">Both are optional. You can change them anytime in Settings.</p>
+            <PermissionCards />
           </>
         )}
       </div>
 
       <div className="cz-guide__footer">
-        {step === 0 && (
-          <p className="cz-guide__fine">
-            Cozie offers general guidance, not medical advice. For health concerns, talk to your doctor or
-            midwife.{' '}
-            <button type="button" className="cz-guide__morelink" onClick={() => comingSoon('Medical disclaimer')}>
-              Learn more…
-            </button>
-          </p>
+        {step === 1 && (
+          <p className="cz-guide__fine">You can see, edit or delete what Cozie remembers anytime in Settings.</p>
         )}
-        {last && (
-          <div className="cz-consent__agree cz-guide__agree">
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={agreed}
-              aria-label="I agree to the privacy statement"
-              onClick={() => setAgreed((v) => !v)}
-            >
-              <img src={`${CZ}/icons/${agreed ? 'consent_checked' : 'consent_unchecked'}.svg`} alt="" />
+        {step === 2 && (
+          <p className="cz-guide__fine">
+            Cozie offers general guidance, not medical advice. By continuing, you agree to the{' '}
+            <button type="button" className="cz-guide__morelink" onClick={() => comingSoon('Privacy statement')}>
+              Privacy statement
+            </button>{' '}
+            and{' '}
+            <button type="button" className="cz-guide__morelink" onClick={() => comingSoon('Medical disclaimer')}>
+              Medical disclaimer
             </button>
-            <span>
-              I agree to{' '}
-              <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
-                Privacy statement
-              </button>
-              <span className="cz-consent__gap" />
-              <button type="button" className="cz-link" onClick={() => comingSoon('Medical disclaimer')}>
-                Medical disclaimer
-              </button>
-            </span>
-          </div>
+            .
+          </p>
         )}
         <button
           type="button"
           className="cz-consent__start cz-guide__cta"
-          onClick={() => {
-            if (!last) go(step + 1);
-            else if (agreed) onStart();
-            else setPrompt(true);
-          }}
+          onClick={() => (step < 3 ? go(step + 1) : finish())}
         >
-          {last ? 'Get started' : s.cta}
+          {step === 2 ? 'Agree & continue' : step === 3 ? 'Get started' : 'Continue'}
         </button>
+        {step === 3 && (
+          <button type="button" className="cz-steps-skip" onClick={finish}>
+            Not now
+          </button>
+        )}
       </div>
 
-      {prompt && (
-        <div className="cz-alert-scrim" onClick={() => setPrompt(false)}>
-          <div
-            className="cz-consent-prompt"
-            role="alertdialog"
-            aria-label="Agree to the privacy statement"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <strong>Agree to the privacy statement</strong>
-            <p>
-              Please review and agree to our{' '}
-              <button type="button" className="cz-link" onClick={() => comingSoon('Privacy statement')}>
-                Privacy statement
-              </button>{' '}
-              before getting started.
-            </p>
-            <button
-              type="button"
-              className="cz-consent-prompt__btn is-primary"
-              onClick={() => {
-                setAgreed(true);
-                setPrompt(false);
-                onStart();
-              }}
-            >
-              Agree and continue
-            </button>
-            <button type="button" className="cz-consent-prompt__btn" onClick={() => setPrompt(false)}>
-              Not now
-            </button>
-          </div>
+      {done && (
+        <div className="cz-steps-done" role="status" aria-label="You're all set">
+          <span className="cz-steps-done__check">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M14 25l7 7 14-15" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <p>You&apos;re all set</p>
         </div>
       )}
 

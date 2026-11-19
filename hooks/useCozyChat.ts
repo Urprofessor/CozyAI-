@@ -633,22 +633,6 @@ export function useCozyChat(opts: Options = {}) {
     []
   );
 
-  /** A fixed Cozie line (intro C's opener): no retry, optional chips. */
-  const appendScripted = useCallback((content: string, suggestions?: string[]) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: newId(),
-        role: 'assistant',
-        content,
-        persona: 'qa',
-        createdAt: Date.now(),
-        scripted: true,
-        ...(suggestions ? { suggestions } : {}),
-      },
-    ]);
-  }, []);
-
   const appendAssistant = useCallback(
     (content: string, personaOverride?: Persona) => {
       setMessages((prev) => [
@@ -694,7 +678,6 @@ export function useCozyChat(opts: Options = {}) {
     finishHandoff,
     appendSystem,
     appendAssistant,
-    appendScripted,
     deliverLetter,
     startSkill,
     showPlanCard,
