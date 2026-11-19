@@ -15,7 +15,7 @@ const reducedMotion = () =>
 
 /** Steps through `count` phases every `ms`, looping. Reduced motion parks on
  *  `rest`. Drives the hero animations so their beats stay in sync. */
-function usePhase(count: number, ms: number, rest = 0) {
+export function usePhase(count: number, ms: number, rest = 0) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
     if (reducedMotion()) {
@@ -30,7 +30,7 @@ function usePhase(count: number, ms: number, rest = 0) {
 
 /* ───────────── Mini phone ───────────── */
 
-function MiniPhone({ children, className }: { children: ReactNode; className?: string }) {
+export function MiniPhone({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div className={cn('cz-guide-phone', className)} aria-hidden="true">
       {children}
@@ -38,7 +38,7 @@ function MiniPhone({ children, className }: { children: ReactNode; className?: s
   );
 }
 
-function Skel({ w, tone }: { w: string; tone?: 'dark' | 'soft' }) {
+export function Skel({ w, tone }: { w: string; tone?: 'dark' | 'soft' }) {
   return <span className={cn('cz-guide-skel', tone && `is-${tone}`)} style={{ width: w }} />;
 }
 
@@ -86,7 +86,7 @@ function Ring({
 const METRICS = ['feeds', 'sleep', 'cozie'] as const;
 const PINGPONG = [0, 1, 2, 1];
 
-function WelcomeHero() {
+export function WelcomeHero() {
   const beat = usePhase(PINGPONG.length, 2400);
   const slide = PINGPONG[beat];
   return (

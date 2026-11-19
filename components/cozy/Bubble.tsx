@@ -82,7 +82,9 @@ export function Bubble({
         </div>
       ) : (
         done &&
-        msg.content && (
+        msg.content &&
+        // Scripted lines read like Cozie talking; only the newest keeps tools.
+        !(msg.scripted && !isLatestReply) && (
           <ActionBar
             content={msg.content}
             rateable={!isSupport}

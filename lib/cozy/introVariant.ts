@@ -6,12 +6,15 @@ import { useEffect, useState } from 'react';
  *  desktop demo panel to compare:
  *  - film:  A · the full-screen intro video with Get started over it
  *  - guide: B · a three-step guided intro (animated mini-phone hero, title,
- *           Continue) in the style of iOS first-run sheets */
-export type IntroVariant = 'film' | 'guide';
+ *           Continue) in the style of iOS first-run sheets
+ *  - steps: C · three intro steps + one permissions step with a progress bar,
+ *           then a checkmark and Cozie opens the chat herself (no letter) */
+export type IntroVariant = 'film' | 'guide' | 'steps';
 
 export const INTRO_VARIANTS: { id: IntroVariant; tag: string; label: string; note: string }[] = [
   { id: 'film', tag: 'A', label: 'Intro film', note: 'Full-screen video, then Get started.' },
   { id: 'guide', tag: 'B', label: 'Guided intro', note: 'Three animated steps with Continue.' },
+  { id: 'steps', tag: 'C', label: 'Intro + permissions', note: '3 steps, 1 permissions page, then Cozie speaks first.' },
 ];
 
 const KEY = 'cozyIntroVariant';
@@ -21,7 +24,8 @@ export const REPLAY_INTRO_EVENT = 'cozie:replay-intro';
 
 function read(): IntroVariant {
   try {
-    return localStorage.getItem(KEY) === 'guide' ? 'guide' : 'film';
+    const v = localStorage.getItem(KEY);
+    return v === 'guide' || v === 'steps' ? v : 'film';
   } catch {
     return 'film';
   }

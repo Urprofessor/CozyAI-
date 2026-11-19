@@ -23,6 +23,7 @@ import { SourcesSheet } from './SourcesSheet';
 import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
 import { GuidedIntro } from './GuidedIntro';
+import { StepsIntro } from './StepsIntro';
 import { REPLAY_INTRO_EVENT, useIntroVariant } from '@/lib/cozy/introVariant';
 import { CozieLetter, LetterCard } from './CozieLetter';
 import { FIRST_LETTER, LETTER_CARD, personaSeed } from '@/lib/cozy/letters';
@@ -59,6 +60,14 @@ interface RowHandlers {
 }
 
 const WELCOMED_KEY = 'cozyWelcomed';
+
+// Intro C: what Cozie says first after the checkmark (demo persona Clara/Noah).
+const OPENER = [
+  "Hi Clara, welcome! I'm so glad you're here. Six weeks in is a lot — you're doing more than you think.",
+  "Let me take a quick look at Noah's last few days. Back in a moment!",
+  "Noah's longest sleep this week was 4 h 10 m, on Tuesday night — very typical at six weeks. Want a simple plan to protect your own sleep tonight?",
+] as const;
+const OPENER_CHIPS = ['Yes, plan tonight', "What's typical at 6 weeks?"];
 const HISTORY_OPEN_CLASS = 'cz-history-open';
 
 /** Cozie AI tab, laid out like the App's AgentChatViewController: top bar,
@@ -122,6 +131,23 @@ export function CozyChat() {
     return () => window.removeEventListener(REPLAY_INTRO_EVENT, onReplay);
   }, []);
 
+  // Intro C ends in the chat with Cozie speaking first: two lines, a moment
+  // "looking at Noah's week", then her first observation.
+  const [openerStatus, setOpenerStatus] = useState<string | null>(null);
+  const openerTimers = useRef<number[]>([]);
+  useEffect(() => () => openerTimers.current.forEach((t) => window.clearTimeout(t)), []);
+  function playOpener() {
+    openerTimers.current.forEach((t) => window.clearTimeout(t));
+    const at = (ms: number, fn: () => void) => openerTimers.current.push(window.setTimeout(fn, ms));
+    chat.appendScripted(OPENER[0]);
+    at(1300, () => chat.appendScripted(OPENER[1]));
+    at(1800, () => setOpenerStatus("Looking at Noah's week…"));
+    at(4800, () => {
+      setOpenerStatus(null);
+      chat.appendScripted(OPENER[2], OPENER_CHIPS);
+    });
+  }
+
   // The drawer slides the whole tab page (including the tab bar) to the right,
   // so the open state lives on <html> where the shared shell can see it.
   useEffect(() => {
@@ -135,7 +161,7 @@ export function CozyChat() {
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (distanceFromBottom < 160) el.scrollTop = el.scrollHeight;
-  }, [chat.messages, chat.streaming]);
+  }, [chat.messages, chat.streaming, openerStatus]);
 
   const introQueuedRef = useRef(false);
   function handleSarahIntro() {
@@ -168,6 +194,28 @@ export function CozyChat() {
   if (!decided) return <div className="cz-page" />;
 
   const firstRun = !welcomed && chat.sessions.length === 0;
+  if ((firstRun || replaying) && introVariant === 'steps') {
+    return (
+      <StepsIntro
+        onDone={() => {
+          setReplaying(false);
+          if (firstRun) {
+            localStorage.setItem(WELCOMED_KEY, '1');
+            profile.applyPatch(personaSeed());
+            setWelcomed(true);
+          } else {
+            // A replay opens in a fresh chat; earlier ones stay in history.
+            chat.newSession();
+          }
+          playOpener();
+        }}
+        onClose={() => {
+          setReplaying(false);
+          closeCozy();
+        }}
+      />
+    );
+  }
   if (firstRun || replaying) {
     // The letter arrives over the (blurred) intro; the gate stays mounted
     // underneath so the film isn't restarted.
@@ -271,6 +319,7 @@ export function CozyChat() {
         ) : (
           <div ref={scrollRef} className="cz-stream">
             {renderStream(chat, skill, rows)}
+            {openerStatus && <RunStatus text={openerStatus} />}
           </div>
         )}
 
