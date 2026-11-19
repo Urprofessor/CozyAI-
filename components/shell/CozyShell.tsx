@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { CozyChat } from '@/components/cozy/Chat';
 import { CozyCloseContext, CozyVisibleContext } from './cozyClose';
 import { GlassTabBar } from './GlassTabBar';
+import { REPLAY_INTRO_EVENT } from '@/lib/cozy/introVariant';
 
 const RETURN_KEY = 'cozyReturnTo';
 const LAUNCHER_R = 31; // half the 62pt launcher button
@@ -70,6 +71,18 @@ export function CozyShell({ children }: { children: ReactNode }) {
       anim.cancel();
     };
   }, [open, reveal, router]);
+
+  // Demo panel "Replay intro": bring Cozie up from its launcher (the chat
+  // itself switches to the intro on the same event).
+  useEffect(() => {
+    const onReplay = () => {
+      if (open || onCozyRoute) return;
+      const launcher = document.querySelector<HTMLElement>('.glass-tab-bar__cozie');
+      if (launcher) openCozy(launcher);
+    };
+    window.addEventListener(REPLAY_INTRO_EVENT, onReplay);
+    return () => window.removeEventListener(REPLAY_INTRO_EVENT, onReplay);
+  }, [open, onCozyRoute, openCozy]);
 
   return (
     <CozyCloseContext.Provider value={close}>

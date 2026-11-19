@@ -22,6 +22,8 @@ import { SettingsSheet } from './SettingsSheet';
 import { SourcesSheet } from './SourcesSheet';
 import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
+import { GuidedIntro } from './GuidedIntro';
+import { REPLAY_INTRO_EVENT, useIntroVariant } from '@/lib/cozy/introVariant';
 import { CozieLetter, LetterCard } from './CozieLetter';
 import { FIRST_LETTER, LETTER_CARD, personaSeed } from '@/lib/cozy/letters';
 import { PlanCard, QuestionnaireCard, ScheduleCard } from './cards/LactationCards';
@@ -108,6 +110,18 @@ export function CozyChat() {
     setWelcomed(localStorage.getItem(WELCOMED_KEY) === '1');
   }, []);
 
+  // Demo panel: which intro to show, and "Replay intro" even after onboarding.
+  const introVariant = useIntroVariant();
+  const [replaying, setReplaying] = useState(false);
+  useEffect(() => {
+    const onReplay = () => {
+      setLetter(null);
+      setReplaying(true);
+    };
+    window.addEventListener(REPLAY_INTRO_EVENT, onReplay);
+    return () => window.removeEventListener(REPLAY_INTRO_EVENT, onReplay);
+  }, []);
+
   // The drawer slides the whole tab page (including the tab bar) to the right,
   // so the open state lives on <html> where the shared shell can see it.
   useEffect(() => {
@@ -153,17 +167,33 @@ export function CozyChat() {
   const decided = welcomed !== null && chat.hydrated;
   if (!decided) return <div className="cz-page" />;
 
-  if (!welcomed && chat.sessions.length === 0) {
-    // The letter arrives over the (blurred) intro film; the gate stays mounted
+  const firstRun = !welcomed && chat.sessions.length === 0;
+  if (firstRun || replaying) {
+    // The letter arrives over the (blurred) intro; the gate stays mounted
     // underneath so the film isn't restarted.
+    const Gate = introVariant === 'guide' ? GuidedIntro : WelcomeGate;
     return (
       <>
-        <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeCozy} />
+        <Gate
+          key={introVariant}
+          onStart={() => setLetter('arrive')}
+          onClose={() => {
+            setReplaying(false);
+            closeCozy();
+          }}
+        />
         {letter === 'arrive' && (
           <CozieLetter
             letter={FIRST_LETTER}
             mode="arrive"
             onAction={(action) => {
+              setReplaying(false);
+              // A replay after onboarding is just a preview: don't seed the
+              // persona or post the letter into the chat a second time.
+              if (!firstRun) {
+                setLetter(null);
+                return;
+              }
               localStorage.setItem(WELCOMED_KEY, '1');
               profile.applyPatch(personaSeed());
               chat.deliverLetter(LETTER_CARD, action.opener);

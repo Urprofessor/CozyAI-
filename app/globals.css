@@ -4,6 +4,7 @@
 @import './cozie-letter.css';
 @import './cozie-home.css';
 @import './cozie-memory.css';
+@import './cozie-intro.css';
 
 @tailwind base;
 @tailwind components;
