@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useCozyVisible } from '@/components/shell/cozyClose';
-import { CZ, showToast, ToastHost } from './ui';
+import { CZ, showToast } from './ui';
 import { MiniPhone, Skel, usePhase, WelcomeHero } from './IntroHeroes';
 
 interface Props {
@@ -362,7 +362,35 @@ export function GuidedIntro({ onStart, onClose }: Props) {
         </div>
       )}
 
-      <ToastHost />
+    </div>
+  );
+}
+
+/** B shown as an iOS-style sheet: pulled up to 75% of the screen over the
+ *  dimmed Cozie page, rising each time Cozie is opened. */
+export function GuidedIntroSheet(props: Props) {
+  const visible = useCozyVisible();
+  const [up, setUp] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setUp(false);
+      return;
+    }
+    // Two frames so the closed position paints first and the sheet slides.
+    let id = requestAnimationFrame(() => {
+      id = requestAnimationFrame(() => setUp(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [visible]);
+
+  return (
+    <div className={cn('cz-intro-sheet', up && 'is-up')}>
+      <div className="cz-intro-sheet__scrim" aria-hidden="true" />
+      <div className="cz-intro-sheet__panel" role="dialog" aria-modal="true" aria-label="Welcome to Cozie">
+        <span className="cz-intro-sheet__grabber" aria-hidden="true" />
+        <GuidedIntro {...props} />
+      </div>
     </div>
   );
 }

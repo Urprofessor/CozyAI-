@@ -22,7 +22,7 @@ import { SettingsSheet } from './SettingsSheet';
 import { SourcesSheet } from './SourcesSheet';
 import { CZ, showToast, ToastHost } from './ui';
 import { WelcomeGate } from './WelcomeGate';
-import { GuidedIntro } from './GuidedIntro';
+import { GuidedIntroSheet } from './GuidedIntro';
 import { REPLAY_INTRO_EVENT, useIntroVariant } from '@/lib/cozy/introVariant';
 import { CozieLetter, LetterCard } from './CozieLetter';
 import { FIRST_LETTER, LETTER_CARD, personaSeed } from '@/lib/cozy/letters';
@@ -168,40 +168,39 @@ export function CozyChat() {
   if (!decided) return <div className="cz-page" />;
 
   const firstRun = !welcomed && chat.sessions.length === 0;
-  if (firstRun || replaying) {
-    // Every intro ends in the From Cozie letter. It arrives over the (blurred)
-    // intro; the gate stays mounted underneath so the film isn't restarted.
-    const Gate = introVariant === 'guide' ? GuidedIntro : WelcomeGate;
+  const introOn = firstRun || replaying;
+  const closeIntro = () => {
+    setReplaying(false);
+    closeCozy();
+  };
+  // Every intro ends in the From Cozie letter. It arrives over the (blurred)
+  // intro, which stays mounted underneath so the film isn't restarted.
+  const arrivingLetter = letter === 'arrive' && (
+    <CozieLetter
+      letter={FIRST_LETTER}
+      mode="arrive"
+      onAction={(action) => {
+        setReplaying(false);
+        // A replay after onboarding is just a preview: don't seed the
+        // persona or post the letter into the chat a second time.
+        if (!firstRun) {
+          setLetter(null);
+          return;
+        }
+        localStorage.setItem(WELCOMED_KEY, '1');
+        profile.applyPatch(personaSeed());
+        chat.deliverLetter(LETTER_CARD, action.opener);
+        setLetter(null);
+        setWelcomed(true);
+      }}
+    />
+  );
+  // A · the film takes the whole screen. (B is a sheet over the chat, below.)
+  if (introOn && introVariant !== 'guide') {
     return (
       <>
-        <Gate
-          key={introVariant}
-          onStart={() => setLetter('arrive')}
-          onClose={() => {
-            setReplaying(false);
-            closeCozy();
-          }}
-        />
-        {letter === 'arrive' && (
-          <CozieLetter
-            letter={FIRST_LETTER}
-            mode="arrive"
-            onAction={(action) => {
-              setReplaying(false);
-              // A replay after onboarding is just a preview: don't seed the
-              // persona or post the letter into the chat a second time.
-              if (!firstRun) {
-                setLetter(null);
-                return;
-              }
-              localStorage.setItem(WELCOMED_KEY, '1');
-              profile.applyPatch(personaSeed());
-              chat.deliverLetter(LETTER_CARD, action.opener);
-              setLetter(null);
-              setWelcomed(true);
-            }}
-          />
-        )}
+        <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
+        {arrivingLetter}
       </>
     );
   }
@@ -335,6 +334,11 @@ export function CozyChat() {
       )}
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
+      {/* B · guided intro: a 75% sheet pulled up over the Cozie page. */}
+      {introOn && <GuidedIntroSheet onStart={() => setLetter('arrive')} onClose={closeIntro} />}
+      {introOn && arrivingLetter}
+
       <ToastHost />
     </>
   );

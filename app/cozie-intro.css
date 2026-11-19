@@ -869,6 +869,99 @@
   }
 }
 
+/* ── B as a sheet: pulled up to 75% over the dimmed Cozie page ──────────────
+ * Below the letter (z 50), above the page, drawers and panels. */
+
+.cz-intro-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 48;
+}
+.cz-intro-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(36, 15, 27, 0.32);
+  opacity: 0;
+  transition: opacity 360ms ease 160ms;
+}
+.cz-intro-sheet__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 75%;
+  overflow: hidden;
+  border-radius: 28px 28px 0 0;
+  background: #fff;
+  box-shadow: 0 -12px 40px rgba(36, 15, 27, 0.14);
+  transform: translateY(100%);
+  /* waits for Cozie's circle reveal to mostly finish */
+  transition: transform 560ms cubic-bezier(0.2, 0.9, 0.2, 1) 220ms;
+}
+.cz-intro-sheet.is-up .cz-intro-sheet__scrim {
+  opacity: 1;
+}
+.cz-intro-sheet.is-up .cz-intro-sheet__panel {
+  transform: none;
+}
+.cz-intro-sheet__grabber {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  z-index: 4;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: 3px;
+  background: rgba(36, 15, 27, 0.16);
+}
+
+/* Compact sizing for the shorter sheet */
+.cz-intro-sheet .cz-guide__back,
+.cz-intro-sheet .cz-guide__close {
+  top: 14px;
+}
+.cz-intro-sheet .cz-steps-progress {
+  top: 34px;
+}
+.cz-intro-sheet .cz-guide__hero {
+  flex-basis: 47%;
+}
+.cz-intro-sheet .cz-steps.is-tall-body .cz-guide__hero {
+  flex-basis: 40%;
+}
+.cz-intro-sheet .cz-guide-phone {
+  top: 62px;
+}
+.cz-intro-sheet .cz-guide__body {
+  padding-top: 20px;
+}
+.cz-intro-sheet .cz-steps.is-plain .cz-guide__body {
+  padding-top: 70px;
+}
+.cz-intro-sheet .cz-guide__title {
+  font-size: 25px;
+  line-height: 30px;
+}
+.cz-intro-sheet .cz-guide__text {
+  font-size: 15px;
+  line-height: 21px;
+}
+.cz-intro-sheet .cz-steps-promises {
+  gap: 10px;
+  margin-top: 10px;
+}
+.cz-intro-sheet .cz-guide__footer {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-intro-sheet__scrim,
+  .cz-intro-sheet__panel {
+    transition: none;
+  }
+}
+
 /* ── Demo panel (desktop only, left of the phone frame) ───────────────────── */
 
 .demo-panel {
