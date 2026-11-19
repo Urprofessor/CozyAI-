@@ -33,6 +33,7 @@ import { useCozieLife } from '@/hooks/useCozieLife';
 import { CozieHomePage, hasNewAtCozies } from './home/CozieHomePage';
 import { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import { MemoryProfilePage } from './memory/MemoryProfilePage';
+import { AiImportHost } from './memory/AiImport';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -195,6 +196,11 @@ export function CozyChat() {
       }}
     />
   );
+  // "Bring what your AI already knows": opened from the letter or the memory
+  // profile; confirmed items land in the memory profile.
+  const importHost = (
+    <AiImportHost babyName={memory.profile.babies[0]?.displayName ?? 'your baby'} onSave={memory.addImported} />
+  );
   if (introOn) {
     return (
       <>
@@ -207,6 +213,9 @@ export function CozyChat() {
           <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
         )}
         {arrivingLetter}
+        {importHost}
+        {/* The film brings its own toast host; the sheet doesn't. */}
+        {introVariant === 'guide' && <ToastHost />}
       </>
     );
   }
@@ -341,6 +350,7 @@ export function CozyChat() {
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
 
+      {importHost}
       <ToastHost />
     </>
   );

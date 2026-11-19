@@ -6,9 +6,11 @@ import {
   buildDemoMemoryProfile,
   EMPTY_OVERRIDES,
   peopleOf,
+  type AddedEntry,
   type EntryEdit,
   type MemoryOverrides,
 } from '@/lib/cozy/memory-profile-demo';
+import type { ImportItem } from '@/lib/cozy/memory-import';
 
 // Kept apart from `cozyProfile` so the demo's manual edits never touch the
 // profile that chat and the lactation plan read.
@@ -19,7 +21,7 @@ function readLocal(): MemoryOverrides {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return EMPTY_OVERRIDES;
     const parsed = JSON.parse(raw) as Partial<MemoryOverrides>;
-    return { edits: parsed.edits ?? {}, forgotten: parsed.forgotten ?? [] };
+    return { edits: parsed.edits ?? {}, forgotten: parsed.forgotten ?? [], added: parsed.added ?? [] };
   } catch {
     return EMPTY_OVERRIDES;
   }
@@ -64,13 +66,35 @@ export function useMemoryProfile() {
     (id: string) =>
       update((o) => {
         const { [id]: _dropped, ...edits } = o.edits;
-        return { edits, forgotten: o.forgotten.includes(id) ? o.forgotten : [...o.forgotten, id] };
+        return { ...o, edits, forgotten: o.forgotten.includes(id) ? o.forgotten : [...o.forgotten, id] };
       }),
+    [update]
+  );
+
+  /** Save confirmed import items, each tagged with where it came from. */
+  const addImported = useCallback(
+    (items: ImportItem[], from: string) => {
+      const now = new Date().toISOString();
+      const added: AddedEntry[] = items.map((item) => ({
+        who: item.target.who,
+        dim: item.target.dim,
+        entry: {
+          id: `${item.id}-${Date.now().toString(36)}`,
+          kind: 'memory',
+          memoryType:
+            item.target.dim === 'carePreferences' ? 'preference' : item.target.dim === 'recentConcerns' ? 'event' : 'fact',
+          content: item.text,
+          source: { kind: 'imported', from },
+          createdAt: now,
+        },
+      }));
+      update((o) => ({ ...o, added: [...o.added, ...added] }));
+    },
     [update]
   );
 
   const profile = useMemo(() => applyOverrides(seed, overrides), [seed, overrides]);
   const people = useMemo(() => peopleOf(profile), [profile]);
 
-  return { profile, people, editEntry, forgetEntry };
+  return { profile, people, editEntry, forgetEntry, addImported };
 }

@@ -110,6 +110,8 @@ export function sourceLabel(source: MemorySource): string {
       return 'From chat';
     case 'manual':
       return 'Added by you';
+    case 'imported':
+      return `Imported from ${source.from}`;
   }
 }
 
@@ -186,21 +188,36 @@ export interface EntryEdit {
   updatedAt: string;
 }
 
+/** An entry added on this device (the AI import), and where it belongs.
+ *  `baby` means the first baby — the demo has one. */
+export interface AddedEntry {
+  who: 'mom' | 'baby';
+  dim: Dimension;
+  entry: SavedProfileMemory;
+}
+
 export interface MemoryOverrides {
   edits: Record<string, EntryEdit>;
   forgotten: string[];
+  added: AddedEntry[];
 }
 
-export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [] };
+export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [], added: [] };
 
 /** Apply the demo's local edits to the seed. A summary that cites an edited or
- *  forgotten entry is dropped, so the section falls back to its entries. */
+ *  forgotten entry is dropped, so the section falls back to its entries.
+ *  Added entries go to the end of their section and drop its summary too. */
 export function applyOverrides(profile: MemoryProfile, o: MemoryOverrides): MemoryProfile {
-  if (!o.forgotten.length && !Object.keys(o.edits).length) return profile;
+  if (!o.forgotten.length && !Object.keys(o.edits).length && !o.added.length) return profile;
   const forgotten = new Set(o.forgotten);
-  const fixSection = (section: AnySection | undefined): AnySection | undefined => {
-    if (!section) return section;
-    const entries = section.entries
+  const addedFor = (who: AddedEntry['who'], dim: string) =>
+    o.added.filter((a) => a.who === who && a.dim === dim).map((a) => a.entry);
+  const fixSection = (
+    section: AnySection | undefined,
+    extra: SavedProfileMemory[] = []
+  ): AnySection | undefined => {
+    if (!section && !extra.length) return section;
+    const entries = [...(section?.entries ?? []), ...extra]
       .filter((e) => !forgotten.has(e.id))
       .map((e): AnyEntry => {
         const edit = o.edits[e.id];
@@ -210,18 +227,26 @@ export function applyOverrides(profile: MemoryProfile, o: MemoryOverrides): Memo
         }
         return { ...e, value: edit.value ?? e.value, updatedAt: edit.updatedAt } as AnyField;
       });
-    const touched = section.summary?.entryIds.some((id) => forgotten.has(id) || id in o.edits);
-    return { entries, summary: touched ? undefined : section.summary };
+    const touched =
+      extra.length > 0 || section?.summary?.entryIds.some((id) => forgotten.has(id) || id in o.edits);
+    return { entries, summary: touched ? undefined : section?.summary };
   };
-  const fixAll = <T extends object>(sections: T): T => {
+  // `who` null: nothing is added to this person (babies after the first).
+  const fixAll = <T extends object>(sections: T, who: AddedEntry['who'] | null): T => {
     const out: Record<string, AnySection | undefined> = {};
-    for (const [k, v] of Object.entries(sections)) out[k] = fixSection(v as AnySection);
+    const own = sections as Record<string, AnySection | undefined>;
+    const dims = new Set<string>(Object.keys(own));
+    if (who) for (const a of o.added) if (a.who === who) dims.add(a.dim);
+    for (const k of dims) {
+      const fixed = fixSection(own[k], who ? addedFor(who, k) : []);
+      if (fixed) out[k] = fixed;
+    }
     return out as T;
   };
   return {
     ...profile,
-    mom: { ...profile.mom, sections: fixAll(profile.mom.sections) },
-    babies: profile.babies.map((b) => ({ ...b, sections: fixAll(b.sections) })),
+    mom: { ...profile.mom, sections: fixAll(profile.mom.sections, 'mom') },
+    babies: profile.babies.map((b, i) => ({ ...b, sections: fixAll(b.sections, i === 0 ? 'baby' : null) })),
   };
 }
 

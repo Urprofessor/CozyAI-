@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
+import { openAiImport } from './memory/AiImport';
 
 const sources = [
   {
@@ -14,6 +15,13 @@ const sources = [
     title: 'Momcozy devices',
     subtitle: 'Share pumping records',
     description: 'If you choose to share pumping records from a compatible Momcozy device, Cozie can use them when you talk about your routine.',
+  },
+  {
+    id: 'ai',
+    title: 'Your AI assistant',
+    subtitle: 'Bring what Claude or ChatGPT knows',
+    description:
+      'Already talked to another AI about your pregnancy or baby? We’ll email you a short prompt to run there, and you send back the answer. You review everything before Cozie keeps it.',
   },
 ] as const;
 
@@ -46,7 +54,13 @@ export function LetterConnections() {
               </button>
               <div id={panelId} className="cz-connections__details" hidden={!open}>
                 <p>{source.description}</p>
-                <p className="cz-connections__preview">Preview only. This demo does not connect or read your data.</p>
+                {source.id === 'ai' ? (
+                  <button type="button" className="cz-connections__action" onClick={() => openAiImport()}>
+                    Email me the steps
+                  </button>
+                ) : (
+                  <p className="cz-connections__preview">Preview only. This demo does not connect or read your data.</p>
+                )}
               </div>
             </div>
           );
@@ -63,6 +77,13 @@ function SourceIllustration({ source }: { source: (typeof sources)[number]['id']
         <>
           <path d="M47 32S28 21 28 12c0-9 12-12 19-3 7-9 19-6 19 3 0 9-19 20-19 20Z" />
           <path d="M5 56c11-1 16-9 25-11 7-2 12 0 19-1 5-1 7 5 1 7l-13 3m-19 8c9-6 23-1 33-7l22-16c4-4 0-8-5-5L54 44" />
+        </>
+      ) : source === 'ai' ? (
+        <>
+          {/* two speech bubbles passing an envelope */}
+          <path d="M8 12h30a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5H20l-8 6v-6H8a5 5 0 0 1-5-5V17a5 5 0 0 1 5-5Z" />
+          <path d="M72 26H50a5 5 0 0 0-5 5v12a5 5 0 0 0 5 5h12l8 6v-6h2a5 5 0 0 0 5-5V31a5 5 0 0 0-5-5Z" />
+          <path d="M12 20h22M12 26h14M51 34l10 7 10-7M51 34h20v10H51Z" />
         </>
       ) : (
         <>

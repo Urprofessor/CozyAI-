@@ -15,7 +15,9 @@ export type BabyDimension = (typeof BABY_MEMORY_DIMENSIONS)[number];
 export type MemorySource =
   | { kind: 'momcozyProfile'; syncedAt?: string }
   | { kind: 'chat'; sessionId?: string }
-  | { kind: 'manual' };
+  | { kind: 'manual' }
+  /** Brought over from another AI assistant (e.g. "Claude") via the import. */
+  | { kind: 'imported'; from: string };
 
 export interface ProfileEntry {
   id: string;
