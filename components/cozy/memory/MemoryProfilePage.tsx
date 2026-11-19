@@ -97,6 +97,17 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
         </div>
 
         <div key={person.key} className="mp-body">
+          {/* Import sits first so it's seen without scrolling past every section. */}
+          <button type="button" className="mp-import" onClick={() => openAiImport()}>
+            <span className="mp-import__icon" aria-hidden>
+              AI
+            </span>
+            <span>
+              <strong>Bring what your AI already knows</strong>
+              <small>Import from Claude or ChatGPT by email</small>
+            </span>
+            <Chevron dir="right" small />
+          </button>
           {person.sections.length === 0 ? (
             <p className="mp-empty">
               Cozie doesn’t remember anything about {person.subject.kind === 'mom' ? 'you' : person.name} yet.
@@ -114,16 +125,6 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
               />
             ))
           )}
-          <button type="button" className="mp-import" onClick={() => openAiImport()}>
-            <span className="mp-import__icon" aria-hidden>
-              AI
-            </span>
-            <span>
-              <strong>Bring what your AI already knows</strong>
-              <small>Import from Claude or ChatGPT by email</small>
-            </span>
-            <Chevron dir="right" small />
-          </button>
         </div>
       </div>
 
