@@ -10,6 +10,8 @@ import { REPLAY_INTRO_EVENT } from '@/lib/cozy/introVariant';
 
 const RETURN_KEY = 'cozyReturnTo';
 const LAUNCHER_R = 31; // half the 62pt launcher button
+// First-run intro B: a sheet over the current tab instead of a full page.
+const INTRO_SHEET = '.cz-intro-sheet';
 
 /** Tab pages + tab bar + Cozie. Cozie opens over the current tab as a
  *  full-screen layer that grows out of the launcher button (circle reveal), so
@@ -53,8 +55,18 @@ export function CozyShell({ children }: { children: ReactNode }) {
       originRef.current = { x: b.left + b.width / 2 - box.left, y: b.top + b.height / 2 - box.top };
       sessionStorage.setItem(RETURN_KEY, pathname);
       setOpen(true);
-      const anim = reveal(LAUNCHER_R, Infinity, 520);
-      if (anim) anim.onfinish = () => anim.cancel();
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      // Hold the stage at the launcher's size for a frame, so we can see what
+      // Cozie is opening into (a replay switches to the intro on this event).
+      const { x, y } = originRef.current;
+      stage.style.clipPath = `circle(${LAUNCHER_R}px at ${x}px ${y}px)`;
+      requestAnimationFrame(() => {
+        stage.style.clipPath = '';
+        // The intro sheet brings its own motion over the tab: no circle.
+        if (stage.querySelector(INTRO_SHEET)) return;
+        const anim = reveal(LAUNCHER_R, Infinity, 520);
+        if (anim) anim.onfinish = () => anim.cancel();
+      });
     },
     [pathname, reveal]
   );
@@ -64,6 +76,8 @@ export function CozyShell({ children }: { children: ReactNode }) {
       router.push(sessionStorage.getItem(RETURN_KEY) || '/home');
       return;
     }
+    // The sheet has already slid itself away.
+    if (stageRef.current?.querySelector(INTRO_SHEET)) return setOpen(false);
     const anim = reveal(Infinity, LAUNCHER_R, 420);
     if (!anim) return setOpen(false);
     anim.onfinish = () => {

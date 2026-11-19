@@ -195,11 +195,17 @@ export function CozyChat() {
       }}
     />
   );
-  // A · the film takes the whole screen. (B is a sheet over the chat, below.)
-  if (introOn && introVariant !== 'guide') {
+  if (introOn) {
     return (
       <>
-        <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
+        {introVariant === 'guide' ? (
+          // B · a 75% sheet over whichever tab Cozie was opened from — no chat
+          // page behind it, so the tab shows through the dimmed top.
+          <GuidedIntroSheet onStart={() => setLetter('arrive')} onClose={closeIntro} />
+        ) : (
+          // A · the film takes the whole screen.
+          <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
+        )}
         {arrivingLetter}
       </>
     );
@@ -334,10 +340,6 @@ export function CozyChat() {
       )}
 
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
-
-      {/* B · guided intro: a 75% sheet pulled up over the Cozie page. */}
-      {introOn && <GuidedIntroSheet onStart={() => setLetter('arrive')} onClose={closeIntro} />}
-      {introOn && arrivingLetter}
 
       <ToastHost />
     </>

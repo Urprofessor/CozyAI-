@@ -366,11 +366,15 @@ export function GuidedIntro({ onStart, onClose }: Props) {
   );
 }
 
+const SHEET_OUT_MS = 380;
+
 /** B shown as an iOS-style sheet: pulled up to 75% of the screen over the
- *  dimmed Cozie page, rising each time Cozie is opened. */
-export function GuidedIntroSheet(props: Props) {
+ *  dimmed tab Cozie was opened from, rising each time Cozie is opened and
+ *  sliding back down before it closes. */
+export function GuidedIntroSheet({ onStart, onClose }: Props) {
   const visible = useCozyVisible();
   const [up, setUp] = useState(false);
+  const closeTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!visible) {
@@ -383,13 +387,19 @@ export function GuidedIntroSheet(props: Props) {
     });
     return () => cancelAnimationFrame(id);
   }, [visible]);
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  const close = () => {
+    setUp(false);
+    closeTimer.current = window.setTimeout(onClose, SHEET_OUT_MS);
+  };
 
   return (
     <div className={cn('cz-intro-sheet', up && 'is-up')}>
       <div className="cz-intro-sheet__scrim" aria-hidden="true" />
       <div className="cz-intro-sheet__panel" role="dialog" aria-modal="true" aria-label="Welcome to Cozie">
         <span className="cz-intro-sheet__grabber" aria-hidden="true" />
-        <GuidedIntro {...props} />
+        <GuidedIntro onStart={onStart} onClose={close} />
       </div>
     </div>
   );
