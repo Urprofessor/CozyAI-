@@ -1,6 +1,6 @@
 import { IMPORT_PROMPT } from './memory-import';
 
-/* The "Bring what your AI knows" email. Same copy as EmailPreview in
+/* The "Bring what your AI knows" email (sent by Gmail or Resend). Same copy as EmailPreview in
  * components/cozy/memory/AiImport.tsx — keep the two in step. The answer
  * comes back by pasting it in Cozie (the link opens the paste step), not by
  * replying to the email. */

@@ -7,8 +7,8 @@ import { DIMENSION_LABELS } from '@/lib/cozy/memory-profile-demo';
 import { BottomSheet, CZ, showToast } from '../ui';
 
 /* "Bring what your AI already knows". "Email me the steps" sends the email
- * through /api/import-email (Resend); when sending isn't set up or fails, the
- * same email is previewed here instead. The email's link opens Cozie at the
+ * through /api/import-email (Gmail first, Resend as fallback); when sending
+ * isn't set up or fails, the same email is previewed here instead. The email's link opens Cozie at the
  * paste step (/cozy?import=paste). "Simulate Claude's reply" stays for
  * demos. Every item is reviewed before Cozie keeps it. */
 
