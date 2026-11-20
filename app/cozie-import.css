@@ -474,3 +474,8 @@
     animation: none;
   }
 }
+
+.cz-import__badge.is-sent {
+  background: #e3f3e8;
+  color: #1f6b3a;
+}

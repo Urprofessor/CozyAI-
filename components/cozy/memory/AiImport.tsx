@@ -6,10 +6,11 @@ import { IMPORT_PROMPT, isEmail, parseImport, SAMPLE_REPLY, type ImportItem } fr
 import { DIMENSION_LABELS } from '@/lib/cozy/memory-profile-demo';
 import { BottomSheet, CZ, showToast } from '../ui';
 
-/* "Bring what your AI already knows" — demo mode. Nothing is emailed: after
- * "Email me the steps" the email mom would get is previewed here, and
- * "Simulate Claude's reply" stands in for her answer coming back. Pasting a
- * real answer works too. Every item is reviewed before Cozie keeps it. */
+/* "Bring what your AI already knows". "Email me the steps" sends the email
+ * through /api/import-email (Resend); when sending isn't set up or fails, the
+ * same email is previewed here instead. The email's link opens Cozie at the
+ * paste step (/cozy?import=paste). "Simulate Claude's reply" stays for
+ * demos. Every item is reviewed before Cozie keeps it. */
 
 const OPEN_EVENT = 'cozie:open-ai-import';
 
@@ -19,6 +20,8 @@ export function openAiImport() {
 }
 
 type Stage = 'email' | 'sent' | 'paste' | 'reading' | 'review';
+/** What happened to the email: really sent, preview only, or send failed. */
+type Delivery = 'sent' | 'demo' | 'failed';
 const SOURCES = ['Claude', 'ChatGPT', 'another AI'] as const;
 
 interface Props {
@@ -36,6 +39,8 @@ export function AiImportHost({ babyName, onSave }: Props) {
   const [items, setItems] = useState<ImportItem[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [delivery, setDelivery] = useState<Delivery>('demo');
   const readTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -47,6 +52,16 @@ export function AiImportHost({ babyName, onSave }: Props) {
       setOpen(true);
     };
     window.addEventListener(OPEN_EVENT, onOpen);
+
+    // Arrived from the email's "Paste the answer in Cozie" link.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('import') === 'paste') {
+      url.searchParams.delete('import');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      setStage('paste');
+      setOpen(true);
+    }
+
     return () => {
       window.removeEventListener(OPEN_EVENT, onOpen);
       window.clearTimeout(readTimer.current);
@@ -66,6 +81,30 @@ export function AiImportHost({ babyName, onSave }: Props) {
     setError('');
     setStage('reading');
     readTimer.current = window.setTimeout(() => setStage('review'), 1400);
+  }
+
+  async function sendEmail() {
+    setSending(true);
+    setError('');
+    let reason = 'send_failed';
+    try {
+      const res = await fetch('/api/import-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = (await res.json()) as { sent?: boolean; reason?: string };
+      reason = data.sent ? 'sent' : (data.reason ?? 'send_failed');
+    } catch {
+      // Network error: fall through to the preview.
+    }
+    setSending(false);
+    if (reason === 'rate_limited') {
+      setError('That’s a few emails already today. Try again tomorrow, or paste an answer instead.');
+      return;
+    }
+    setDelivery(reason === 'sent' ? 'sent' : reason === 'not_configured' ? 'demo' : 'failed');
+    setStage('sent');
   }
 
   async function copyPrompt() {
@@ -123,7 +162,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
                   <span>It writes down only what it knows about your baby, feeding and sleep.</span>
                 </li>
                 <li>
-                  <b>Reply with the answer</b>
+                  <b>Paste the answer back here</b>
                   <span>You check every line before Cozie keeps it.</span>
                 </li>
               </ol>
@@ -138,16 +177,23 @@ export function AiImportHost({ babyName, onSave }: Props) {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </label>
-              <p className="cz-import__demo">Demo mode — no email is sent. You’ll see a preview here.</p>
+              {error ? (
+                <p className="cz-import__error">{error}</p>
+              ) : (
+                <p className="cz-import__demo">We only use your email to send these steps.</p>
+              )}
             </div>
             <div className="cz-import__footer">
               <button
                 type="button"
                 className="cz-primary-btn"
-                disabled={!isEmail(email)}
-                onClick={() => setStage('sent')}
+                disabled={!isEmail(email) || sending}
+                onClick={sendEmail}
               >
-                Email me the steps
+                {sending ? 'Sending…' : 'Email me the steps'}
+              </button>
+              <button type="button" className="cz-import__secondary" onClick={() => setStage('paste')}>
+                I already have an answer
               </button>
             </div>
           </>
@@ -156,17 +202,25 @@ export function AiImportHost({ babyName, onSave }: Props) {
         {stage === 'sent' && (
           <>
             <div className="cz-import__scroll">
-              <p className="cz-import__badge">Demo preview</p>
+              <p className={cn('cz-import__badge', delivery === 'sent' && 'is-sent')}>
+                {delivery === 'sent' ? 'Sent' : delivery === 'failed' ? 'Not sent · preview' : 'Demo preview'}
+              </p>
               <h2 className="cz-import__title">Check your inbox</h2>
-              <p className="cz-import__lead">This is the email we’d send to {email.trim()}.</p>
+              <p className="cz-import__lead">
+                {delivery === 'sent'
+                  ? `We sent the steps to ${email.trim()}. When your AI answers, come back and paste it here.`
+                  : delivery === 'failed'
+                    ? `We couldn’t email ${email.trim()} just now. Here’s the same email — you can follow it from here.`
+                    : `This is the email we’d send to ${email.trim()}.`}
+              </p>
               <EmailPreview to={email.trim()} onCopy={copyPrompt} />
             </div>
             <div className="cz-import__footer">
-              <button type="button" className="cz-primary-btn" onClick={() => read(SAMPLE_REPLY, 'Claude')}>
-                Simulate Claude’s reply
+              <button type="button" className="cz-primary-btn" onClick={() => setStage('paste')}>
+                Paste the answer
               </button>
-              <button type="button" className="cz-import__secondary" onClick={() => setStage('paste')}>
-                Paste an answer instead
+              <button type="button" className="cz-import__secondary" onClick={() => read(SAMPLE_REPLY, 'Claude')}>
+                Simulate Claude’s reply
               </button>
             </div>
           </>
@@ -175,8 +229,12 @@ export function AiImportHost({ babyName, onSave }: Props) {
         {stage === 'paste' && (
           <>
             <div className="cz-import__scroll">
-              <button type="button" className="cz-import__back" onClick={() => setStage('sent')}>
-                ‹ Back to the email
+              <button
+                type="button"
+                className="cz-import__back"
+                onClick={() => setStage(isEmail(email) ? 'sent' : 'email')}
+              >
+                {isEmail(email) ? '‹ Back to the email' : '‹ Back'}
               </button>
               <h2 className="cz-import__title">Paste your AI’s answer</h2>
               <div className="cz-import__chips" role="radiogroup" aria-label="Which AI wrote it">
@@ -283,7 +341,7 @@ function EmailPreview({ to, onCopy }: { to: string; onCopy: () => void }) {
           <li>Copy the prompt below.</li>
           <li>Paste it into a chat with your AI and send it.</li>
           <li>
-            <b>Reply to this email</b> with its answer. Delete anything you’d rather not share first.
+            <b>Copy its answer and paste it back in Cozie.</b>
           </li>
         </ol>
         <pre className="cz-mail__prompt">{IMPORT_PROMPT}</pre>
@@ -300,7 +358,6 @@ function EmailPreview({ to, onCopy }: { to: string; onCopy: () => void }) {
         </div>
         <p className="cz-mail__fine">
           You’ll review everything in Cozie before it’s saved, and you can delete it anytime in your memory profile.
-          Replies to this email are accepted for 7 days.
         </p>
       </div>
     </article>

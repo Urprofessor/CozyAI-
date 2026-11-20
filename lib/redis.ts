@@ -30,3 +30,11 @@ export async function redisGet(key: string): Promise<string | null> {
 export async function redisSetJson(key: string, value: unknown): Promise<void> {
   await redisCommand(['SET', key, JSON.stringify(value), 'EX', TTL_SECONDS]);
 }
+
+/** Count a hit under `key`; the window starts on the first hit and lasts `ttlSeconds`. */
+export async function redisHit(key: string, ttlSeconds: number): Promise<number> {
+  const data = (await redisCommand(['INCR', key])) as { result?: number };
+  const n = Number(data?.result ?? 0);
+  if (n === 1) await redisCommand(['EXPIRE', key, ttlSeconds]);
+  return n;
+}
