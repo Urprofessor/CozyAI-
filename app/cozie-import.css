@@ -70,16 +70,6 @@
   line-height: 20px;
   color: rgba(36, 15, 27, 0.7);
 }
-.cz-import__badge {
-  display: inline-block;
-  margin: 0 0 8px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--colors-brands-care-100);
-  color: var(--colors-brands-care-700);
-  font-size: 11px;
-  font-weight: 600;
-}
 .cz-import__demo {
   margin: 10px 0 0;
   font-size: 12px;
@@ -178,88 +168,28 @@
   border-color: var(--cz-accent);
 }
 
-/* Email preview */
-.cz-mail {
-  overflow: hidden;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow:
-    0 0 0 1px #efe9eb,
-    0 6px 20px rgba(62, 0, 16, 0.06);
-}
-.cz-mail__head {
-  display: grid;
-  grid-template-columns: 34px 1fr auto;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 14px;
-  border-bottom: 1px solid #f3eef0;
-}
-.cz-mail__head img {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--colors-brands-mom-75);
-  object-fit: contain;
-}
-.cz-mail__head span {
-  display: grid;
-  min-width: 0;
-}
-.cz-mail__head b {
-  font-size: 13px;
-  font-weight: 600;
-}
-.cz-mail__head small,
-.cz-mail__head em {
-  overflow: hidden;
-  font-size: 11px;
-  font-style: normal;
-  color: var(--cz-ink-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cz-mail__subject {
-  margin: 0;
-  padding: 12px 14px 0;
-  font-size: 15px;
-  font-weight: 600;
-}
-.cz-mail__body {
-  padding: 8px 14px 14px;
-  font-size: 13px;
-  line-height: 19px;
-  color: rgba(36, 15, 27, 0.82);
-}
-.cz-mail__body p {
-  margin: 0 0 8px;
-}
-.cz-mail__body ol {
-  margin: 0 0 10px;
-  padding-left: 18px;
-  list-style: decimal;
-}
-.cz-mail__prompt {
-  max-height: 168px;
-  overflow: auto;
-  margin: 0 0 10px;
+/* Paste */
+.cz-import__notice {
+  margin: 0 0 14px;
   padding: 10px 12px;
-  border-radius: 12px;
-  background: #f7f4f5;
+  border-radius: 14px;
+  background: var(--colors-brands-mom-75);
   color: var(--cz-ink);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 16px;
-  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 18px;
 }
-.cz-mail__actions {
+.cz-import__notice.is-sent {
+  background: #e8f5ec;
+  color: #1f5a34;
+}
+.cz-import__tools {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
+  margin: 2px 0 12px;
 }
-.cz-mail__actions button,
-.cz-mail__actions a {
+.cz-import__tools button,
+.cz-import__tools a {
   height: 32px;
   display: inline-flex;
   align-items: center;
@@ -273,22 +203,20 @@
   font-weight: 500;
   text-decoration: none;
 }
-.cz-mail__actions button {
+.cz-import__tools button {
   border-color: var(--cz-accent);
-  background: var(--cz-accent);
-  color: #fff;
+  color: var(--cz-accent);
 }
-.cz-mail__fine {
-  font-size: 11px;
-  line-height: 15px;
+.cz-import__label {
+  margin: 12px 0 0;
+  font-size: 12px;
   color: var(--cz-ink-2);
 }
-
-/* Paste */
 .cz-import__chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  margin: 4px 0 10px;
+  margin: 6px 0 4px;
 }
 .cz-import__chips button {
   height: 30px;
@@ -308,15 +236,15 @@
 }
 .cz-import__paste {
   width: 100%;
-  min-height: 220px;
+  min-height: 200px;
   padding: 12px 14px;
   border: 1px solid #e6dfe2;
   border-radius: 16px;
   background: #fff;
   color: var(--cz-ink);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 18px;
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  line-height: 20px;
   resize: vertical;
   outline: none;
 }
@@ -397,6 +325,16 @@
   color: var(--cz-ink-2);
   text-decoration: line-through;
 }
+.cz-import__tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #fbefe4;
+  color: #8a4b12;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+}
 .cz-import__item small {
   display: block;
   margin-top: 2px;
@@ -473,9 +411,4 @@
   .cz-import__envelope {
     animation: none;
   }
-}
-
-.cz-import__badge.is-sent {
-  background: #e3f3e8;
-  color: #1f6b3a;
 }

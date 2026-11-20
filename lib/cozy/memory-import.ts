@@ -2,9 +2,9 @@ import type { BabyDimension, MomDimension } from './memory-profile';
 
 /* Import what another AI assistant already knows (method 1 of "inherit the
  * user's context"): we email mom a prompt, she runs it in Claude / ChatGPT,
- * and the answer comes back to us. The prompt asks for fixed headings, so
- * the answer can be read here without a model; the real backend can add a
- * model pass for answers that lose the format. */
+ * and pastes the answer back in Cozie. /api/import-parse reads it with
+ * DeepSeek; parseImport below is the fallback, relying on the fixed headings
+ * the prompt asks for. */
 
 export type ImportTarget =
   | { who: 'mom'; dim: MomDimension }
@@ -14,6 +14,8 @@ export interface ImportItem {
   id: string;
   target: ImportTarget;
   text: string;
+  /** Health, medication, relationships… — starts unticked in the review. */
+  sensitive?: boolean;
 }
 
 /** Heading in the answer → where it lands in the memory profile. Health is
@@ -36,32 +38,6 @@ Rules:
 - If you don't know anything for a heading, write "- Nothing yet". Don't guess.
 
 ${HEADINGS.map((h) => `## ${h.heading}`).join('\n')}`;
-
-/** Demo: what Clara's Claude might send back (fictional persona). */
-export const SAMPLE_REPLY = `Here's what I know from our conversations:
-
-## About me
-- Lives in Portland with her partner Sam, who does the evening bottle
-- Plans to go back to work in January
-
-## How I like help
-- Prefers bullet points over long paragraphs
-- Likes evidence-based tips with a short "why"
-
-## What's on my mind
-- Wants to build a freezer stash before going back to work
-- Unsure when to start Noah on a regular bottle
-
-## My baby
-- Noah, born in early October
-
-## Feeding
-- Mostly breastfed, plus one bottle of pumped milk in the evening
-- Pumps about 6 times a day; mornings give the most milk
-
-## Sleep
-- Longest stretch is about 3.5 hours, usually after the 10 p.m. feed
-- Daytime naps are short, around 30–40 minutes`;
 
 const NOTHING = /^nothing( yet)?\.?$/i;
 
