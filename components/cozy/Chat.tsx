@@ -34,6 +34,7 @@ import { CozieHomePage, hasNewAtCozies } from './home/CozieHomePage';
 import { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import { MemoryProfilePage } from './memory/MemoryProfilePage';
 import { AiImportHost } from './memory/AiImport';
+import { FileImportHost } from './memory/FileImport';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -196,10 +197,14 @@ export function CozyChat() {
       }}
     />
   );
-  // "Bring what your AI already knows": opened from the letter or the memory
-  // profile; confirmed items land in the memory profile.
+  // "Bring what your AI already knows" and "Add a file or report": opened from
+  // the letter or the memory profile; confirmed items land in the memory profile.
+  const babyName = memory.profile.babies[0]?.displayName ?? 'your baby';
   const importHost = (
-    <AiImportHost babyName={memory.profile.babies[0]?.displayName ?? 'your baby'} onSave={memory.addImported} />
+    <>
+      <AiImportHost babyName={babyName} onSave={memory.addImported} />
+      <FileImportHost babyName={babyName} onSave={memory.addImported} />
+    </>
   );
   if (introOn) {
     return (

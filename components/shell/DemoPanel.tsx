@@ -1,7 +1,7 @@
 'use client';
 
 import { INTRO_VARIANTS, replayIntro, setIntroVariant, useIntroVariant } from '@/lib/cozy/introVariant';
-import { resetAi, setSourceConnected, useConnections } from '@/lib/cozy/connections';
+import { resetAi, resetFiles, setHealthConnected, useConnections } from '@/lib/cozy/connections';
 
 /** Desktop-only reviewer panel beside the phone frame: pick which first-run
  *  intro Cozie shows (A film / B guided) and replay it, and flip the letter's
@@ -42,27 +42,24 @@ export function DemoPanel() {
 
       <div className="demo-panel__section">
         <p className="demo-panel__subtitle">Letter cards</p>
-        {(
-          [
-            ['health', 'Apple Health connected'],
-            ['devices', 'Momcozy device connected'],
-          ] as const
-        ).map(([id, label]) => {
-          const on = connections[id] === 'done';
-          return (
-            <button
-              key={id}
-              type="button"
-              role="switch"
-              aria-checked={on}
-              className="demo-panel__switch"
-              onClick={() => setSourceConnected(id, !on)}
-            >
-              {label}
-              <i aria-hidden />
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={connections.health === 'done'}
+          className="demo-panel__switch"
+          onClick={() => setHealthConnected(connections.health !== 'done')}
+        >
+          Apple Health connected
+          <i aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="demo-panel__link"
+          disabled={connections.files.status === 'idle'}
+          onClick={resetFiles}
+        >
+          Reset files card
+        </button>
         <button
           type="button"
           className="demo-panel__link"

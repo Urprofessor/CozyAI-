@@ -20,6 +20,7 @@ import { ConfirmDialog, showToast } from '../ui';
 import { MemoryEditSheet } from './MemoryEditSheet';
 import { MemoryOrbit } from './MemoryOrbit';
 import { openAiImport } from './AiImport';
+import { openFileImport } from './FileImport';
 
 type Memory = ReturnType<typeof useMemoryProfile>;
 
@@ -105,6 +106,16 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
             <span>
               <strong>Bring what your AI already knows</strong>
               <small>From Claude, ChatGPT, Gemini or Grok</small>
+            </span>
+            <Chevron dir="right" small />
+          </button>
+          <button type="button" className="mp-import" onClick={openFileImport}>
+            <span className="mp-import__icon" aria-hidden>
+              PDF
+            </span>
+            <span>
+              <strong>Add a file or report</strong>
+              <small>PDF, Word, a Huckleberry CSV or a photo</small>
             </span>
             <Chevron dir="right" small />
           </button>

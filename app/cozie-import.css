@@ -584,3 +584,59 @@
     animation: none;
   }
 }
+
+/* File import sheet (components/cozy/memory/FileImport.tsx) */
+.cz-import__kinds {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.cz-import__kinds li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--cz-ink-2);
+}
+.cz-import__kinds i {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--colors-brands-mom-75);
+  color: var(--cz-accent);
+}
+.cz-import__kinds b {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cz-ink);
+}
+.cz-import__file {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.cz-import__file:focus-within {
+  outline: 2px solid var(--cz-accent);
+  outline-offset: 3px;
+}
+.cz-import__file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.cz-import__footer .cz-import__demo {
+  margin: 8px 0 0;
+  text-align: center;
+}
+.mp-import + .mp-import {
+  margin-top: -10px;
+}

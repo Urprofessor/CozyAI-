@@ -31,6 +31,18 @@ export const PRIVACY_POINTS: { title: string; text: string }[] = [
   },
 ];
 
+/** Same promises for an uploaded file (components/cozy/memory/FileImport.tsx).
+ *  True today: /api/import-file keeps nothing, and tracker CSVs are totalled
+ *  in the browser (lib/cozy/file-import.ts) so only the averages are sent. */
+export const FILE_PRIVACY_POINTS: { title: string; text: string }[] = PRIVACY_POINTS.map((p, i) =>
+  i === 2
+    ? {
+        title: 'Your file isn’t kept',
+        text: 'Cozie reads it once over an encrypted connection and doesn’t store it. Tracker exports are totalled on your phone, so only the averages are sent.',
+      }
+    : p,
+);
+
 /** Open the AI with the prompt already typed in, so there's nothing to copy.
  *  Prefill via ?q= is a web-only convenience: a site or native app that
  *  ignores it still opens, which is why the prompt is also copied (in the

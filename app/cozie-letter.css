@@ -678,7 +678,7 @@
   box-shadow: 0 5px 16px #790a301a;
 }
 
-.cz-connections__card[data-source='devices'] {
+.cz-connections__card[data-source='files'] {
   background: linear-gradient(120deg, #faedf2, #efc9d9);
 }
 

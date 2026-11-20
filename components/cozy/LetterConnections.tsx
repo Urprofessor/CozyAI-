@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  setSourceConnected,
+  setHealthConnected,
   statusOf,
   useConnections,
   type Connections,
@@ -11,6 +11,7 @@ import {
   type SourceStatus,
 } from '@/lib/cozy/connections';
 import { openAiImport } from './memory/AiImport';
+import { openFileImport } from './memory/FileImport';
 
 const sources = [
   {
@@ -20,10 +21,11 @@ const sources = [
     description: 'If you choose to share your sleep records, Cozie can refer to them when you talk about your rest.',
   },
   {
-    id: 'devices',
-    title: 'Momcozy devices',
-    subtitle: 'Share pumping records',
-    description: 'If you choose to share pumping records from a compatible Momcozy device, Cozie can use them when you talk about your routine.',
+    id: 'files',
+    title: 'Files & reports',
+    subtitle: 'PDF, Word, CSV or a photo — like a Huckleberry export',
+    description:
+      'Add a check-up report, a discharge summary, a baby-tracker export or a photo of one. Cozie suggests what to remember, and you choose what stays.',
   },
   {
     id: 'ai',
@@ -39,9 +41,14 @@ function statusLine(id: SourceId, status: SourceStatus, c: Connections): string 
   if (status === 'pending') return 'Email sent · paste the answer when ready';
   if (status !== 'done') return null;
   if (id === 'health') return 'Connected · sleep, last 30 days';
-  if (id === 'devices') return 'Connected · pumping records';
-  return `${c.ai.count} ${c.ai.count === 1 ? 'thing' : 'things'} from ${c.ai.from ?? 'your AI'}`;
+  if (id === 'files') {
+    const n = c.files.names.length;
+    return `${n} ${n === 1 ? 'file' : 'files'} · ${things(c.files.count)}`;
+  }
+  return `${things(c.ai.count)} from ${c.ai.from ?? 'your AI'}`;
 }
+
+const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 export function LetterConnections() {
   const id = useId();
@@ -136,19 +143,35 @@ function Details({
     );
   }
 
+  if (source.id === 'files') {
+    if (status === 'done') {
+      return (
+        <>
+          <p>
+            Cozie learned {things(connections.files.count)} from {connections.files.names.join(', ')}. You can edit or
+            delete them anytime in your memory profile.
+          </p>
+          <button type="button" className="cz-connections__link" onClick={openFileImport}>
+            Add another file
+          </button>
+        </>
+      );
+    }
+    return (
+      <>
+        <p>{source.description}</p>
+        <button type="button" className="cz-connections__action" onClick={openFileImport}>
+          Choose a file
+        </button>
+      </>
+    );
+  }
+
   if (status === 'done') {
     return (
       <>
-        <p>
-          {source.id === 'health'
-            ? 'Cozie can refer to your sleep records from Apple Health when you talk about your rest.'
-            : 'Cozie can use pumping records from your Momcozy device when you talk about your routine.'}
-        </p>
-        <button
-          type="button"
-          className="cz-connections__link"
-          onClick={() => setSourceConnected(source.id, false)}
-        >
+        <p>Cozie can refer to your sleep records from Apple Health when you talk about your rest.</p>
+        <button type="button" className="cz-connections__link" onClick={() => setHealthConnected(false)}>
           Disconnect
         </button>
       </>
@@ -188,6 +211,13 @@ function SourceIllustration({ source }: { source: SourceId }) {
         <>
           <path d="M47 32S28 21 28 12c0-9 12-12 19-3 7-9 19-6 19 3 0 9-19 20-19 20Z" />
           <path d="M5 56c11-1 16-9 25-11 7-2 12 0 19-1 5-1 7 5 1 7l-13 3m-19 8c9-6 23-1 33-7l22-16c4-4 0-8-5-5L54 44" />
+        </>
+      ) : source === 'files' ? (
+        <>
+          {/* a report with a second page behind it */}
+          <path d="M30 8h22l12 12v30a4 4 0 0 1-4 4H30a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4Z" />
+          <path d="M52 8v12h12M33 28h22M33 35h22M33 42h14" />
+          <path d="M20 16v38a6 6 0 0 0 6 6h28" />
         </>
       ) : source === 'ai' ? (
         <>
