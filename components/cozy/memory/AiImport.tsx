@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { IMPORT_PROMPT, isEmail, type ImportItem } from '@/lib/cozy/memory-import';
 import { AI_LINKS, PRIVACY_POINTS, PRIVACY_TITLE } from '@/lib/cozy/import-privacy';
 import { DIMENSION_LABELS } from '@/lib/cozy/memory-profile-demo';
+import { markAiImported, markAiPending } from '@/lib/cozy/connections';
 import { BottomSheet, CZ, showToast } from '../ui';
 
 /* "Bring what your AI already knows". "Email me the prompt" sends it through
@@ -17,12 +18,13 @@ import { BottomSheet, CZ, showToast } from '../ui';
 
 const OPEN_EVENT = 'cozie:open-ai-import';
 
-/** Open the import sheet from anywhere inside Cozie. */
-export function openAiImport() {
-  window.dispatchEvent(new Event(OPEN_EVENT));
-}
-
 type Stage = 'email' | 'paste' | 'reading' | 'review';
+
+/** Open the import sheet from anywhere inside Cozie — at the start, or
+ *  straight at the paste box once the email is out. */
+export function openAiImport(at: 'email' | 'paste' = 'email') {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: at }));
+}
 /** What happened to the email on the way to the paste step. */
 type Delivery = 'sent' | 'unsent' | null;
 const SOURCES = ['Claude', 'ChatGPT', 'Gemini', 'Grok', 'Other'] as const;
@@ -48,8 +50,8 @@ export function AiImportHost({ babyName, onSave }: Props) {
   const readId = useRef(0);
 
   useEffect(() => {
-    const onOpen = () => {
-      setStage('email');
+    const onOpen = (e: Event) => {
+      setStage((e as CustomEvent<Stage>).detail === 'paste' ? 'paste' : 'email');
       setAnswer('');
       setError('');
       setItems([]);
@@ -96,6 +98,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
       return;
     }
     setDelivery(reason === 'sent' ? 'sent' : 'unsent');
+    if (reason === 'sent') markAiPending();
     setStage('paste');
   }
 
@@ -146,6 +149,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
   function save() {
     const chosen = items.filter((i) => picked.has(i.id));
     onSave(chosen, from ?? 'your AI');
+    markAiImported(chosen.length, from ?? 'your AI');
     setOpen(false);
     showToast(`Cozie will remember ${chosen.length} new ${chosen.length === 1 ? 'thing' : 'things'}.`);
   }

@@ -479,3 +479,108 @@
     animation: none;
   }
 }
+
+/* Letter cards: pending / connected states (components/cozy/LetterConnections.tsx) */
+.cz-connections__art {
+  position: relative;
+  display: block;
+}
+.cz-connections__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(36, 15, 27, 0.16);
+  animation: cz-badge-pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.cz-connections__badge svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cz-connections__badge.is-done {
+  background: #2e7d4a;
+}
+.cz-connections__badge.is-done path {
+  stroke-dasharray: 12;
+  animation: cz-badge-check 320ms 180ms ease-out both;
+}
+.cz-connections__badge.is-pending {
+  background: #c27a12;
+}
+.cz-connections__badge.is-pending svg {
+  stroke-width: 1.6;
+}
+.cz-connections__card small.cz-connections__status {
+  font-weight: 600;
+  animation: cz-status-in 300ms ease-out both;
+}
+.cz-connections__card[data-status='done'] small.cz-connections__status {
+  color: #1f6b3a;
+}
+.cz-connections__card[data-status='pending'] small.cz-connections__status {
+  color: #8a4b12;
+}
+.cz-connections__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.cz-connections__link {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #790a30;
+  font-family: var(--cz-ui);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cz-letter__body .cz-letter__connected {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f6b3a;
+}
+
+@keyframes cz-badge-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes cz-badge-check {
+  from {
+    stroke-dashoffset: 12;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cz-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cz-connections__badge,
+  .cz-connections__badge.is-done path,
+  .cz-connections__card small.cz-connections__status {
+    animation: none;
+  }
+}

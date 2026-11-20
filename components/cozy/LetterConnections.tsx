@@ -1,6 +1,15 @@
 'use client';
 
 import { useId, useState } from 'react';
+import { cn } from '@/lib/utils';
+import {
+  setSourceConnected,
+  statusOf,
+  useConnections,
+  type Connections,
+  type SourceId,
+  type SourceStatus,
+} from '@/lib/cozy/connections';
 import { openAiImport } from './memory/AiImport';
 
 const sources = [
@@ -23,11 +32,21 @@ const sources = [
     description:
       'Already talked to another AI about your pregnancy or baby? We’ll email you a short prompt to run there, then you paste the answer back here. You review everything before Cozie keeps it.',
   },
-] as const;
+] as const satisfies readonly { id: SourceId; title: string; subtitle: string; description: string }[];
+
+/** Collapsed-card line once a source is pending or connected. */
+function statusLine(id: SourceId, status: SourceStatus, c: Connections): string | null {
+  if (status === 'pending') return 'Email sent · paste the answer when ready';
+  if (status !== 'done') return null;
+  if (id === 'health') return 'Connected · sleep, last 30 days';
+  if (id === 'devices') return 'Connected · pumping records';
+  return `${c.ai.count} ${c.ai.count === 1 ? 'thing' : 'things'} from ${c.ai.from ?? 'your AI'}`;
+}
 
 export function LetterConnections() {
   const id = useId();
-  const [selected, setSelected] = useState<(typeof sources)[number]['id'] | null>(null);
+  const connections = useConnections();
+  const [selected, setSelected] = useState<SourceId | null>(null);
 
   return (
     <section className="cz-connections" aria-labelledby={`${id}-title`}>
@@ -37,8 +56,10 @@ export function LetterConnections() {
         {sources.map((source) => {
           const open = selected === source.id;
           const panelId = `${id}-${source.id}`;
+          const status = statusOf(connections, source.id);
+          const line = statusLine(source.id, status, connections);
           return (
-            <div key={source.id} className="cz-connections__card" data-source={source.id}>
+            <div key={source.id} className="cz-connections__card" data-source={source.id} data-status={status}>
               <button
                 type="button"
                 aria-expanded={open}
@@ -47,20 +68,16 @@ export function LetterConnections() {
               >
                 <span>
                   <strong>{source.title}</strong>
-                  <small>{source.subtitle}</small>
+                  <small className={cn(line && 'cz-connections__status')}>{line ?? source.subtitle}</small>
                 </span>
-                <SourceIllustration source={source.id} />
+                <span className="cz-connections__art">
+                  <SourceIllustration source={source.id} />
+                  {status !== 'idle' && <StatusBadge status={status} />}
+                </span>
                 <span aria-hidden className="cz-connections__chevron">⌄</span>
               </button>
               <div id={panelId} className="cz-connections__details" hidden={!open}>
-                <p>{source.description}</p>
-                {source.id === 'ai' ? (
-                  <button type="button" className="cz-connections__action" onClick={() => openAiImport()}>
-                    Email me the steps
-                  </button>
-                ) : (
-                  <p className="cz-connections__preview">Preview only. This demo does not connect or read your data.</p>
-                )}
+                <Details source={source} status={status} connections={connections} />
               </div>
             </div>
           );
@@ -70,7 +87,101 @@ export function LetterConnections() {
   );
 }
 
-function SourceIllustration({ source }: { source: (typeof sources)[number]['id'] }) {
+function Details({
+  source,
+  status,
+  connections,
+}: {
+  source: (typeof sources)[number];
+  status: SourceStatus;
+  connections: Connections;
+}) {
+  if (source.id === 'ai') {
+    if (status === 'pending') {
+      return (
+        <>
+          <p>We emailed you the prompt. Run it in your AI, then paste its answer here — you’ll check every line first.</p>
+          <div className="cz-connections__row">
+            <button type="button" className="cz-connections__action" onClick={() => openAiImport('paste')}>
+              Paste the answer
+            </button>
+            <button type="button" className="cz-connections__link" onClick={() => openAiImport()}>
+              Send the email again
+            </button>
+          </div>
+        </>
+      );
+    }
+    if (status === 'done') {
+      const n = connections.ai.count;
+      return (
+        <>
+          <p>
+            Cozie now knows {n} {n === 1 ? 'thing' : 'things'} from {connections.ai.from ?? 'your AI'}. You can edit or
+            delete them anytime in your memory profile.
+          </p>
+          <button type="button" className="cz-connections__link" onClick={() => openAiImport()}>
+            Import more
+          </button>
+        </>
+      );
+    }
+    return (
+      <>
+        <p>{source.description}</p>
+        <button type="button" className="cz-connections__action" onClick={() => openAiImport()}>
+          Email me the steps
+        </button>
+      </>
+    );
+  }
+
+  if (status === 'done') {
+    return (
+      <>
+        <p>
+          {source.id === 'health'
+            ? 'Cozie can refer to your sleep records from Apple Health when you talk about your rest.'
+            : 'Cozie can use pumping records from your Momcozy device when you talk about your routine.'}
+        </p>
+        <button
+          type="button"
+          className="cz-connections__link"
+          onClick={() => setSourceConnected(source.id, false)}
+        >
+          Disconnect
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p>{source.description}</p>
+      <p className="cz-connections__preview">Preview only. This demo does not connect or read your data.</p>
+    </>
+  );
+}
+
+/** Small round badge on the illustration: a check once connected, a clock while waiting. */
+function StatusBadge({ status }: { status: SourceStatus }) {
+  return (
+    <span className={cn('cz-connections__badge', `is-${status}`)} aria-hidden>
+      <svg viewBox="0 0 16 16">
+        {status === 'done' ? (
+          <path d="m4.2 8.3 2.5 2.5 5-5.4" />
+        ) : (
+          <>
+            <circle cx="8" cy="8" r="4.6" />
+            <path d="M8 5.6V8l1.6 1.2" />
+          </>
+        )}
+      </svg>
+    </span>
+  );
+}
+
+function SourceIllustration({ source }: { source: SourceId }) {
   return (
     <svg viewBox="0 0 80 64" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {source === 'health' ? (

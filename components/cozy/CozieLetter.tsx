@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import type { LetterAction, LetterBlock, LetterContent } from '@/lib/cozy/letters';
 import { CZ, MaskIcon } from './ui';
 import { LetterConnections } from './LetterConnections';
+import { connectedCount, useConnections } from '@/lib/cozy/connections';
 
 type Phase = 'arrive' | 'seal' | 'open' | 'rise' | 'read';
 
@@ -33,6 +34,7 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
   const paperRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
   const connectionsRef = useRef<HTMLDivElement>(null);
+  const connected = connectedCount(useConnections());
 
   useEffect(() => {
     if (mode === 'reread') return;
@@ -69,7 +71,10 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
   const date = new Date().toLocaleString(letter.dateLocale ?? 'en-US', { month: 'short', day: 'numeric' });
   const from = letter.from ?? 'Cozie';
   const heading = letter.heading ?? `From ${from}`;
-  const offerConnections = mode === 'arrive' && letter.offerDataConnections;
+  // The cards show when rereading too, so connected sources read as done;
+  // the Connect / Continue buttons belong to the first arrival only.
+  const offerConnections = letter.offerDataConnections;
+  const connectionButtons = mode === 'arrive' && onAction;
   const skipConnection = letter.actions.find((action) => action.quiet);
 
   function openConnections() {
@@ -141,16 +146,37 @@ export function CozieLetter({ letter, mode, onAction, onClose }: Props) {
                 <div ref={connectionsRef}>
                   <LetterConnections />
                 </div>
-                <div className="cz-letter__connection-actions">
-                  <button type="button" className="cz-letter__btn cz-letter__connect" onClick={openConnections}>
-                    Connect data
-                  </button>
-                  {onAction && skipConnection && (
-                    <button type="button" className="cz-letter__btn is-quiet" onClick={() => onAction(skipConnection)}>
-                      Continue without connecting
-                    </button>
-                  )}
-                </div>
+                {connectionButtons && (
+                  <div className="cz-letter__connection-actions">
+                    {connected > 0 && skipConnection ? (
+                      <>
+                        <p className="cz-letter__connected">{connected} of 3 connected</p>
+                        <button
+                          type="button"
+                          className="cz-letter__btn cz-letter__connect"
+                          onClick={() => onAction(skipConnection)}
+                        >
+                          Continue
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" className="cz-letter__btn cz-letter__connect" onClick={openConnections}>
+                          Connect data
+                        </button>
+                        {skipConnection && (
+                          <button
+                            type="button"
+                            className="cz-letter__btn is-quiet"
+                            onClick={() => onAction(skipConnection)}
+                          >
+                            Continue without connecting
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </>
             )}
             <div className="cz-letter__sign">
