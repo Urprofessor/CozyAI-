@@ -104,7 +104,7 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
             </span>
             <span>
               <strong>Bring what your AI already knows</strong>
-              <small>Import from Claude or ChatGPT by email</small>
+              <small>From Claude, ChatGPT, Gemini or Grok</small>
             </span>
             <Chevron dir="right" small />
           </button>

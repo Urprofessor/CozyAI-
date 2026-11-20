@@ -203,9 +203,76 @@
   font-weight: 500;
   text-decoration: none;
 }
-.cz-import__tools button {
+.cz-import__tools a {
   border-color: var(--cz-accent);
-  color: var(--cz-accent);
+  background: var(--cz-accent);
+  color: #fff;
+}
+.cz-import__hint {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--cz-ink-2);
+}
+
+/* Privacy: card on the first step, one-liners after */
+.cz-import__privacy {
+  margin: 0 0 18px;
+  padding: 14px 14px 4px;
+  border-radius: 18px;
+  background: #eef7f1;
+  color: #1f4d2f;
+}
+.cz-import__privacy h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cz-import__privacy ul {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.cz-import__privacy li {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 17px;
+  color: #3a5443;
+}
+.cz-import__privacy li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+  color: #2e7d4a;
+}
+.cz-import__privacy b {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f4d2f;
+}
+.cz-import__safe {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 17px;
+  color: #3a5443;
+}
+.cz-import__safe svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #2e7d4a;
 }
 .cz-import__label {
   margin: 12px 0 0;

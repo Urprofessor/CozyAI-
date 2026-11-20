@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { IMPORT_PROMPT, isEmail, type ImportItem } from '@/lib/cozy/memory-import';
+import { AI_LINKS, PRIVACY_POINTS, PRIVACY_TITLE } from '@/lib/cozy/import-privacy';
 import { DIMENSION_LABELS } from '@/lib/cozy/memory-profile-demo';
 import { BottomSheet, CZ, showToast } from '../ui';
 
@@ -10,7 +11,8 @@ import { BottomSheet, CZ, showToast } from '../ui';
  * /api/import-email (Gmail first, Resend as fallback) and moves straight on
  * to the paste box; if the email can't go out, the prompt can be copied
  * here instead. The email's link opens Cozie at the paste step
- * (/cozy?import=paste). /api/import-parse reads the pasted answer (DeepSeek,
+ * (/cozy?import=paste). "Ask Claude / ChatGPT" open the AI with the prompt
+ * already filled in. /api/import-parse reads the pasted answer (DeepSeek,
  * with a local fallback) and mom reviews every item before Cozie keeps it. */
 
 const OPEN_EVENT = 'cozie:open-ai-import';
@@ -23,7 +25,7 @@ export function openAiImport() {
 type Stage = 'email' | 'paste' | 'reading' | 'review';
 /** What happened to the email on the way to the paste step. */
 type Delivery = 'sent' | 'unsent' | null;
-const SOURCES = ['Claude', 'ChatGPT', 'Gemini', 'Other'] as const;
+const SOURCES = ['Claude', 'ChatGPT', 'Gemini', 'Grok', 'Other'] as const;
 const MIN_READING_MS = 900;
 
 interface Props {
@@ -175,7 +177,8 @@ export function AiImportHost({ babyName, onSave }: Props) {
               <ImportArt />
               <h2 className="cz-import__title">Bring what your AI already knows</h2>
               <p className="cz-import__lead">
-                If you’ve talked to Claude or ChatGPT about your pregnancy or baby, Cozie can pick up from there.
+                If you’ve talked to Claude, ChatGPT, Gemini or Grok about your pregnancy or baby, Cozie can pick up
+                from there.
               </p>
               <ol className="cz-import__steps">
                 <li>
@@ -183,7 +186,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
                   <span>Open it wherever you use your AI — phone or laptop.</span>
                 </li>
                 <li>
-                  <b>Run it in Claude or ChatGPT</b>
+                  <b>Run it in your AI</b>
                   <span>It writes down only what it knows about your baby, feeding and sleep.</span>
                 </li>
                 <li>
@@ -191,6 +194,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
                   <span>You check every line before Cozie keeps it.</span>
                 </li>
               </ol>
+              <PrivacyCard />
               <label className="cz-import__field">
                 <span>Your email</span>
                 <input
@@ -205,7 +209,7 @@ export function AiImportHost({ babyName, onSave }: Props) {
               {error ? (
                 <p className="cz-import__error">{error}</p>
               ) : (
-                <p className="cz-import__demo">We only use your email to send the prompt.</p>
+                <p className="cz-import__demo">We only use your email to send the prompt — never for marketing.</p>
               )}
             </div>
             <div className="cz-import__footer">
@@ -239,16 +243,28 @@ export function AiImportHost({ babyName, onSave }: Props) {
               )}
               <h2 className="cz-import__title">Paste your AI’s answer</h2>
               <div className="cz-import__tools">
+                {AI_LINKS.map((l) => (
+                  <a
+                    key={l.name}
+                    href={l.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => {
+                      // Also on the clipboard, in case this AI ignores the prefill.
+                      navigator.clipboard?.writeText(IMPORT_PROMPT).catch(() => {});
+                      setFrom(l.name);
+                    }}
+                  >
+                    Ask {l.name} ↗
+                  </a>
+                ))}
                 <button type="button" onClick={copyPrompt}>
                   Copy the prompt
                 </button>
-                <a href="https://claude.ai/new" target="_blank" rel="noreferrer">
-                  Open Claude ↗
-                </a>
-                <a href="https://chatgpt.com/" target="_blank" rel="noreferrer">
-                  Open ChatGPT ↗
-                </a>
               </div>
+              <p className="cz-import__hint">
+                “Ask” opens your AI with the prompt filled in and copies it too — if it doesn’t show up, just paste.
+              </p>
               <textarea
                 className="cz-import__paste"
                 aria-label="Your AI’s answer"
@@ -271,6 +287,11 @@ export function AiImportHost({ babyName, onSave }: Props) {
                 ))}
               </div>
               {error && <p className="cz-import__error">{error}</p>}
+              <p className="cz-import__safe">
+                <ShieldIcon />
+                Your answer is read once, then discarded. Only the lines you approve are saved, and you can delete them
+                anytime.
+              </p>
             </div>
             <div className="cz-import__footer">
               <button type="button" className="cz-primary-btn" disabled={!answer.trim()} onClick={read}>
@@ -325,7 +346,11 @@ export function AiImportHost({ babyName, onSave }: Props) {
                   </ul>
                 </section>
               ))}
-              <p className="cz-import__demo">You can edit or delete any of these later in your memory profile.</p>
+              <p className="cz-import__safe">
+                <ShieldIcon />
+                Used only to tailor Cozie’s help for you and your baby. Edit or delete any of it, anytime, in your memory
+                profile.
+              </p>
             </div>
             <div className="cz-import__footer">
               <button type="button" className="cz-primary-btn" disabled={!picked.size} onClick={save}>
@@ -339,6 +364,46 @@ export function AiImportHost({ babyName, onSave }: Props) {
         )}
       </BottomSheet>
     </div>
+  );
+}
+
+/** What we promise about her and her baby's data (same copy as the email). */
+function PrivacyCard() {
+  return (
+    <section className="cz-import__privacy" aria-label={PRIVACY_TITLE}>
+      <h3>
+        <ShieldIcon />
+        {PRIVACY_TITLE}
+      </h3>
+      <ul>
+        {PRIVACY_POINTS.map((p) => (
+          <li key={p.title}>
+            <b>{p.title}</b>
+            <span>{p.text}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden>
+      <path
+        d="M10 2.2 3.8 4.6v4.6c0 4 2.6 7.3 6.2 8.6 3.6-1.3 6.2-4.6 6.2-8.6V4.6L10 2.2Z"
+        fill="currentColor"
+        opacity="0.16"
+      />
+      <path
+        d="M10 2.2 3.8 4.6v4.6c0 4 2.6 7.3 6.2 8.6 3.6-1.3 6.2-4.6 6.2-8.6V4.6L10 2.2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="m7 10 2 2 4-4.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

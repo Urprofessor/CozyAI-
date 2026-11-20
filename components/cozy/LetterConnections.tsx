@@ -19,9 +19,9 @@ const sources = [
   {
     id: 'ai',
     title: 'Your AI assistant',
-    subtitle: 'Bring what Claude or ChatGPT knows',
+    subtitle: 'Bring what Claude, ChatGPT, Gemini or Grok knows',
     description:
-      'Already talked to another AI about your pregnancy or baby? We’ll email you a short prompt to run there, and you send back the answer. You review everything before Cozie keeps it.',
+      'Already talked to another AI about your pregnancy or baby? We’ll email you a short prompt to run there, then you paste the answer back here. You review everything before Cozie keeps it.',
   },
 ] as const;
 
