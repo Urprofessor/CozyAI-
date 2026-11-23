@@ -2,21 +2,22 @@ import { daysUntil, deviceOf, fmtMinutes, pumpSummary, sleepSummary, type DemoAc
 
 /* The first guidance card Cozie offers after the letter, one per direction
  * (lib/cozy/focus.ts): the pump plan for a pump user, a night-sleep rhythm for
- * a monitor user, a gentle check-in when there's no device yet. The check-up
- * checklist (growth) isn't a landing card — it's opened on demand from the
- * "Get ready for the check-up" action on the other cards. Each card does one
- * concrete thing and remembers that it's done. */
+ * a monitor user, and — with no device bound — the check-up checklist (growth),
+ * which is the default concern when there's nothing to measure yet. The mood
+ * card isn't a landing card; it's a gentle aside opened on demand. Each card
+ * does one concrete thing and remembers that it's done. */
 
 export type GuidanceKind = 'pump-plan' | 'sleep-plan' | 'checkup' | 'mood';
 
 const ALL: GuidanceKind[] = ['pump-plan', 'sleep-plan', 'checkup', 'mood'];
 
-/** The card that lands after the letter, by her devices. Growth is reached
- *  from the check-up action, so it's never the landing card. */
+/** The card that lands after the letter, by her devices. With no device bound,
+ *  growth (the check-up) is the default concern. Mood is a gentle aside, never
+ *  the landing card. */
 export function guidanceKind(a: DemoAccount): GuidanceKind {
   if (deviceOf(a, 'pump')) return 'pump-plan';
   if (deviceOf(a, 'monitor')) return 'sleep-plan';
-  return 'mood';
+  return 'checkup';
 }
 
 /* ---------- Sentinels (system messages in the chat stream) ---------- */
