@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import type { DatedLabel, SavedProfileMemory } from '@/lib/cozy/memory-profile';
 import {
@@ -17,6 +17,9 @@ import {
   type Dimension,
 } from '@/lib/cozy/memory-profile-demo';
 import { ConfirmDialog, showToast } from '../ui';
+import { StoryCard } from '../cards/StoryCard';
+import type { CardTone } from '@/lib/cozy/story-card';
+import type { IllustrationTopic } from '@/lib/cozy/illustrations';
 import { MemoryEditSheet } from './MemoryEditSheet';
 import { MemoryOrbit } from './MemoryOrbit';
 import { openDataSources } from '@/lib/cozy/sources';
@@ -159,6 +162,34 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
 
 // ---------- Sections ----------
 
+/* Each dimension is a story card, in the same colours as the chat's cards and
+ * the letter's directions (components/cozy/cards/StoryCard.tsx): feeding is
+ * pink like lactation, sleep lavender, health and dates green like growth,
+ * her own things yellow like mood; the rest cream. */
+const DIM_TONE: Record<Dimension, CardTone> = {
+  feeding: 'pink',
+  sleep: 'lavender',
+  health: 'green',
+  importantDates: 'green',
+  about: 'yellow',
+  carePreferences: 'yellow',
+  recentConcerns: 'cream',
+  basics: 'cream',
+};
+const DIM_ART: Partial<Record<Dimension, IllustrationTopic>> = {
+  feeding: 'lactation',
+  sleep: 'sleep',
+  health: 'growth',
+  importantDates: 'growth',
+  about: 'mood',
+  carePreferences: 'mood',
+};
+/** Memories shown before "View all", so a card stays about as long as a chat card. */
+const PREVIEW_COUNT = 2;
+
+const newestFirst = (a: SavedProfileMemory, b: SavedProfileMemory) =>
+  Date.parse(b.updatedAt ?? b.createdAt) - Date.parse(a.updatedAt ?? a.createdAt);
+
 function SectionView({
   dim,
   section,
@@ -176,50 +207,65 @@ function SectionView({
 }) {
   const label = DIMENSION_LABELS[dim];
   const fields = section.entries.filter((e): e is AnyField => e.kind === 'field');
-  const memories = section.entries.filter((e): e is SavedProfileMemory => e.kind === 'memory');
+  const memories = section.entries.filter((e): e is SavedProfileMemory => e.kind === 'memory').sort(newestFirst);
   const summary = validSummary(section);
-  const hidden = dim === 'health';
-  const [showHealth, setShowHealth] = useState(false);
+  // Basics and health stay folded until she opens them (health also for privacy).
+  const foldable = dim === 'basics' || dim === 'health';
   const listId = `mp-list-${dim}`;
+  const sources = Array.from(new Set(section.entries.map((e) => sourceLabel(e.source))));
 
-  if (dim === 'basics' || hidden) {
-    const open = hidden ? showHealth : expanded;
-    return (
-      <section className="mp-section">
-        <button type="button" className="mp-reveal mp-section-toggle" aria-expanded={open} onClick={hidden ? () => setShowHealth(!showHealth) : onToggle}>
-          <span className="mp-section__title">{label}</span>
-          <Chevron dir={open ? 'up' : 'right'} small />
-        </button>
-        {open && (
-          <SectionEntries fields={fields} memories={memories} listId={listId} onEdit={onEdit} onForget={onForget} />
-        )}
-      </section>
-    );
-  }
+  const card = (children: ReactNode, withSource = true) => (
+    <StoryCard
+      tone={DIM_TONE[dim]}
+      eyebrow="Cozie remembers"
+      title={label}
+      art={DIM_ART[dim]}
+      source={withSource && sources.length ? sources.join(' · ') : undefined}
+      className="sc--chat mp-card"
+    >
+      {children}
+    </StoryCard>
+  );
 
-  // Several memories with a still-valid summary read as the summary first.
-  const summarised = memories.length > 1 && summary;
-  const showList = memories.length > 0 && (!summarised || expanded);
-
-  return (
-    <section className="mp-section">
-      <h3 className="mp-section__title">{label}</h3>
-
-      {summarised && <p className="mp-summary">{summary.text}</p>}
-      {summarised && (
+  if (foldable) {
+    return card(
+      <>
         <button
           type="button"
-          className="mp-more"
+          className="mp-card__more"
           aria-expanded={expanded}
           aria-controls={expanded ? listId : undefined}
           onClick={onToggle}
         >
-          {expanded ? 'Hide memories' : `View ${memories.length} memories`}
+          {expanded ? 'Hide' : dim === 'health' ? 'Show health information' : 'Show'}
+          <Chevron dir={expanded ? 'up' : 'down'} small />
+        </button>
+        {expanded && (
+          <SectionEntries fields={fields} memories={memories} listId={listId} onEdit={onEdit} onForget={onForget} />
+        )}
+      </>,
+      expanded,
+    );
+  }
+
+  const shown = expanded ? memories : memories.slice(0, PREVIEW_COUNT);
+  return card(
+    <>
+      {summary && memories.length > 1 && <p className="sc__note mp-card__summary">{summary.text}</p>}
+      <SectionEntries fields={fields} memories={shown} listId={listId} onEdit={onEdit} onForget={onForget} />
+      {memories.length > PREVIEW_COUNT && (
+        <button
+          type="button"
+          className="mp-card__more"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={onToggle}
+        >
+          {expanded ? 'Show fewer' : `View all ${memories.length}`}
           <Chevron dir={expanded ? 'up' : 'down'} small />
         </button>
       )}
-      <SectionEntries fields={fields} memories={showList ? memories : []} listId={listId} onEdit={onEdit} onForget={onForget} />
-    </section>
+    </>,
   );
 }
 
@@ -230,8 +276,9 @@ function SectionEntries({ fields, memories, listId, onEdit, onForget }: {
   onEdit: (entry: AnyEntry) => void;
   onForget: (entry: AnyEntry) => void;
 }) {
+  if (!fields.length && !memories.length) return null;
   return (
-    <>
+    <div className="sc__panel mp-card__panel" id={listId}>
       {fields.length > 0 && (
         <dl className="mp-fields">
           {fields.map((f) => (
@@ -240,13 +287,13 @@ function SectionEntries({ fields, memories, listId, onEdit, onForget }: {
         </dl>
       )}
       {memories.length > 0 && (
-        <ul className="mp-memories" id={listId}>
+        <ul className="mp-memories">
           {memories.map((m) => (
             <li key={m.id} className="mp-memory">
               <p className="mp-memory__text">{m.content}</p>
               <div className="mp-memory__foot">
                 <span className="mp-memory__meta">
-                  {sourceLabel(m.source)} · {m.updatedAt ? `Edited ${formatShortDate(m.updatedAt)}` : formatShortDate(m.createdAt)}
+                  {m.updatedAt ? `Edited ${formatShortDate(m.updatedAt)}` : formatShortDate(m.createdAt)}
                 </span>
                 <span className="mp-memory__actions">
                   <button type="button" onClick={() => onEdit(m)}>
@@ -261,8 +308,7 @@ function SectionEntries({ fields, memories, listId, onEdit, onForget }: {
           ))}
         </ul>
       )}
-
-    </>
+    </div>
   );
 }
 

@@ -244,8 +244,9 @@
 /* ---------- Body ---------- */
 
 .mp-body {
+  display: grid;
+  gap: 12px;
   margin: 20px 16px 0;
-  border-top: 1px solid var(--mp-line);
   animation: mpFade 260ms ease both;
 }
 
@@ -263,56 +264,49 @@
   color: var(--cz-ink-2);
 }
 
-.mp-section {
-  padding: 16px 4px;
+/* ---------- Dimension cards ----------
+ * Each dimension is a story card (cozie-story.css .sc) in its direction's
+ * colour, so the memory profile reads like the chat's cards. Prefixed with
+ * .sc.mp-card to win over the .sc defaults, which load after this file. */
+
+.sc.mp-card .mp-card__summary {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.mp-section + .mp-section {
-  border-top: 1px solid var(--mp-line);
+.sc.mp-card .mp-card__panel {
+  margin: 0 0 4px;
+  padding: 2px 14px;
 }
 
-.mp-section__title {
-  margin: 0 0 6px;
-  font-family: var(--cz-brand);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 26px;
+/* Fields: nickname, dates, work… one row each. */
+.sc.mp-card .mp-fields {
+  margin: 0;
 }
 
-.mp-summary {
-  margin: 4px 0 0;
-  font-size: 16px;
-  line-height: 24px;
-  color: #4a3540;
-}
-
-/* Fields: nickname, dates, work… listed directly. */
-.mp-fields {
-  margin: 4px 0 0;
-}
-
-.mp-field {
+.sc.mp-card .mp-field {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid rgba(36, 15, 27, 0.06);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sc-line);
 }
 
-.mp-field:last-child {
+.sc.mp-card .mp-field:last-child {
   border-bottom: 0;
 }
 
-.mp-field dt {
+.sc.mp-card .mp-field dt {
   flex-shrink: 1;
   min-width: 0;
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--cz-ink-2);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sc-soft);
 }
 
-.mp-field dd {
+.sc.mp-card .mp-field dd {
   margin: 0;
   min-width: 0;
   display: flex;
@@ -321,59 +315,52 @@
   text-align: right;
 }
 
-.mp-field__value {
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--cz-ink);
+.sc.mp-card .mp-field__value {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sc-ink);
   overflow-wrap: anywhere;
 }
 
-.mp-field__edit {
-  flex-shrink: 0;
-  border: 0;
-  background: none;
-  padding: 0;
-  color: var(--mp-frame);
-  font-family: var(--cz-ui);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.mp-field__source {
+.sc.mp-card .mp-field__source {
   flex-shrink: 0;
   padding: 1px 7px;
   border-radius: 8px;
-  background: var(--cz-fill);
+  background: rgba(255, 255, 255, 0.7);
   font-size: 11px;
   line-height: 18px;
-  color: var(--cz-ink-2);
+  color: var(--sc-soft);
   white-space: nowrap;
 }
 
-/* Individual memories. */
-.mp-memories {
-  margin: 10px 0 0;
+/* Individual memories: rows in the panel, newest first. */
+.sc.mp-card .mp-memories {
+  margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 8px;
 }
 
-.mp-memory {
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 0 0 0.5px rgba(36, 15, 27, 0.08);
+.sc.mp-card .mp-fields + .mp-memories {
+  border-top: 1px solid var(--sc-line);
 }
 
-.mp-memory__text {
+.sc.mp-card .mp-memory {
+  padding: 12px 0;
+}
+
+.sc.mp-card .mp-memory + .mp-memory {
+  border-top: 1px solid var(--sc-line);
+}
+
+.sc.mp-card .mp-memory__text {
   margin: 0;
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--sc-ink);
 }
 
-.mp-memory__foot {
-  margin-top: 8px;
+.sc.mp-card .mp-memory__foot {
+  margin-top: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -381,75 +368,55 @@
   gap: 4px 12px;
 }
 
-.mp-memory__meta {
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--cz-ink-2);
+.sc.mp-card .mp-memory__meta {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--sc-soft);
 }
 
-.mp-memory__actions {
+.sc.mp-card .mp-memory__actions {
   display: flex;
-  gap: 16px;
+  gap: 14px;
 }
 
-.mp-memory__actions button {
+/* Edit / Forget: quiet text links, like the first-guidance cards. */
+.sc.mp-card .mp-field__edit,
+.sc.mp-card .mp-memory__actions button {
+  flex-shrink: 0;
+  padding: 2px 0;
   border: 0;
   background: none;
-  padding: 2px 0;
-  color: var(--mp-frame);
+  color: var(--sc-ink);
   font-family: var(--cz-ui);
   font-size: 13px;
-  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
-.mp-memory__actions button:last-child {
-  color: var(--cz-ink-2);
+.sc.mp-card .mp-memory__actions button:last-child {
+  color: var(--sc-soft);
 }
 
-.mp-more {
-  margin-top: 8px;
+/* "View all 6" / "Show": a soft pill, like the cards' secondary options. */
+.sc.mp-card .mp-card__more {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 36px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--mp-frame);
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(44, 26, 36, 0.18);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--sc-ink);
   font-family: var(--cz-ui);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.mp-reveal {
-  width: 100%;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--cz-fill);
-  color: var(--cz-ink-2);
-  font-family: var(--cz-ui);
-  font-size: 14px;
-  text-align: left;
-}
-
-.mp-section-toggle {
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--mp-frame);
-}
-
-.mp-section-toggle .mp-section__title {
-  margin: 0;
-  color: var(--cz-ink);
+.sc.mp-card .mp-card__more + .sc__panel {
+  margin-top: 12px;
 }
 
 /* ---------- Edit sheet ---------- */
