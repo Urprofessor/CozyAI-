@@ -25,69 +25,176 @@
   list-style: none;
 }
 .cz-focus__card {
+  --fc-ink: #790a30;
+  --fc-wash: linear-gradient(120deg, #fff4f1, #f7cbd4);
+  position: relative;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr);
   gap: 12px;
-  align-items: center;
+  align-items: start;
   width: 100%;
-  min-height: 76px;
-  padding: 12px 14px;
-  border: 1px solid #fff9;
+  padding: 14px 16px 14px 14px;
+  border: 1px solid rgba(121, 10, 48, 0.12);
   border-radius: 20px;
-  background: linear-gradient(120deg, #fff4f1, #f7cbd4);
-  box-shadow: 0 5px 16px #790a301a;
-  color: #790a30;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--fc-ink);
   text-align: left;
   cursor: pointer;
-  transition: transform 160ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 160ms ease;
 }
 .cz-focus__card:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 .cz-focus__card[data-focus='sleep'] {
-  background: linear-gradient(120deg, #f4f1ff, #d9d2f2);
-  color: #3d2a7a;
+  --fc-ink: #3d2a7a;
+  --fc-wash: linear-gradient(120deg, #f6f3ff, #ddd6f4);
 }
 .cz-focus__card[data-focus='growth'] {
-  background: linear-gradient(120deg, #f1fbf4, #cde9d6);
-  color: #1f5a36;
+  --fc-ink: #1f5a36;
+  --fc-wash: linear-gradient(120deg, #f3fbf5, #d2ebda);
 }
 .cz-focus__card[data-focus='mood'] {
-  background: linear-gradient(120deg, #fff8ee, #f6dcb8);
-  color: #7a4512;
+  --fc-ink: #7a4512;
+  --fc-wash: linear-gradient(120deg, #fffaf2, #f6dfbf);
 }
-.cz-focus__text {
+.cz-focus__card.is-on {
+  background: var(--fc-wash);
+  border-color: color-mix(in srgb, var(--fc-ink) 35%, transparent);
+  box-shadow: 0 5px 16px rgba(121, 10, 48, 0.08);
+}
+
+/* Square check box: multi-select at a glance. */
+.cz-focus__check {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
   display: grid;
-  gap: 2px;
+  place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--fc-ink) 55%, transparent);
+  border-radius: 7px;
+  background: #fff;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.cz-focus__check svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  transition: stroke-dashoffset 220ms ease 60ms;
+}
+.cz-focus__card.is-on .cz-focus__check {
+  border-color: var(--fc-ink);
+  background: var(--fc-ink);
+}
+.cz-focus__card.is-on .cz-focus__check svg {
+  stroke-dashoffset: 0;
+}
+
+.cz-focus__text {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
-.cz-focus__text strong {
-  font: 400 19px/1.2 var(--cz-brand);
+/* Name and list keep clear of the drawing; the source line can run under it. */
+.cz-focus__text strong,
+.cz-focus__can {
+  padding-right: 64px;
 }
-.cz-focus__text small {
+.cz-focus__text strong {
+  font: 400 21px/1.15 var(--cz-brand);
+}
+.cz-focus__can {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cz-focus__can li {
+  position: relative;
+  padding-left: 12px;
   font-family: var(--cz-ui);
   font-size: 13px;
-  line-height: 1.35;
-  opacity: 0.85;
+  line-height: 18px;
+  color: rgba(36, 15, 27, 0.78);
 }
-.cz-focus__text em {
-  justify-self: start;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
-  font-family: var(--cz-ui);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-}
-.cz-focus__go {
-  font-size: 22px;
+.cz-focus__can li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 7.5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--fc-ink);
   opacity: 0.6;
 }
+.cz-focus__known {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1; /* a footer row across the whole card */
+  display: block;
+  margin-top: 0;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--fc-ink) 12%, transparent);
+  font-family: var(--cz-ui);
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(36, 15, 27, 0.62);
+}
+.cz-focus__known b {
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--fc-ink);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* The line drawing sits in the right of the card like a watermark. */
+.cz-focus__art {
+  position: absolute;
+  right: -8px;
+  top: 8px;
+  width: 104px;
+  height: 104px;
+  color: var(--fc-ink);
+  opacity: 0.13;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+.cz-focus__card.is-on .cz-focus__art {
+  opacity: 0.2;
+}
+
 .cz-letter__body .cz-focus .cz-focus__source {
   margin: 10px 0 0;
   font-size: 12px;
   color: rgba(36, 15, 27, 0.55);
+}
+.cz-focus__continue {
+  width: 100%;
+  margin-top: 16px;
+}
+.cz-focus__continue:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ---------- Hub page ---------- */
@@ -473,59 +580,6 @@
   .fh-chart__col i {
     animation: none;
   }
-}
-
-/* ---------- Letter: tick boxes and Continue ---------- */
-.cz-focus__card:not(.is-on) {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(121, 10, 48, 0.12);
-  box-shadow: none;
-}
-.cz-focus__card.is-on {
-  box-shadow:
-    0 0 0 2px currentColor,
-    0 5px 16px #790a301a;
-}
-.cz-focus__check {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.45;
-  transition:
-    background 160ms ease,
-    opacity 160ms ease;
-}
-.cz-focus__check svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0;
-}
-.cz-focus__card.is-on .cz-focus__check {
-  background: currentColor;
-  opacity: 1;
-}
-.cz-focus__card.is-on .cz-focus__check svg {
-  opacity: 1;
-}
-/* the check sits on currentColor, so draw it in white */
-.cz-focus__card.is-on .cz-focus__check svg path {
-  stroke: #fff;
-}
-.cz-focus__continue {
-  width: 100%;
-  margin-top: 16px;
-}
-.cz-focus__continue:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* ---------- Hub: switcher between the picked directions ---------- */

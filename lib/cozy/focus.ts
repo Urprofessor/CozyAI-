@@ -22,15 +22,43 @@ export type FocusId = 'lactation' | 'sleep' | 'growth' | 'mood';
 export interface FocusDef {
   id: FocusId;
   title: string;
+  /** One-line name for the letter card. */
+  short: string;
+  /** What Cozie can do here, listed on the letter card. */
+  can: string[];
   /** Which of Cozie's helpers this brings. */
   helpers: string;
 }
 
 export const FOCUS_LIST: FocusDef[] = [
-  { id: 'lactation', title: 'Pumping & breastfeeding', helpers: 'Lactation coach · CareLog' },
-  { id: 'sleep', title: 'Sleep', helpers: 'Sleep coach · CareLog' },
-  { id: 'growth', title: 'Health & growth log', helpers: 'CareLog' },
-  { id: 'mood', title: 'How you’re feeling', helpers: 'Companion · CareLog' },
+  {
+    id: 'lactation',
+    title: 'Pumping & breastfeeding',
+    short: 'Pumping',
+    can: ['Smart pumping schedule', 'AI lactation plan', 'Expert answers, day or night'],
+    helpers: 'Lactation coach · CareLog',
+  },
+  {
+    id: 'sleep',
+    title: 'Sleep',
+    short: 'Sleep',
+    can: ['Sleep patterns from your monitor', 'Nap and bedtime rhythm', 'Help with night wakings'],
+    helpers: 'Sleep coach · CareLog',
+  },
+  {
+    id: 'growth',
+    title: 'Health & growth log',
+    short: 'Growth log',
+    can: ['Weight and length in one log', 'Check-up and vaccine reminders', 'Reads reports you upload'],
+    helpers: 'CareLog',
+  },
+  {
+    id: 'mood',
+    title: 'How you’re feeling',
+    short: 'Feelings',
+    can: ['Talk anytime, no judgment', 'Gentle mood check-ins', 'Small ideas for time for you'],
+    helpers: 'Companion · CareLog',
+  },
 ];
 
 export const focusDef = (id: FocusId) => FOCUS_LIST.find((f) => f.id === id)!;
@@ -70,20 +98,29 @@ export function chosenFocusContext(): string {
   }
 }
 
-/** One line on the letter card: proof that Cozie already knows something. */
-export function cardTeaser(a: DemoAccount, id: FocusId): string {
+/** Third line on the letter card: where Cozie's knowledge comes from, and
+ *  one plain sentence of it. Feelings stays general on purpose — guessing her
+ *  mood from device times on a first screen would feel like being watched. */
+export function cardSummary(a: DemoAccount, id: FocusId): { source: string; text: string } {
   const p = pumpSummary(a);
   const s = sleepSummary(a);
   const baby = a.baby.name;
   switch (id) {
     case 'lactation':
-      return p ? `About ${Math.round(p.perDay)} sessions a day, ~${p.avgMl} ml each` : 'Supply, schedules and feeding';
+      return p
+        ? { source: 'M5 pump', text: `About ${Math.round(p.perDay)} sessions a day, fullest at 3 a.m.` }
+        : { source: 'No pump paired', text: 'Works from what you tell Cozie, too.' };
     case 'sleep':
-      return s ? `Longest stretch now ${fmtMinutes(s.longestNow)}` : `Naps, nights and ${baby}’s rhythm`;
+      return s
+        ? { source: 'BM04 monitor', text: `Longest stretch now ${fmtMinutes(s.longestNow)}.` }
+        : { source: 'No monitor paired', text: `Tell Cozie about ${baby}’s nights to start.` };
     case 'growth':
-      return `${a.growth[a.growth.length - 1].weightKg} kg · check-up in ${daysUntil(a.nextCheckup.date)} days`;
+      return {
+        source: 'Momcozy app',
+        text: `${a.growth[a.growth.length - 1].weightKg} kg now, check-up in ${daysUntil(a.nextCheckup.date)} days.`,
+      };
     case 'mood':
-      return p ? `Up at 3 a.m. ${nights(p.nightsPumped)}` : 'A friend for the hard days';
+      return { source: 'Just for you', text: 'Private, and here whenever you need it.' };
   }
 }
 
