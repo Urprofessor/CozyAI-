@@ -7,7 +7,8 @@ export const MOM_MEMORY_DIMENSIONS = [
   'health',
 ] as const;
 
-export const BABY_MEMORY_DIMENSIONS = ['feeding', 'sleep', 'recentConcerns', 'basics'] as const;
+// Basic information leads the baby's profile: who they are, before what Cozie has learned.
+export const BABY_MEMORY_DIMENSIONS = ['basics', 'feeding', 'sleep', 'recentConcerns'] as const;
 
 export type MomDimension = (typeof MOM_MEMORY_DIMENSIONS)[number];
 export type BabyDimension = (typeof BABY_MEMORY_DIMENSIONS)[number];

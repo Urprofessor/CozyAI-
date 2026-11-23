@@ -99,6 +99,26 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
           {person.ageLabel && <p className="mp-identity__age">{person.ageLabel}</p>}
         </div>
 
+        {/* Said up front, before any memory: what this is for and that she's in control. */}
+        <aside className="mp-privacy" aria-label="How Cozie protects your family’s data">
+          <span className="mp-privacy__icon" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="11" width="14" height="10" rx="2.5" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          </span>
+          <div className="mp-privacy__body">
+            <p className="mp-privacy__title">Private to your family</p>
+            <p className="mp-privacy__text">
+              Cozie uses these memories only to tailor its help for you and your baby — never for ads, and never shared
+              without your permission. You can edit or forget anything here at any time.
+            </p>
+            <button type="button" className="mp-privacy__link" onClick={openDataSources}>
+              Choose what Cozie can see ›
+            </button>
+          </div>
+        </aside>
+
         <div key={person.key} className="mp-body">
           {person.sections.length === 0 ? (
             <p className="mp-empty">
@@ -209,8 +229,9 @@ function SectionView({
   const fields = section.entries.filter((e): e is AnyField => e.kind === 'field');
   const memories = section.entries.filter((e): e is SavedProfileMemory => e.kind === 'memory').sort(newestFirst);
   const summary = validSummary(section);
-  // Basics and health stay folded until she opens them (health also for privacy).
-  const foldable = dim === 'basics' || dim === 'health';
+  // Health stays folded until she opens it, for privacy. (Basics lead the
+  // page, open.)
+  const foldable = dim === 'health';
   const listId = `mp-list-${dim}`;
   const sources = Array.from(new Set(section.entries.map((e) => sourceLabel(e.source))));
 

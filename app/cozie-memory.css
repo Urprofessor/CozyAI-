@@ -241,6 +241,62 @@
   color: var(--mp-age);
 }
 
+/* ---------- Privacy note, under the name ---------- */
+
+.mp-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 16px 16px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--mp-line);
+  text-align: left;
+}
+
+.mp-privacy__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(143, 15, 51, 0.08);
+  color: var(--mp-frame);
+}
+
+.mp-privacy__body {
+  min-width: 0;
+}
+
+.mp-privacy__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--cz-ink);
+}
+
+.mp-privacy__text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--cz-ink-2);
+}
+
+.mp-privacy__link {
+  margin-top: 6px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--mp-frame);
+  font-family: var(--cz-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ---------- Body ---------- */
 
 .mp-body {
