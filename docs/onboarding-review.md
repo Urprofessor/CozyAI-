@@ -83,7 +83,7 @@
    │  信头：阶段（Week 6）
    │  温情开场段（随账号微调）
    │  "I noticed"观察卡                                       ✅  ← 第 2 步
-   │  关注标签（按设备默认勾选）→ 点名字弹出预览弹窗          ✅  ← 第 4 步（可选）
+   │  关注方向卡片（按设备默认勾选）→ 点卡片弹出预览弹窗      ✅  ← 第 4 步（可选）
    │  情感话 · 署名 · 下一封信预告 · 来源说明                 ✅  ← 第 5 步
    ▼
 [Talk to Cozie] → 聊天                                        ✅
@@ -145,12 +145,21 @@ App 有 4 个 Tab（Home / Device / Community / Me），右侧有一个独立的
 | 只有吸奶器 | Your 3 a.m. session is your fullest：约 122 ml，平均 101 ml，这周一次没落下；日总量从 565 ml 到 627 ml（来自 M5 吸奶器） |
 | 无设备 | Noah's 2-month check-up is in 19 days：体重从出生 3.4 kg 长到 4.6 kg（来自 Momcozy App 的成长记录） |
 
-**④ 关注标签**："I'll keep an eye on these for you:"
-- 四个标签：Pumping / Sleep / Growth log / Feelings，按设备默认勾选（吸奶器 → Pumping；监视器 → Sleep；无设备 → Feelings），匹配的排在前面。
-- **勾选框和名字是两个独立的点击区域**：
-  - 点勾选框（40px 点击区）：勾选或取消；
-  - 点名字：从下方弹出预览弹窗（4.5）。
-- 下方小字："Tap a name to see what Cozie can do there."
+**④ 关注方向卡片**："I'll keep an eye on these for you:"
+- 四张卡片：Pumping / Sleep / Growth log / Feelings，按设备默认勾选（吸奶器 → Pumping；监视器 → Sleep；无设备 → Feelings），匹配的排在前面。
+- **每张卡的结构**：左侧方形勾选框；第一行短标题；第二行小圆点列表（Cozie 能做什么）；第三行横贯整张卡的底栏（数据来源标签 + 一句小结）；右侧背景是半透明线稿（奶瓶、月亮、成长曲线、两颗心）。
+
+| 卡片 | 能做什么 | 底栏（以"吸奶器 + 监视器"账号为例） |
+|---|---|---|
+| **Pumping** | Smart pumping schedule · AI lactation plan · Expert answers, day or night | **M5 pump** · About 6 sessions a day, fullest at 3 a.m. |
+| **Sleep** | Sleep patterns from your monitor · Nap and bedtime rhythm · Help with night wakings | **BM04 monitor** · Longest stretch now 4 h 33 min. |
+| **Growth log** | Weight and length in one log · Check-up and vaccine reminders · Reads reports you upload | **Momcozy app** · 4.6 kg now, check-up in 19 days. |
+| **Feelings** | Talk anytime, no judgment · Gentle mood check-ins · Small ideas for time for you | **Just for you** · Private, and here whenever you need it.（刻意不放推断数据） |
+
+- **勾选框和卡片其余部分是两个独立的点击区域**：
+  - 点勾选框（约 44px 点击区）：勾选或取消；
+  - 点卡片其他任何位置：从下方弹出预览弹窗（4.5）。
+- 下方小字："Ticked to match your Momcozy devices. Tap a card to see what Cozie can do there."
 - 她的选择会被保存，之后每次聊天都告诉模型"她希望 Cozie 侧重哪些方向"。
 
 **⑤ 情感话**："You're doing more than you think."
@@ -168,7 +177,7 @@ App 有 4 个 Tab（Home / Device / Community / Me），右侧有一个独立的
 | 1 | 称呼 | 逐字写出，带闪烁光标 | 约 0.45 s |
 | 2 | 开场段 | 逐字写出 | 约 2.6 s（与长度无关） |
 | 3 | 观察卡 | 升起，柱状图从左往右长出来 | 约 0.95 s |
-| 4 | 关注标签 | 依次弹出 | 约 0.5 s |
+| 4 | 关注方向卡片 | 依次升起 | 约 0.6 s |
 | 5 | 情感话 | 逐字写出 | 约 0.75 s |
 | 6 | 署名、预告、来源、按钮 | 淡入 | 约 0.4 s |
 
@@ -179,13 +188,13 @@ App 有 4 个 Tab（Home / Device / Community / Me），右侧有一个独立的
 - 没写出来的文字提前占好位置，排版不会跳动；读屏软件一次拿到整段文字。
 
 ### 4.5 预览弹窗 ✅（第 4 步）
-点关注标签的名字，从下方弹出（用户仍停留在信件上）。内容：
+点关注方向卡片（勾选框以外的任何位置），从下方弹出（用户仍停留在信件上）。内容：
 1. 方向标题和对应助手（例如 "Health & growth log · CareLog"）
 2. Cozie 在这个方向能做什么（3 条）
 3. "Cozie noticed"观察卡（同 4.4 ③ 的格式；没有设备数据时，说明配对设备或导入文件后能看到什么）
 4. **Ask Cozie**：3 个问题，点了就带着问题进聊天
 5. **Make answers sharper**：上传文件或报告、导入其他 AI 的记忆（注明"Optional"）
-6. 底部固定：**"Include in my Cozie"** 开关，和信件上的标签同步
+6. 底部固定：**"Include in my Cozie"** 开关，和信件上卡片的勾选同步
 
 ### 4.6 进入聊天 ✅（第 3 步）
 点 **Talk to Cozie** 后，聊天里先出现信件卡片（可以重新打开），然后是 Cozie 的**第一条消息**：延续信里的观察，并给出 3 个可以直接点的行动（点了就作为问题发出，模型直接给结果）。
@@ -264,7 +273,7 @@ Demo 面板可以切换 4 种账号。所有日期都按"今天"倒推，Noah �
 | "第一件小事"放进聊天，而不是信里 | 行动放在对话里更自然；模型有上下文，结果更具体 | 信里放行动卡片（被否） |
 | 信件逐字书写出现 | 像 Cozie 正在给她写信，增强"信"的感觉；点任意处可以跳过 | 一行行淡入；一次性全部显示 |
 | 阶段放在信头 | 信头空间利用更好，正文更聚焦 | 正文里放三段式里程碑条 |
-| 关注方向：标签、默认勾选、勾选框和名字分开点 | 体现"我认识你"，又省一步；分开点击避免误操作 | 四张大卡片 + "Continue with N"（上一版） |
+| 关注方向：卡片、默认勾选、勾选框和卡片其余部分分开点 | 体现"我认识你"，又省一步；卡片能说清"能做什么 + 已知数据"；分开点击避免误操作 | 小标签（信息太少，已改回卡片）；卡片 + "Continue with N" 进整页（上一版） |
 | 预览用弹窗，整页聚合页移出引导 | 冷启动最短：信件 → 聊天；用户留在信件上，可以先看再选 | 勾选后进入整页聚合页（上一版） |
 | 关掉引导里的权限页 | 还没给价值就先要权限；改为需要时再请求 | 保留权限页 |
 | 使用模拟账号数据并标明来源 | demo 没有真实账号；标明来源也是正式产品的要求 | 不展示账号数据 |
@@ -276,7 +285,7 @@ Demo 面板可以切换 4 种账号。所有日期都按"今天"倒推，Noah �
 ## 8. 已知问题与风险
 
 1. **逐字书写可能让人着急**：开场段约 2.6 秒，整封信首屏约 4 秒。虽然点击可以跳过，但很多人不知道可以点。
-2. **"Talk to Cozie"之前的内容偏多**：首屏以下还有关注标签、情感话、署名和来源，要滚动才能看到按钮。
+2. **"Talk to Cozie"之前的内容偏多**：首屏以下还有四张关注方向卡片（每张约 155px）、情感话、署名和来源，要滚动较长距离才能看到按钮。
 3. **预览弹窗可能没人点开**：第 4 步的"让回答更准"主要藏在弹窗里；聊天里还没有在合适时机主动提出。
 4. **导入后缺少即时回报**：导入完成后只有一句"Cozie will remember N things"，没有"导入后回答变得更准"的前后对比。
 5. **层叠**：B 版引导本身是弹层，加上信件，再加预览弹窗，可能显得重。
@@ -302,7 +311,7 @@ Demo 面板可以切换 4 种账号。所有日期都按"今天"倒推，Noah �
 1. **第一印象**：作为新用户走完这个流程，哪一刻最可能让你觉得"有用 / 惊艳"？哪一刻最可能让你想退出？
 2. **五步框架**：每一步是否落到了合适的位置？有没有哪一步太弱或缺失？
 3. **"给得越多越准"**：用户能否感受到这一点？哪里最能体现，哪里最弱？有什么更直接的展示方式？
-4. **信件**：结构（信头阶段 → 开场 → 观察 → 关注标签 → 情感话 → 署名 → Talk to Cozie）和逐字书写是否合适？你会删减或调整什么？
+4. **信件**：结构（信头阶段 → 开场 → 观察 → 关注方向卡片 → 情感话 → 署名 → Talk to Cozie）和逐字书写是否合适？你会删减或调整什么？
 5. **进入聊天**：第一条消息和 3 个行动建议能否让用户立刻得到价值？
 6. **信任**：数据来源标注、隐私承诺、"不诊断"的边界是否到位？有没有哪句话可能让用户不放心，或者说过了头？
 7. **第 8、9 节**：对已知问题和待定问题，你的建议是什么？
@@ -337,7 +346,7 @@ Memory profile: …（她确认保存过的条目）
 | Pumping | Your 3 a.m. session is your fullest | About 122 ml, compared with 101 ml on average — and you haven't missed it once this week. Your daily total went from 565 ml to 627 ml. | Momcozy M5 pump（附 7 天奶量柱状图） |
 | Sleep | Noah's longest sleep is getting longer | It grew from 3 h 7 min to 4 h 33 min this week, and night wakes dropped from 3 to 2. Many babies start stretching one sleep out around six weeks. | Momcozy BM04 monitor（附 7 天最长睡眠柱状图） |
 | Growth log | Noah's 2-month check-up is in 19 days | He's gone from 3.4 kg at birth to 4.6 kg at the last weigh-in. Next on the list: 2-month check-up and vaccines. | Noah's profile in the Momcozy app |
-| Feelings | You've been up at 3 a.m. most nights | Your pump logged a 3 a.m. session every night this week. That's a lot of broken sleep — how you're doing matters too. | Momcozy M5 pump（只在预览弹窗里出现，不放在信件标签上） |
+| Feelings | You've been up at 3 a.m. most nights | Your pump logged a 3 a.m. session every night this week. That's a lot of broken sleep — how you're doing matters too. | Momcozy M5 pump（只在预览弹窗里出现，不放在信件卡片上） |
 
 ## 附录 C · 从预览弹窗进入聊天时的开场白与推荐问题
 

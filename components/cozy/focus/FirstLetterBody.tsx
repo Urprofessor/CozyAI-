@@ -4,12 +4,13 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
-import { FOCUS_LIST, recommendedFor, type FocusId } from '@/lib/cozy/focus';
+import type { FocusId } from '@/lib/cozy/focus';
 import { InsightCard } from './FocusHub';
+import { FocusCards } from './LetterFocus';
 
 /* Body of the first letter. On arrival it is "written" in front of her:
  * the greeting and opening type out letter by letter, the observation rises
- * with its chart, the focus tags pop in, the closing line types out, then
+ * with its chart, the focus cards rise in, the closing line types out, then
  * the sign-off and buttons fade in. Anything below the fold waits until she
  * scrolls to it. A tap anywhere shows everything at once; rereading, or
  * "reduce motion", shows it all straight away. */
@@ -100,44 +101,11 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
 
       <div ref={focusRef} className={cn('cz-first__block cz-first__focus', isIn(step, at('focus'), ready) && 'is-in')}>
         <p className="cz-first__lead">I’ll keep an eye on these for you:</p>
-        <ul className="cz-ftags" aria-label="What Cozie keeps an eye on">
-          {[...FOCUS_LIST]
-            .sort((a, b) => Number(!!recommendedFor(account, b.id)) - Number(!!recommendedFor(account, a.id)))
-            .map((f) => {
-              const on = chosen.includes(f.id);
-              return (
-                <li key={f.id} className={cn('cz-ftag', on && 'is-on')} data-focus={f.id}>
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
-                    aria-label={`Keep an eye on ${f.short}`}
-                    className="cz-ftag__check"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFocus(f.id);
-                    }}
-                  >
-                    <svg viewBox="0 0 16 16" aria-hidden>
-                      <path d="m3.8 8.4 2.7 2.7 5.7-6" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="cz-ftag__name"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPreviewFocus(f.id);
-                    }}
-                  >
-                    {f.short}
-                    <span aria-hidden>›</span>
-                  </button>
-                </li>
-              );
-            })}
-        </ul>
-        <p className="cz-first__hint">Tap a name to see what Cozie can do there.</p>
+        <FocusCards account={account} chosen={chosen} onToggle={onToggleFocus} onPreview={onPreviewFocus} />
+        <p className="cz-first__hint">
+          {account.devices.length > 0 ? 'Ticked to match your Momcozy devices. ' : ''}Tap a card to see what Cozie can do
+          there.
+        </p>
       </div>
 
       <p ref={emphasisRef} className="cz-letter__emphasis cz-first__emphasis">

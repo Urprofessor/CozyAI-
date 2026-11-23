@@ -1,92 +1,78 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
-import { FOCUS_LIST, cardSummary, defaultFocus, recommendedFor, type FocusId } from '@/lib/cozy/focus';
+import { FOCUS_LIST, cardSummary, recommendedFor, type FocusId } from '@/lib/cozy/focus';
 
-/** End of the first letter: the four directions Cozie can help with, as
- *  checkboxes. Each card: a check box, the name, what Cozie can do there,
- *  and one line on what it already knows (with its source), over a faint
- *  line drawing. Directions that match her Momcozy devices start ticked and
- *  come first. Continue opens one hub for everything she picked. */
-export function LetterFocus({
+/** The four directions on the first letter, as cards: a check box, the name,
+ *  what Cozie can do there, and one line on what it already knows (with its
+ *  source), over a faint line drawing. Directions that match her Momcozy
+ *  devices come first. The check box only ticks; the rest of the card opens
+ *  the direction's preview sheet. */
+export function FocusCards({
   account,
-  onContinue,
+  chosen,
+  onToggle,
+  onPreview,
 }: {
   account: DemoAccount;
-  onContinue: (ids: FocusId[]) => void;
+  chosen: FocusId[];
+  onToggle: (id: FocusId) => void;
+  onPreview: (id: FocusId) => void;
 }) {
-  const id = useId();
-  const [picked, setPicked] = useState<Set<FocusId>>(() => new Set(defaultFocus(account)));
-  // A different demo account means different defaults.
-  useEffect(() => setPicked(new Set(defaultFocus(account))), [account]);
-
-  const cards = [...FOCUS_LIST].sort((a, b) => Number(!!recommendedFor(account, b.id)) - Number(!!recommendedFor(account, a.id)));
-  // Hub tabs follow the card order.
-  const chosen = cards.filter((c) => picked.has(c.id)).map((c) => c.id);
-
-  const toggle = (focus: FocusId) =>
-    setPicked((prev) => {
-      const next = new Set(prev);
-      if (next.has(focus)) next.delete(focus);
-      else next.add(focus);
-      return next;
-    });
+  const cards = [...FOCUS_LIST].sort(
+    (a, b) => Number(!!recommendedFor(account, b.id)) - Number(!!recommendedFor(account, a.id)),
+  );
 
   return (
-    <section className="cz-focus" aria-labelledby={`${id}-title`}>
-      <h3 id={`${id}-title`}>What would you like help with?</h3>
-      <p>Pick as many as you like. You can change them anytime.</p>
-      <ul className="cz-focus__list">
-        {cards.map((c) => {
-          const on = picked.has(c.id);
-          const summary = cardSummary(account, c.id);
-          return (
-            <li key={c.id}>
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                className={cn('cz-focus__card', on && 'is-on')}
-                data-focus={c.id}
-                onClick={() => toggle(c.id)}
-              >
-                <i className="cz-focus__check" aria-hidden>
-                  <svg viewBox="0 0 16 16">
-                    <path d="m3.8 8.4 2.7 2.7 5.7-6" />
-                  </svg>
-                </i>
-                <span className="cz-focus__text">
-                  <strong>{c.short}</strong>
-                  <ul className="cz-focus__can">
-                    {c.can.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </span>
-                <span className="cz-focus__known">
-                  <b>{summary.source}</b>
-                  {summary.text}
-                </span>
-                <FocusArt id={c.id} />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {account.devices.length > 0 && (
-        <p className="cz-focus__source">Ticked to match your Momcozy devices. Change anything you like.</p>
-      )}
-      <button
-        type="button"
-        className="cz-letter__btn cz-letter__connect cz-focus__continue"
-        disabled={!chosen.length}
-        onClick={() => onContinue(chosen)}
-      >
-        {chosen.length ? `Continue with ${chosen.length}` : 'Pick at least one'}
-      </button>
-    </section>
+    <ul className="cz-focus__list">
+      {cards.map((c) => {
+        const on = chosen.includes(c.id);
+        const summary = cardSummary(account, c.id);
+        return (
+          <li key={c.id} className={cn('cz-focus__card', on && 'is-on')} data-focus={c.id}>
+            {/* Covers the card under its content: a tap anywhere but the box opens the preview. */}
+            <button
+              type="button"
+              className="cz-focus__open"
+              aria-label={`See what Cozie can do for ${c.short}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview(c.id);
+              }}
+            />
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              aria-label={`Keep an eye on ${c.short}`}
+              className="cz-focus__check"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(c.id);
+              }}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden>
+                <path d="m3.8 8.4 2.7 2.7 5.7-6" />
+              </svg>
+            </button>
+            <span className="cz-focus__text" aria-hidden>
+              <strong>{c.short}</strong>
+              <ul className="cz-focus__can">
+                {c.can.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </span>
+            <span className="cz-focus__known">
+              <b>{summary.source}</b>
+              {summary.text}
+            </span>
+            <FocusArt id={c.id} />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

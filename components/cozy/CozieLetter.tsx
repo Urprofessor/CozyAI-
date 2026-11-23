@@ -27,9 +27,9 @@ interface Props {
   onAction?: (action: LetterAction) => void;
   onClose?: () => void;
   /** The first letter is written for her account (components/cozy/focus/
-   *  FirstLetterBody.tsx): an observation, focus tags with a preview sheet,
-   *  and "Talk to Cozie". (LetterConnections.tsx and LetterFocus.tsx, the
-   *  earlier endings, are kept for reuse.) */
+   *  FirstLetterBody.tsx): an observation, focus cards with a preview sheet,
+   *  and "Talk to Cozie". (LetterConnections.tsx, the earlier data-source
+   *  cards, is kept for reuse.) */
   account?: DemoAccount;
   focus?: { chosen: FocusId[]; onToggle: (id: FocusId) => void; onPreview: (id: FocusId) => void };
 }
