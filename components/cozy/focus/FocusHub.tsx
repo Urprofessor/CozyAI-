@@ -101,29 +101,7 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
           <p>{def.helpers}</p>
         </div>
 
-        {insight ? (
-          <section className="fh-card fh-insight">
-            <p className="fh-eyebrow">
-              <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
-              Cozie noticed
-            </p>
-            <h3>{insight.title}</h3>
-            <Chart account={account} id={id} />
-            <p>{insight.text}</p>
-            <Source>{insight.source}</Source>
-          </section>
-        ) : (
-          <section className="fh-card fh-empty">
-            <h3>{id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}</h3>
-            <p>
-              {id === 'lactation'
-                ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
-                : id === 'sleep'
-                  ? 'Pair a Momcozy monitor and Cozie will see how Noah sleeps. Until then, a sleep tracker export or a quick chat works too.'
-                  : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
-            </p>
-          </section>
-        )}
+        <InsightCard account={account} id={id} />
 
         {id === 'growth' && <GrowthLog account={account} />}
 
@@ -193,6 +171,39 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
   );
 }
 
+/** "Cozie noticed": one observation with its chart and source, or what
+ *  would fill this in when there's no device data yet. Shared by the hub,
+ *  the first letter and the preview sheet. */
+export function InsightCard({ account, id, eyebrow = 'Cozie noticed' }: { account: DemoAccount; id: FocusId; eyebrow?: string }) {
+  const insight = focusInsight(account, id);
+  if (!insight) {
+    return (
+      <section className="fh-card fh-empty">
+        <h3>{id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}</h3>
+        <p>
+          {id === 'lactation'
+            ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
+            : id === 'sleep'
+              ? `Pair a Momcozy monitor and Cozie will see how ${account.baby.name} sleeps. Until then, a sleep tracker export or a quick chat works too.`
+              : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className={cn('fh-card fh-insight', `fh--${id}`)}>
+      <p className="fh-eyebrow">
+        <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
+        {eyebrow}
+      </p>
+      <h3>{insight.title}</h3>
+      <Chart account={account} id={id} />
+      <p>{insight.text}</p>
+      <Source>{insight.source}</Source>
+    </section>
+  );
+}
+
 function Source({ children }: { children: ReactNode }) {
   return <p className="fh-source">From {children}</p>;
 }
@@ -240,7 +251,7 @@ function Chart({ account, id }: { account: DemoAccount; id: FocusId }) {
   );
 }
 
-function GrowthLog({ account }: { account: DemoAccount }) {
+export function GrowthLog({ account }: { account: DemoAccount }) {
   const fmt = (d: string) =>
     new Date(`${d}T12:00:00`).toLocaleDateString('en-US', {
       month: 'short',

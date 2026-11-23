@@ -35,9 +35,9 @@ import { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import { MemoryProfilePage } from './memory/MemoryProfilePage';
 import { AiImportHost } from './memory/AiImport';
 import { FileImportHost } from './memory/FileImport';
-import { FocusHub } from './focus/FocusHub';
+import { FocusSheet } from './focus/FocusSheet';
 import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
-import { chosenFocusContext, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
+import { chosenFocusContext, defaultFocus, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
@@ -116,11 +116,23 @@ export function CozyChat() {
   contextRef.current = () =>
     [accountContext(account), chosenFocusContext(), memoryContext(memory.profile)].filter(Boolean).join('\n');
   // The hub for the directions ticked on the letter, over the letter.
-  const [focus, setFocus] = useState<FocusId[] | null>(null);
-  const openFocus = (ids: FocusId[]) => {
+  // What Cozie keeps an eye on (the letter's focus tags): ticked to match her
+  // devices, saved whenever it changes so chats lean that way.
+  const [chosenFocus, setChosenFocus] = useState<FocusId[]>([]);
+  useEffect(() => {
+    const ids = defaultFocus(account);
+    setChosenFocus(ids);
     saveChosenFocus(ids);
-    setFocus(ids);
-  };
+  }, [account]);
+  const toggleFocus = (id: FocusId) =>
+    setChosenFocus((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveChosenFocus(next);
+      return next;
+    });
+  // A tag's preview sheet, over the letter.
+  const [previewFocus, setPreviewFocus] = useState<FocusId | null>(null);
+  const letterFocus = { chosen: chosenFocus, onToggle: toggleFocus, onPreview: setPreviewFocus };
   // A question picked in a hub, sent once the chat has the letter and opener.
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -184,11 +196,11 @@ export function CozyChat() {
   }, [chat.hydrated, planStatus]);
 
   useEffect(() => {
-    if (!pendingQuestion || chat.streaming || letter || focus) return;
+    if (!pendingQuestion || chat.streaming || letter || previewFocus) return;
     setPendingQuestion(null);
     chat.send(pendingQuestion);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingQuestion, chat.messages, letter, focus]);
+  }, [pendingQuestion, chat.messages, letter, previewFocus]);
 
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
@@ -203,8 +215,8 @@ export function CozyChat() {
   };
   // Every intro ends in the From Cozie letter. It arrives over the (blurred)
   // intro, which stays mounted underneath so the film isn't restarted.
-  /** Leave a hub for the chat: Cozie opens on that direction, then her
-   *  question (if she picked one) is sent. */
+  /** From a preview sheet into the chat: Cozie opens on that direction, then
+   *  the question she picked is sent. */
   function chatFromFocus(id: FocusId, question?: string) {
     const opener = focusOpener(account, id);
     if (letter === 'arrive' && firstRun) {
@@ -218,13 +230,18 @@ export function CozyChat() {
     }
     setReplaying(false);
     setLetter(null);
-    setFocus(null);
+    setPreviewFocus(null);
     if (question) setPendingQuestion(question);
   }
-  const focusHub = focus && (
-    <div className="fh-layer">
-      <FocusHub ids={focus} account={account} onBack={() => setFocus(null)} onChat={chatFromFocus} />
-    </div>
+  const focusSheet = (
+    <FocusSheet
+      id={previewFocus}
+      account={account}
+      included={!!previewFocus && chosenFocus.includes(previewFocus)}
+      onToggleInclude={toggleFocus}
+      onClose={() => setPreviewFocus(null)}
+      onAsk={chatFromFocus}
+    />
   );
 
   const arrivingLetter = letter === 'arrive' && (
@@ -232,12 +249,13 @@ export function CozyChat() {
       letter={FIRST_LETTER}
       mode="arrive"
       account={account}
-      onOpenFocus={openFocus}
+      focus={letterFocus}
       onAction={(action) => {
         setReplaying(false);
-        // A replay after onboarding is just a preview: don't seed the
-        // persona or post the letter into the chat a second time.
+        // A replay after onboarding is a preview: don't seed the persona or
+        // post the letter again, but "Talk to Cozie" still shows its opener.
         if (!firstRun) {
+          if (!action.quiet) chat.deliverOpener(action.opener);
           setLetter(null);
           return;
         }
@@ -270,7 +288,7 @@ export function CozyChat() {
           <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
         )}
         {arrivingLetter}
-        {focusHub}
+        {focusSheet}
         {importHost}
         {/* The film brings its own toast host; the sheet doesn't. */}
         {introVariant === 'guide' && <ToastHost />}
@@ -392,10 +410,10 @@ export function CozyChat() {
           mode="reread"
           onClose={() => setLetter(null)}
           account={account}
-          onOpenFocus={openFocus}
+          focus={letterFocus}
         />
       )}
-      {focusHub}
+      {focusSheet}
 
       {homeMounted && (
         <div className={cn('ch-panel', homeOpen && 'is-open')} inert={!homeOpen} aria-hidden={!homeOpen}>

@@ -617,3 +617,378 @@
   color: var(--fh-ink);
   box-shadow: 0 2px 8px rgba(36, 15, 27, 0.08);
 }
+
+/* ---------- First letter (components/cozy/focus/FirstLetterBody.tsx) ---------- */
+.cz-letter__body > .cz-first {
+  animation: none; /* it writes itself instead of fading in */
+}
+.cz-letter__head-side {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Stage beside the heading: "● Week 6" over a Birth · now · next track. */
+.cz-stage {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  padding-top: 4px;
+}
+.cz-letter__head .cz-stage__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #790a30;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.cz-stage__label i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #790a30;
+  box-shadow: 0 0 0 3px rgba(121, 10, 48, 0.15);
+}
+.cz-letter__head .cz-stage__track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  width: 64px;
+}
+.cz-stage__track::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 50%;
+  height: 1.5px;
+  background: linear-gradient(90deg, #790a30 50%, #e4c3cc 50%);
+  transform: translateY(-50%);
+}
+.cz-stage__track i {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid #e4c3cc;
+  border-radius: 50%;
+  background: #fff;
+}
+.cz-stage__track i.is-past,
+.cz-stage__track i.is-now {
+  border-color: #790a30;
+  background: #790a30;
+}
+.cz-stage__track i.is-now {
+  animation: cz-stage-now 900ms 700ms ease-out both;
+}
+@keyframes cz-stage-now {
+  from {
+    transform: translateX(-28px);
+  }
+}
+
+/* Letter-by-letter writing. */
+.cz-typed__rest {
+  visibility: hidden;
+}
+.cz-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1em;
+  margin: 0 1px -0.15em;
+  background: currentColor;
+  animation: cz-caret 700ms steps(1) infinite;
+}
+@keyframes cz-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.cz-letter__body .cz-first__opening {
+  margin: 0 0 18px;
+}
+
+/* Blocks that rise in once their turn comes (and they're on screen). */
+.cz-first__block {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease;
+}
+.cz-first__block.is-in {
+  opacity: 1;
+  transform: none;
+}
+.cz-first .fh-card {
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.82);
+}
+.fh--lactation {
+  --fh-tint: #fde8ec;
+  --fh-ink: #790a30;
+}
+
+/* Focus tags: check box and name are separate targets. */
+.cz-letter__body .cz-first__lead {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.cz-ftags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cz-ftag {
+  --fc-ink: #790a30;
+  display: flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--fc-ink) 22%, transparent);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--fc-ink);
+  transition: background 160ms ease;
+}
+.cz-ftag[data-focus='sleep'] {
+  --fc-ink: #3d2a7a;
+}
+.cz-ftag[data-focus='growth'] {
+  --fc-ink: #1f5a36;
+}
+.cz-ftag[data-focus='mood'] {
+  --fc-ink: #7a4512;
+}
+.cz-ftag.is-on {
+  background: color-mix(in srgb, var(--fc-ink) 10%, #fff);
+  border-color: color-mix(in srgb, var(--fc-ink) 45%, transparent);
+}
+.cz-first__focus.is-in .cz-ftag {
+  animation: cz-tag-pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.cz-first__focus.is-in .cz-ftag:nth-child(2) {
+  animation-delay: 70ms;
+}
+.cz-first__focus.is-in .cz-ftag:nth-child(3) {
+  animation-delay: 140ms;
+}
+.cz-first__focus.is-in .cz-ftag:nth-child(4) {
+  animation-delay: 210ms;
+}
+@keyframes cz-tag-pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+.cz-ftag__check {
+  /* 40px target around a 20px box */
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: -6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.cz-ftag__check svg {
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: 1.5px solid color-mix(in srgb, var(--fc-ink) 55%, transparent);
+  border-radius: 6px;
+  background: #fff;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: background 160ms ease;
+}
+.cz-ftag.is-on .cz-ftag__check svg {
+  border-color: var(--fc-ink);
+  background: var(--fc-ink);
+}
+.cz-ftag__name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 14px 0 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.cz-ftag__name span {
+  font-size: 16px;
+  opacity: 0.55;
+}
+.cz-letter__body .cz-first__hint {
+  margin: 8px 0 18px;
+  font-size: 12px;
+  color: rgba(36, 15, 27, 0.55);
+}
+.cz-first__emphasis {
+  min-height: 1.3em;
+}
+.cz-letter__body .cz-first__next {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: rgba(36, 15, 27, 0.55);
+}
+.cz-first__end {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #d9b8bf;
+}
+.cz-letter__body .cz-first__source {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(36, 15, 27, 0.55);
+}
+.cz-first__actions {
+  display: grid;
+  gap: 4px;
+}
+.cz-first__talk {
+  width: 100%;
+}
+
+/* ---------- Focus preview sheet (components/cozy/focus/FocusSheet.tsx) ---------- */
+.fs {
+  --fh-tint: #fde8ec;
+  --fh-ink: #790a30;
+}
+.fs.fh--sleep {
+  --fh-tint: #ebe7fb;
+  --fh-ink: #3d2a7a;
+}
+.fs.fh--growth {
+  --fh-tint: #e3f4e8;
+  --fh-ink: #1f5a36;
+}
+.fs.fh--mood {
+  --fh-tint: #fcefdc;
+  --fh-ink: #7a4512;
+}
+.fs-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 48px 12px 0;
+}
+.fs-hero .fh-icon {
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--fh-tint) 70%, #fff);
+  color: var(--fh-ink);
+}
+.fs-hero h2 {
+  margin: 0;
+  color: var(--fh-ink);
+  font: 400 24px/1.15 var(--cz-brand);
+}
+.fs-hero p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--cz-ink-2);
+}
+.fs-can {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.fs-can li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.fs-can li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--fh-ink);
+  opacity: 0.6;
+}
+.fs .fh-card {
+  border: 1px solid rgba(36, 15, 27, 0.06);
+  box-shadow: none;
+}
+.fs-include {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(36, 15, 27, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--cz-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fs-include strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+.fs-include small {
+  font-size: 12px;
+  color: var(--cz-ink-2);
+}
+.fs-include i {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 28px;
+  border-radius: 14px;
+  background: #ddd5d8;
+  transition: background 160ms ease;
+}
+.fs-include i::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 160ms ease;
+}
+.fs-include[aria-checked='true'] i {
+  background: var(--fh-ink);
+}
+.fs-include[aria-checked='true'] i::after {
+  transform: translateX(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-first__block,
+  .cz-ftag,
+  .cz-stage__track i.is-now,
+  .cz-caret {
+    animation: none;
+    transition: none;
+  }
+}
