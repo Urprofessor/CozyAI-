@@ -654,67 +654,6 @@
   gap: 10px;
 }
 
-/* Stage beside the heading: "● Week 6" over a Birth · now · next track. */
-.cz-stage {
-  display: grid;
-  justify-items: end;
-  gap: 6px;
-  padding-top: 4px;
-}
-.cz-letter__head .cz-stage__label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #790a30;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.cz-stage__label i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #790a30;
-  box-shadow: 0 0 0 3px rgba(121, 10, 48, 0.15);
-}
-.cz-letter__head .cz-stage__track {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  width: 64px;
-}
-.cz-stage__track::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 50%;
-  height: 1.5px;
-  background: linear-gradient(90deg, #790a30 50%, #e4c3cc 50%);
-  transform: translateY(-50%);
-}
-.cz-stage__track i {
-  position: relative;
-  width: 7px;
-  height: 7px;
-  border: 1.5px solid #e4c3cc;
-  border-radius: 50%;
-  background: #fff;
-}
-.cz-stage__track i.is-past,
-.cz-stage__track i.is-now {
-  border-color: #790a30;
-  background: #790a30;
-}
-.cz-stage__track i.is-now {
-  animation: cz-stage-now 900ms 700ms ease-out both;
-}
-@keyframes cz-stage-now {
-  from {
-    transform: translateX(-28px);
-  }
-}
-
 /* Line-by-line writing: every word carries its line number (--l). */
 .cz-lines [data-w] {
   display: inline-block;
@@ -929,7 +868,6 @@
 @media (prefers-reduced-motion: reduce) {
   .cz-first__block,
   .cz-focus__card,
-  .cz-stage__track i.is-now,
   .cz-lines [data-w] {
     transition: none;
     transition: none;
@@ -1051,80 +989,6 @@
   }
 }
 
-/* Footprints: eight little prints, past ones inked, the current one lit,
- * the coming ones just outlined. */
-.cz-trail {
-  display: grid;
-  justify-items: end;
-  gap: 3px;
-  padding-top: 2px;
-}
-.cz-letter__head .cz-trail__label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: #790a30;
-}
-.cz-letter__head .cz-trail__label small {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(121, 10, 48, 0.55);
-}
-.cz-letter__head .cz-trail__path {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 22px;
-}
-.cz-print {
-  display: block;
-  width: 9px;
-  height: 14px;
-  animation: cz-print-in 260ms ease-out both;
-}
-.cz-print.is-left {
-  transform: translateY(3px) rotate(-12deg);
-}
-.cz-print.is-right {
-  transform: translateY(-3px) rotate(12deg);
-}
-.cz-print svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  fill: rgba(121, 10, 48, 0.42);
-}
-.cz-print.is-now svg {
-  fill: #790a30;
-  filter: drop-shadow(0 0 3px rgba(226, 86, 111, 0.65));
-  animation: cz-print-glow 1.8s 1.8s ease-in-out infinite alternate;
-}
-.cz-print.is-next svg {
-  fill: none;
-  stroke: rgba(121, 10, 48, 0.35);
-  stroke-width: 0.7;
-  stroke-dasharray: 1.2 1;
-}
-@keyframes cz-print-in {
-  from {
-    opacity: 0;
-    scale: 0.4;
-  }
-}
-@keyframes cz-print-glow {
-  to {
-    filter: drop-shadow(0 0 5px rgba(226, 86, 111, 0.9));
-  }
-}
-.cz-letter__head .cz-trail__ends {
-  display: flex;
-  justify-content: space-between;
-  align-self: stretch;
-  font-size: 9px;
-  letter-spacing: 0;
-  color: rgba(121, 10, 48, 0.5);
-}
-
 /* The note a tap opens: what's typical this week. */
 .cz-stage-note {
   position: absolute;
@@ -1187,8 +1051,6 @@
 @media (prefers-reduced-motion: reduce) {
   .cz-stamp,
   .cz-postmark,
-  .cz-print,
-  .cz-print.is-now svg,
   .cz-stage-note {
     animation: none;
   }
@@ -1198,26 +1060,4 @@
 .cz-letter__head:has(.cz-stage-wrap) {
   position: relative;
   z-index: 3;
-}
-
-/* Footprints: a touch bigger, and the Birth / Week 8 labels spread under the trail. */
-.cz-trail {
-  display: inline-grid;
-}
-.cz-print {
-  width: 10.5px;
-  height: 16px;
-}
-.cz-letter__head .cz-trail__path {
-  height: 24px;
-  gap: 2.5px;
-}
-.cz-letter__head .cz-trail__ends {
-  justify-self: stretch;
-}
-.cz-letter__head .cz-trail__ends span {
-  font-size: 9px;
-  line-height: 12px;
-  letter-spacing: 0;
-  color: rgba(121, 10, 48, 0.5);
 }

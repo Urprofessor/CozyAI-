@@ -9,7 +9,6 @@ import type { FocusId } from '@/lib/cozy/focus';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import { FirstLetterBody } from './focus/FirstLetterBody';
 import { LetterStage } from './focus/LetterStage';
-import { useStageStyle } from '@/lib/cozy/stageStyle';
 
 type Phase = 'arrive' | 'seal' | 'open' | 'rise' | 'read';
 
@@ -82,7 +81,6 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, focus }:
   // The direction cards show when rereading too; "Maybe later" belongs to
   // the first arrival only.
   const first = letter.offerDataConnections && account && focus ? { account, focus } : null;
-  const stageStyle = useStageStyle();
   const offerConnections = !!first;
   const skipConnection = mode === 'arrive' && onAction ? letter.actions.find((action) => action.quiet) : undefined;
 
@@ -117,11 +115,11 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, focus }:
             <div>
               {letter.offerDataConnections && <span className="cz-letter__brand">momcozy</span>}
               <h2>{heading}</h2>
-              {/* With the stamp, the date is on the postmark instead. */}
-              <span>{first && stageStyle !== 'stamp' ? `${letter.kicker} · ${date}` : letter.kicker}</span>
+              {/* The first letter carries its date on the stamp's postmark. */}
+              <span>{letter.kicker}</span>
             </div>
             <div className="cz-letter__head-side">
-              {first && <LetterStage style={stageStyle} week={first.account.baby.weeks} date={date} />}
+              {first && <LetterStage week={first.account.baby.weeks} date={date} />}
               {mode === 'reread' && onClose ? (
                 <button type="button" className="cz-letter__close" onClick={onClose} aria-label="Close">
                   <img src={`${CZ}/icons/settings_close.svg`} alt="" />

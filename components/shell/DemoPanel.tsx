@@ -1,7 +1,6 @@
 'use client';
 
 import { INTRO_VARIANTS, replayIntro, setIntroVariant, useIntroVariant } from '@/lib/cozy/introVariant';
-import { STAGE_STYLES, setStageStyle, useStageStyle } from '@/lib/cozy/stageStyle';
 import { LETTER_VARIANTS, setLetterVariant, useLetterVariant } from '@/lib/cozy/letterVariant';
 import { ACCOUNT_PRESETS, setAccountPreset, useDemoAccount } from '@/lib/cozy/account-demo';
 import { resetAi, resetFiles, setHealthConnected, useConnections } from '@/lib/cozy/connections';
@@ -14,7 +13,6 @@ export function DemoPanel() {
   const connections = useConnections();
   const account = useDemoAccount();
   const letterVariant = useLetterVariant();
-  const stageStyle = useStageStyle();
 
   return (
     <aside className="demo-panel" aria-label="Demo controls">
@@ -59,24 +57,6 @@ export function DemoPanel() {
                 setLetterVariant(v.id);
                 replayIntro();
               }}
-            >
-              <strong>{v.label}</strong>
-              <small>{v.note}</small>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="demo-panel__section">
-        <p className="demo-panel__subtitle">Letter stage (top right)</p>
-        <div className="demo-panel__accounts" role="radiogroup" aria-label="How the letter shows the week">
-          {STAGE_STYLES.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="radio"
-              aria-checked={stageStyle === v.id}
-              onClick={() => setStageStyle(v.id)}
             >
               <strong>{v.label}</strong>
               <small>{v.note}</small>
