@@ -66,7 +66,7 @@ export function DataSources({ account, memory, onBack, onDeleteImport, onOpenMem
         </p>
       </header>
 
-      <ConnectionsSky connections={connections} />
+      <ConnectionsSky connections={connections} accountOn={on('account')} />
 
       <p className="ds__label">Momcozy</p>
       <div className="cz-settings__card">

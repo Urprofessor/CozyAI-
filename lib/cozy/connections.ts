@@ -85,14 +85,16 @@ export function statusOf(c: Connections, id: SourceId): SourceStatus {
 
 /** How much each source adds to how well Cozie knows the family, in percent.
  *  Fixed for the demo; the real figure would count which of the things Cozie
- *  wants to know a source actually filled. The rest (25%) comes from chatting
- *  and Momcozy devices. */
+ *  wants to know a source actually filled. The Momcozy account is where she
+ *  starts: the baby's profile, growth log and check-ups are already there. */
+export const ACCOUNT_SHARE = 25;
 export const SOURCE_SHARE: Record<SourceId, number> = { health: 15, files: 15, ai: 45 };
 
-export function knownPercent(c: Connections) {
+/** With the Momcozy account in use and every source connected, 100%. */
+export function knownPercent(c: Connections, accountOn: boolean) {
   return (Object.keys(SOURCE_SHARE) as SourceId[]).reduce(
     (sum, id) => sum + (statusOf(c, id) === 'done' ? SOURCE_SHARE[id] : 0),
-    0,
+    accountOn ? ACCOUNT_SHARE : 0,
   );
 }
 

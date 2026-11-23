@@ -2,16 +2,27 @@
 
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { SOURCE_SHARE, knownPercent, statusOf, type Connections, type SourceId } from '@/lib/cozy/connections';
+import {
+  ACCOUNT_SHARE,
+  SOURCE_SHARE,
+  knownPercent,
+  statusOf,
+  type Connections,
+  type SourceId,
+} from '@/lib/cozy/connections';
 
 /* How well Cozie knows the family, as the Big Dipper on a night sky over
  * Data sources. Its seven stars are shared out by what each source adds
- * (about 14% a star): Apple Health lights one, a file one, an AI assistant
- * three, and the last two are what chatting or a Momcozy device would add.
- * A connected source's stars light up and join the constellation's lines,
- * and the percentage counts up. */
+ * (about 14% a star): the Momcozy account lights the two at the end of the
+ * handle (she starts there, at 25%), Apple Health one, a file one and an AI
+ * assistant three. A source's stars light up and join the constellation's
+ * lines when it connects, and the percentage counts up. */
 
-const SOURCES: { id: SourceId; name: string; color: string; stars: number[] }[] = [
+type SkyId = SourceId | 'account';
+const SHARE: Record<SkyId, number> = { account: ACCOUNT_SHARE, ...SOURCE_SHARE };
+
+const SOURCES: { id: SkyId; name: string; color: string; stars: number[] }[] = [
+  { id: 'account', name: 'Momcozy', color: '#ffb88a', stars: [5, 6] },
   { id: 'health', name: 'Apple Health', color: '#ff9bb3', stars: [0] },
   { id: 'files', name: 'Files', color: '#ffd27a', stars: [1] },
   { id: 'ai', name: 'Your AI', color: '#c7b5ff', stars: [2, 3, 4] },
@@ -44,21 +55,25 @@ const BACKDROP = (() => {
   }));
 })();
 
+/** "A", "A and B", "A, B and C". */
+const names = (list: { name: string }[]) =>
+  list.length < 2 ? (list[0]?.name ?? '') : `${list.slice(0, -1).map((s) => s.name).join(', ')} and ${list[list.length - 1].name}`;
+
 const COUNT_MS = 900;
 /** Connections load just after mount; don't celebrate what was already there. */
 const SETTLE_MS = 600;
 const STEP_S = 0.18;
 
-export function ConnectionsSky({ connections }: { connections: Connections }) {
+export function ConnectionsSky({ connections, accountOn }: { connections: Connections; accountOn: boolean }) {
   const uid = useId().replace(/:/g, '');
-  const percent = knownPercent(connections);
-  const on = (id: SourceId) => statusOf(connections, id) === 'done';
+  const percent = knownPercent(connections, accountOn);
+  const on = (id: SkyId) => (id === 'account' ? accountOn : statusOf(connections, id) === 'done');
 
   const [shown, setShown] = useState(percent);
-  const [fresh, setFresh] = useState<{ ids: SourceId[]; gen: number }>({ ids: [], gen: 0 });
+  const [fresh, setFresh] = useState<{ ids: SkyId[]; gen: number }>({ ids: [], gen: 0 });
   const [caption, setCaption] = useState<string | null>(null);
   const mountedAt = useRef(0);
-  const prev = useRef<Record<SourceId, boolean> | null>(null);
+  const prev = useRef<Record<SkyId, boolean> | null>(null);
 
   useEffect(() => {
     mountedAt.current = Date.now();
@@ -66,7 +81,7 @@ export function ConnectionsSky({ connections }: { connections: Connections }) {
 
   // Light the sources that just connected, and say what changed.
   useEffect(() => {
-    const now = { health: on('health'), files: on('files'), ai: on('ai') };
+    const now = { account: on('account'), health: on('health'), files: on('files'), ai: on('ai') };
     const before = prev.current;
     prev.current = now;
     if (!before || Date.now() - mountedAt.current < SETTLE_MS) return;
@@ -75,16 +90,16 @@ export function ConnectionsSky({ connections }: { connections: Connections }) {
     if (lit.length) {
       setFresh((f) => ({ ids: lit.map((s) => s.id), gen: f.gen + 1 }));
       const stars = lit.reduce((n, s) => n + s.stars.length, 0);
-      const added = lit.reduce((n, s) => n + SOURCE_SHARE[s.id], 0);
+      const added = lit.reduce((n, s) => n + SHARE[s.id], 0);
       setCaption(
-        `${lit.map((s) => s.name).join(' and ')} lit up ${stars === 1 ? 'a star' : `${stars} stars`} · +${added}%`,
+        `${names(lit)} lit up ${stars === 1 ? 'a star' : `${stars} stars`} · +${added}%`,
       );
     } else if (dimmed.length) {
       setFresh((f) => ({ ids: [], gen: f.gen + 1 }));
-      setCaption(`${dimmed.map((s) => s.name).join(' and ')} disconnected`);
+      setCaption(`${names(dimmed)} ${dimmed.some((s) => s.id === 'account') ? 'turned off' : 'disconnected'}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections]);
+  }, [connections, accountOn]);
 
   // Count the number up (or down) to the new percentage.
   const shownRef = useRef(shown);
@@ -214,17 +229,15 @@ export function ConnectionsSky({ connections }: { connections: Connections }) {
         {SOURCES.map((s) => (
           <li key={s.id} className={cn(!on(s.id) && 'is-off')}>
             <span style={{ background: s.color }} aria-hidden />
-            {s.name} <em>+{SOURCE_SHARE[s.id]}%</em>
+            {s.name} <em>+{SHARE[s.id]}%</em>
           </li>
         ))}
       </ul>
       <p className="cz-sky__caption" aria-live="polite">
         {caption ??
-          (!percent
-            ? 'Each thing you connect lights up a star of the Big Dipper.'
-            : SOURCES.every((s) => on(s.id))
-              ? `Chatting with Cozie lights up the last ${unlitCount === 1 ? 'star' : `${unlitCount} stars`}.`
-              : 'Connect more to light up the rest.')}
+          (!unlitCount
+            ? 'The whole Big Dipper is lit.'
+            : 'Each thing you connect lights up more of the Big Dipper.')}
       </p>
     </div>
   );
