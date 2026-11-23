@@ -95,7 +95,7 @@ function Hero({ number, sub }: { number: string; sub?: string }) {
 }
 
 /** A thin line through the points, the last one marked. */
-function TrendLine({ values, label }: { values: number[]; label: string }) {
+export function TrendLine({ values, label }: { values: number[]; label: string }) {
   if (values.length < 2) return null;
   const w = 300;
   const h = 60;
@@ -121,6 +121,70 @@ function TrendLine({ values, label }: { values: number[]; label: string }) {
 
 /* ---------- The first letter's "I noticed" ---------- */
 
+/** The numbers behind an observation: its big figure (with where it started,
+ *  so the full-screen moment can count up to it) and its trend. Shared by the
+ *  card and the moment (components/cozy/focus/InsightMoment.tsx). */
+export interface InsightFigures {
+  tone: CardTone;
+  hero?: { from: number; to: number; format: (v: number) => string; sub: string };
+  trend?: { values: number[]; label: string };
+}
+
+export function insightFigures(account: DemoAccount, id: FocusId): InsightFigures {
+  const tone = FOCUS_TONE[id];
+  const p = pumpSummary(account);
+  const s = sleepSummary(account);
+  if (id === 'sleep' && s) {
+    return {
+      tone,
+      hero: {
+        from: s.longestWeekAgo,
+        to: s.longestNow,
+        format: fmtMinutes,
+        sub: `Longest stretch, up from ${fmtMinutes(s.longestWeekAgo)}`,
+      },
+      trend: { values: s.longest, label: 'Longest sleep each day · last 7 days' },
+    };
+  }
+  if (id === 'lactation' && p) {
+    return {
+      tone,
+      hero: {
+        from: p.avgMl,
+        to: p.nightMl,
+        format: (v) => `${Math.round(v)} ml`,
+        sub: `Your 3 a.m. session · ${p.avgMl} ml on average`,
+      },
+      trend: { values: p.perDayMl, label: 'Pumped each day · last 7 days' },
+    };
+  }
+  if (id === 'growth') {
+    const weights = account.growth.flatMap((g) => (g.weightKg ? [g.weightKg] : []));
+    return {
+      tone,
+      hero: {
+        from: weights[0],
+        to: weights[weights.length - 1],
+        format: (v) => `${v.toFixed(1)} kg`,
+        sub: `Up from ${weights[0]} kg at birth`,
+      },
+      trend: { values: weights, label: `Weight since birth · check-up in ${daysUntil(account.nextCheckup.date)} days` },
+    };
+  }
+  if (id === 'mood' && p) {
+    return {
+      tone,
+      hero: {
+        from: 0,
+        to: p.nightsPumped,
+        format: (v) => `${Math.round(v)} of 7`,
+        sub: 'Nights with a 3 a.m. pump this week',
+      },
+    };
+  }
+  return { tone };
+}
+
 /** "I noticed" for one direction — the first letter, and each direction's
  *  preview sheet and hub. Without device data it says what would fill it in. */
 export function InsightStoryCard({ account, id }: { account: DemoAccount; id: FocusId }) {
@@ -145,28 +209,9 @@ export function InsightStoryCard({ account, id }: { account: DemoAccount; id: Fo
       </StoryCard>
     );
   }
-  const p = pumpSummary(account);
-  const s = sleepSummary(account);
-  let hero: ReactNode = null;
-  let trend: ReactNode = null;
-  if (id === 'sleep' && s) {
-    hero = <Hero number={fmtMinutes(s.longestNow)} sub={`Longest stretch, up from ${fmtMinutes(s.longestWeekAgo)}`} />;
-    trend = <TrendLine values={s.longest} label="Longest sleep each day · last 7 days" />;
-  } else if (id === 'lactation' && p) {
-    hero = <Hero number={`${p.nightMl} ml`} sub={`Your 3 a.m. session · ${p.avgMl} ml on average`} />;
-    trend = <TrendLine values={p.perDayMl} label="Pumped each day · last 7 days" />;
-  } else if (id === 'growth') {
-    const latest = account.growth[account.growth.length - 1];
-    hero = <Hero number={`${latest.weightKg} kg`} sub={`Up from ${account.growth[0].weightKg} kg at birth`} />;
-    trend = (
-      <TrendLine
-        values={account.growth.flatMap((g) => (g.weightKg ? [g.weightKg] : []))}
-        label={`Weight since birth · check-up in ${daysUntil(account.nextCheckup.date)} days`}
-      />
-    );
-  } else if (id === 'mood' && p) {
-    hero = <Hero number={`${p.nightsPumped} of 7`} sub="Nights with a 3 a.m. pump this week" />;
-  }
+  const f = insightFigures(account, id);
+  const hero = f.hero && <Hero number={f.hero.format(f.hero.to)} sub={f.hero.sub} />;
+  const trend = f.trend && <TrendLine values={f.trend.values} label={f.trend.label} />;
   return (
     <StoryCard
       tone={FOCUS_TONE[id]}

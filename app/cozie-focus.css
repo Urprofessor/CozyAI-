@@ -789,11 +789,6 @@
 .cz-first__emphasis {
   min-height: 1.3em;
 }
-.cz-letter__body .cz-first__next {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: rgba(36, 15, 27, 0.55);
-}
 .cz-first__end {
   margin-top: 18px;
   padding-top: 14px;

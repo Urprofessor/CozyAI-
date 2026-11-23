@@ -21,7 +21,6 @@ export interface FirstLetter {
   insight: Insight;
   emphasis: string;
   closing: string;
-  nextLetter: string;
   /** Cozie's first chat message after "Talk to Cozie": the first actions. */
   firstMessage: { content: string; suggestions: string[] };
 }
@@ -74,7 +73,6 @@ export function buildFirstLetter(a: DemoAccount): FirstLetter {
     insight: focusInsight(a, focus)!,
     emphasis: 'You’re doing more than you think.',
     closing: 'With you,',
-    nextLetter: `Next letter: when ${baby} turns 8 weeks`,
     firstMessage,
   };
 }

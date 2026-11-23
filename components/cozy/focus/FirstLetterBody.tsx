@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import type { FocusId } from '@/lib/cozy/focus';
-import { InsightStoryCard } from '../cards/StoryCard';
+import { InsightStoryCard, insightFigures } from '../cards/StoryCard';
+import { InsightMoment } from './InsightMoment';
 import { FocusCards } from './LetterFocus';
 
 /* Body of the first letter. On arrival it is "written" in front of her:
@@ -72,9 +73,18 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
   const current = ORDER[step] as Step | undefined;
   const ready = useInView(current ? refs[current] : undefined, step < ALL);
 
+  // The observation gets its full-screen moment on first arrival (when it
+  // has a number to show); it hands over when the moment has closed in.
+  const [moment, setMoment] = useState<'off' | 'playing' | 'landed'>('off');
+  const momentOn = animate && !!insightFigures(account, letter.insightFocus).hero;
+  useEffect(() => {
+    if (momentOn && current === 'insight' && ready && moment === 'off') setMoment('playing');
+  }, [momentOn, current, ready, moment]);
+
   // Fade-in steps hand over on a timer once they're on screen.
   useEffect(() => {
     if (!current || !(current in FADE_MS) || !ready) return;
+    if (current === 'insight' && momentOn) return; // the moment hands over instead
     const t = window.setTimeout(() => next(current), FADE_MS[current as keyof typeof FADE_MS] + GAP_MS);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,10 +106,29 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
         <Lines text={letter.opening} run={step === at('opening')} done={step > at('opening')} onDone={() => next('opening')} />
       </p>
 
-      <div ref={insightRef} className={cn('cz-first__block', isIn(step, at('insight'), ready) && 'is-in')}>
+      <div
+        ref={insightRef}
+        className={cn(
+          'cz-first__block',
+          moment === 'playing' && step === at('insight') && 'is-holding',
+          moment === 'landed' ? 'is-in is-landed' : !momentOn && isIn(step, at('insight'), ready) && 'is-in',
+          momentOn && moment !== 'landed' && step > at('insight') && 'is-in',
+        )}
+      >
         {/* Remounted when it appears, so the trend line draws in front of her. */}
         <InsightStoryCard key={isIn(step, at('insight'), ready) ? 'in' : 'wait'} account={account} id={letter.insightFocus} />
       </div>
+      {moment === 'playing' && step === at('insight') && (
+        <InsightMoment
+          account={account}
+          id={letter.insightFocus}
+          target={() => insightRef.current?.querySelector<HTMLElement>('.sc') ?? null}
+          onDone={() => {
+            setMoment('landed');
+            next('insight');
+          }}
+        />
+      )}
 
       <div ref={focusRef} className={cn('cz-first__block cz-first__focus', isIn(step, at('focus'), ready) && 'is-in')}>
         <p className="cz-first__lead">I’ll keep an eye on these for you:</p>
@@ -124,7 +153,6 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
           <span>{letter.closing}</span>
           <strong>Cozie</strong>
         </div>
-        <p className="cz-first__next">{letter.nextLetter}</p>
       </div>
 
       <div ref={endRef} className={cn('cz-first__block cz-first__end', isIn(step, at('end'), ready) && 'is-in')}>
