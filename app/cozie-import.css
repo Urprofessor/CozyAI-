@@ -840,3 +840,134 @@
   font-size: 13px;
   color: var(--cz-accent);
 }
+
+/* Data sources: how well Cozie knows the family (components/cozy/ConnectionsSky.tsx). */
+.cz-sky {
+  margin: 0 0 14px;
+  padding: 14px 14px 12px;
+  border: 1px solid #fff9;
+  border-radius: 20px;
+  background: #fff8f6;
+  box-shadow: 0 5px 16px #790a3014;
+  color: #790a30;
+}
+
+.cz-sky__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cz-sky__percent {
+  flex-shrink: 0;
+  font: 400 40px/1 var(--cz-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.cz-sky__label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #9a5a6e;
+}
+
+.cz-sky__map {
+  display: block;
+  width: 100%;
+  margin: 6px 0 4px;
+}
+
+.cz-sky__star.is-dark {
+  fill: #fff8f6;
+  stroke: #d9b8bf;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.cz-sky__line {
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+}
+
+.cz-sky__burst {
+  fill: none;
+  stroke-width: 1.2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: czSkyBurst 0.9s ease-out both;
+}
+
+.cz-sky__star.is-fresh {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: czSkyPop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.cz-sky__line.is-fresh {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: czSkyDraw 0.8s ease-out forwards;
+}
+
+@keyframes czSkyPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+
+@keyframes czSkyBurst {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes czSkyDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+.cz-sky__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.cz-sky__legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cz-sky__legend li.is-off {
+  opacity: 0.5;
+}
+
+.cz-sky__legend span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cz-sky__legend em {
+  font-style: normal;
+  color: #9a5a6e;
+}
+
+.cz-sky .cz-sky__caption {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9a5a6e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-sky__star.is-fresh,
+  .cz-sky__line.is-fresh,
+  .cz-sky__burst {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

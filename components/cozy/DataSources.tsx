@@ -10,6 +10,7 @@ import { showToast } from './ui';
 import { openAiImport } from './memory/AiImport';
 import { openFileImport } from './memory/FileImport';
 import { ShieldIcon } from './memory/ImportParts';
+import { ConnectionsSky } from './ConnectionsSky';
 
 /* Settings → Data sources: what Cozie can draw on to tailor its answers,
  * kept apart from the memory profile (what it remembers). Each source has a
@@ -64,6 +65,8 @@ export function DataSources({ account, memory, onBack, onDeleteImport, onOpenMem
           What Cozie can use to tailor its answers. Turning a source off stops Cozie using it — nothing is deleted.
         </p>
       </header>
+
+      <ConnectionsSky connections={connections} />
 
       <p className="ds__label">Momcozy</p>
       <div className="cz-settings__card">
