@@ -217,7 +217,11 @@ function PermButton({ state, onClick, label, doneLabel }: { state: PermState; on
 
 /* ───────────── Flow ───────────── */
 
-const TOTAL = 4;
+// Permissions step (step 4) is parked, not deleted: PermissionCards is kept for
+// the coming "which Momcozy devices do you use" choice step. Set to true to bring it back.
+const SHOW_PERMISSIONS = false;
+const TOTAL = SHOW_PERMISSIONS ? 4 : 3;
+const LAST = TOTAL - 1;
 
 /** B · Guided intro: three Apple-style steps (animated mini phone, title,
  *  body), a permissions page and a checkmark, then the From Cozie letter —
@@ -340,7 +344,7 @@ export function GuidedIntro({ onStart, onClose }: Props) {
         <button
           type="button"
           className="cz-consent__start cz-guide__cta"
-          onClick={() => (step < 3 ? go(step + 1) : finish())}
+          onClick={() => (step < LAST ? go(step + 1) : finish())}
         >
           {step === 2 ? 'Agree & continue' : step === 3 ? 'Get started' : 'Continue'}
         </button>

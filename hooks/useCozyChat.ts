@@ -35,6 +35,9 @@ interface Options {
   resolveCard?: (skill: CardSkill) => string;
   /** Called post-stream with a pumping log the model emitted via [[PUMP:{...}]]. */
   onPumpLog?: (entry: { oz: number; time?: string }) => void;
+  /** What Cozie knows about mom and baby (account + memory), sent with Q&A
+   *  requests so answers fit her. Read at send time. */
+  getContext?: () => string;
 }
 
 const QUESTIONNAIRE_CARD = '__SKILL_LACTATION__';
@@ -52,6 +55,8 @@ export function useCozyChat(opts: Options = {}) {
   const [inQueue, setInQueue] = useState(false);
   const [hydrated, setHydrated] = useState(false); // sessions loaded from server yet?
 
+  const getContextRef = useRef(opts.getContext);
+  getContextRef.current = opts.getContext;
   const abortRef = useRef<AbortController | null>(null);
   // Set when a stream is aborted because the conversation is being swapped out
   // (new chat / load session) — that abort must not leave a "stopped" reply.
@@ -346,6 +351,7 @@ export function useCozyChat(opts: Options = {}) {
         signal: abortRef.current.signal,
         body: JSON.stringify({
           persona: personaAtStart,
+          ...(personaAtStart === 'qa' && getContextRef.current ? { context: getContextRef.current() } : {}),
           messages: history
             // Stopped-before-first-token replies are empty; the model APIs reject those.
             .filter((m) => (m.role === 'user' || m.role === 'assistant') && (m.content || m.images?.length))
@@ -633,6 +639,22 @@ export function useCozyChat(opts: Options = {}) {
     []
   );
 
+  /** Cozie's scripted opener on its own (no letter card), e.g. after a hub. */
+  const deliverOpener = useCallback((opener: { content: string; suggestions?: string[] }) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: newId(),
+        role: 'assistant',
+        content: opener.content,
+        persona: 'qa',
+        createdAt: Date.now(),
+        scripted: true,
+        ...(opener.suggestions ? { suggestions: opener.suggestions } : {}),
+      },
+    ]);
+  }, []);
+
   const appendAssistant = useCallback(
     (content: string, personaOverride?: Persona) => {
       setMessages((prev) => [
@@ -679,6 +701,7 @@ export function useCozyChat(opts: Options = {}) {
     appendSystem,
     appendAssistant,
     deliverLetter,
+    deliverOpener,
     startSkill,
     showPlanCard,
     pageSize: COZY_PAGE_SIZE,

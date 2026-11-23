@@ -6,6 +6,7 @@
 @import './cozie-memory.css';
 @import './cozie-intro.css';
 @import './cozie-import.css';
+@import './cozie-focus.css';
 
 @tailwind base;
 @tailwind components;

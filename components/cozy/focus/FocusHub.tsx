@@ -1,0 +1,280 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { daysUntil, pumpSummary, sleepSummary, fmtMinutes, type DemoAccount } from '@/lib/cozy/account-demo';
+import { focusAsks, focusDef, focusInsight, focusQuestions, type FocusId, type SharperAsk } from '@/lib/cozy/focus';
+import { CZ, showToast } from '../ui';
+import { openAiImport } from '../memory/AiImport';
+import { openFileImport } from '../memory/FileImport';
+import { ShieldIcon } from '../memory/ImportParts';
+
+/* A hub for one direction, between the letter and the chat: what Cozie
+ * already knows (from the Momcozy account, with its source named), one thing
+ * it noticed, questions to start with, and what would make answers sharper.
+ * Every way forward leads into the chat. */
+
+const MOODS = ['Calm', 'Tired', 'Overwhelmed', 'Low'];
+const CTA: Record<FocusId, string> = {
+  lactation: 'Chat about pumping',
+  sleep: 'Chat about sleep',
+  growth: 'Chat about Noah’s growth',
+  mood: 'Talk to Cozie',
+};
+
+interface Props {
+  id: FocusId;
+  account: DemoAccount;
+  onBack: () => void;
+  /** Into the chat, optionally with a question to send. */
+  onChat: (question?: string) => void;
+}
+
+export function FocusHub({ id, account, onBack, onChat }: Props) {
+  const def = focusDef(id);
+  const insight = focusInsight(account, id);
+  const questions = focusQuestions(account, id);
+  const asks = focusAsks(account, id);
+
+  function ask(a: SharperAsk) {
+    if (a.id === 'file') openFileImport();
+    else if (a.id === 'ai') openAiImport();
+    else showToast('Apple Health is preview only in this demo.');
+  }
+
+  return (
+    <div className={cn('fh', `fh--${id}`)} role="dialog" aria-label={def.title}>
+      <header className="fh-top">
+        <button type="button" className="cz-glass-btn" onClick={onBack} aria-label="Back to the letter">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              d="M15 5l-7 7 7 7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <div className="fh-scroll">
+        <div className="fh-hero">
+          <FocusIcon id={id} />
+          <h2>{def.title}</h2>
+          <p>{def.helpers}</p>
+        </div>
+
+        {insight ? (
+          <section className="fh-card fh-insight">
+            <p className="fh-eyebrow">
+              <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
+              Cozie noticed
+            </p>
+            <h3>{insight.title}</h3>
+            <Chart account={account} id={id} />
+            <p>{insight.text}</p>
+            <Source>{insight.source}</Source>
+          </section>
+        ) : (
+          <section className="fh-card fh-empty">
+            <h3>{id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}</h3>
+            <p>
+              {id === 'lactation'
+                ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
+                : id === 'sleep'
+                  ? 'Pair a Momcozy monitor and Cozie will see how Noah sleeps. Until then, a sleep tracker export or a quick chat works too.'
+                  : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
+            </p>
+          </section>
+        )}
+
+        {id === 'growth' && <GrowthLog account={account} />}
+
+        {id === 'mood' && (
+          <section className="fh-section">
+            <h3>Today I feel…</h3>
+            <div className="fh-moods">
+              {MOODS.map((m) => (
+                <button key={m} type="button" onClick={() => onChat(`Today I feel ${m.toLowerCase()}.`)}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="fh-section">
+          <h3>Ask Cozie</h3>
+          <ul className="fh-questions">
+            {questions.map((q) => (
+              <li key={q}>
+                <button type="button" onClick={() => onChat(q)}>
+                  {q}
+                  <span aria-hidden>↗</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="fh-section">
+          <h3>Make answers sharper</h3>
+          <p className="fh-section__lead">
+            The more Cozie knows, the more its answers fit you and Noah. Each is optional.
+          </p>
+          <ul className="fh-asks">
+            {asks.map((a) => (
+              <li key={a.id + a.title}>
+                <button type="button" onClick={() => ask(a)}>
+                  <span className={cn('fh-asks__icon', `is-${a.id}`)} aria-hidden>
+                    {a.id === 'file' ? 'PDF' : a.id === 'ai' ? 'AI' : '♥'}
+                  </span>
+                  <span>
+                    <strong>{a.title}</strong>
+                    <small>{a.gain}</small>
+                  </span>
+                  <span className="fh-asks__go" aria-hidden>
+                    ›
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="fh-safe">
+            <ShieldIcon />
+            You review everything before Cozie keeps it, and can delete it anytime.
+          </p>
+        </section>
+      </div>
+
+      <footer className="fh-footer">
+        <button type="button" className="cz-primary-btn" onClick={() => onChat()}>
+          {CTA[id]}
+        </button>
+      </footer>
+    </div>
+  );
+}
+
+function Source({ children }: { children: ReactNode }) {
+  return <p className="fh-source">From {children}</p>;
+}
+
+/** Last 7 days as bars: pumped ml for lactation and mood, longest sleep for sleep. */
+function Chart({ account, id }: { account: DemoAccount; id: FocusId }) {
+  const p = pumpSummary(account);
+  const s = sleepSummary(account);
+  let values: number[] = [];
+  let label = (v: number) => String(v);
+  let highlight = -1;
+  if ((id === 'lactation' || id === 'mood') && p) {
+    values = p.perDayMl;
+    label = (v) => `${v}`;
+    highlight = values.length - 1;
+  } else if (id === 'sleep' && s) {
+    values = s.longest;
+    label = (v) => fmtMinutes(v).replace(' min', 'm').replace(' h', 'h');
+    highlight = values.length - 1;
+  } else return null;
+
+  // Bars start from a floor so a week's change is visible, not flattened by
+  // the absolute size of the numbers.
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const height = (v: number) => (max === min ? 70 : 30 + ((v - min) / (max - min)) * 55);
+  const days = (id === 'sleep' ? account.sleep : account.pumping)!.map((d) =>
+    new Date(`${d.date}T12:00:00`).toLocaleDateString('en-US', {
+      weekday: 'narrow',
+    }),
+  );
+  return (
+    <>
+      <div className="fh-chart" role="img" aria-label={`Last 7 days: ${values.map(label).join(', ')}`}>
+        {values.map((v, i) => (
+          <div key={i} className={cn('fh-chart__col', i === highlight && 'is-now')}>
+            <span className="fh-chart__val">{i === highlight || i === 0 ? label(v) : ''}</span>
+            <i style={{ height: `${Math.round(height(v))}%` }} />
+            <span className="fh-chart__day">{days[i]}</span>
+          </div>
+        ))}
+      </div>
+      <p className="fh-chart__unit">{id === 'sleep' ? 'Longest sleep each day' : 'ml pumped each day'} · last 7 days</p>
+    </>
+  );
+}
+
+function GrowthLog({ account }: { account: DemoAccount }) {
+  const fmt = (d: string) =>
+    new Date(`${d}T12:00:00`).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  // Measurements and vaccines in one list, oldest first.
+  const rows = [
+    ...account.growth.map((g) => ({
+      key: g.label,
+      date: g.date,
+      title: g.label,
+      detail: [g.weightKg && `${g.weightKg} kg`, g.lengthCm && `${g.lengthCm} cm`].filter(Boolean).join(' · '),
+    })),
+    ...account.vaccines.map((v) => ({ key: v.label, date: v.date, title: 'Vaccine', detail: v.label })),
+  ].sort((x, y) => x.date.localeCompare(y.date));
+  return (
+    <section className="fh-section">
+      <h3>Noah’s log</h3>
+      <ol className="fh-log">
+        {rows.map((r) => (
+          <li key={r.key}>
+            <time>{fmt(r.date)}</time>
+            <span>
+              <b>{r.title}</b>
+              {r.detail}
+            </span>
+          </li>
+        ))}
+        <li className="is-next">
+          <time>{fmt(account.nextCheckup.date)}</time>
+          <span>
+            <b>Coming up · in {daysUntil(account.nextCheckup.date)} days</b>
+            {account.nextCheckup.label}
+          </span>
+        </li>
+      </ol>
+      <Source>Noah’s profile in the Momcozy app</Source>
+    </section>
+  );
+}
+
+export function FocusIcon({ id }: { id: FocusId }) {
+  return (
+    <span className={cn('fh-icon', `is-${id}`)} aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {id === 'lactation' ? (
+          <>
+            <path d="M9 3h6v3l2 3v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9l2-3V3Z" />
+            <path d="M7 12h10" />
+          </>
+        ) : id === 'sleep' ? (
+          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+        ) : id === 'growth' ? (
+          <>
+            <path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />
+          </>
+        ) : (
+          <path d="M12 20s-7-4.4-7-9.6C5 7.9 6.9 6 9.2 6c1.2 0 2.2.6 2.8 1.5C12.6 6.6 13.6 6 14.8 6 17.1 6 19 7.9 19 10.4 19 15.6 12 20 12 20Z" />
+        )}
+      </svg>
+    </span>
+  );
+}

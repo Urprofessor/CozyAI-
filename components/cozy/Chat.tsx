@@ -35,6 +35,10 @@ import { useMemoryProfile } from '@/hooks/useMemoryProfile';
 import { MemoryProfilePage } from './memory/MemoryProfilePage';
 import { AiImportHost } from './memory/AiImport';
 import { FileImportHost } from './memory/FileImport';
+import { FocusHub } from './focus/FocusHub';
+import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
+import { focusOpener, type FocusId } from '@/lib/cozy/focus';
+import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -73,7 +77,11 @@ export function CozyChat() {
   // Latest plan for the hook's post-stream callbacks.
   const planRef = useRef(profile.profile.lactationPlan);
   planRef.current = profile.profile.lactationPlan;
+  // What Cozie knows (Momcozy account + memory), sent with every Q&A request
+  // so answers get more specific as mom shares more. Filled in below.
+  const contextRef = useRef<() => string>(() => '');
   const chat = useCozyChat({
+    getContext: () => contextRef.current(),
     onProfilePatch: profile.applyPatch,
     // Same request, different card by plan state — as the App's agent does.
     resolveCard: (skill: CardSkill) => {
@@ -104,6 +112,13 @@ export function CozyChat() {
   // Memory profile: a second-level page opened from the history drawer. The
   // drawer stays open underneath, so Back returns to it.
   const memory = useMemoryProfile();
+  const account = useDemoAccount();
+  contextRef.current = () => `${accountContext(account)}
+${memoryContext(memory.profile)}`;
+  // A direction hub opened from the letter's cards, over the letter.
+  const [focus, setFocus] = useState<FocusId | null>(null);
+  // A question picked in a hub, sent once the chat has the letter and opener.
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memoryMounted, setMemoryMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -164,6 +179,13 @@ export function CozyChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat.hydrated, planStatus]);
 
+  useEffect(() => {
+    if (!pendingQuestion || chat.streaming || letter || focus) return;
+    setPendingQuestion(null);
+    chat.send(pendingQuestion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingQuestion, chat.messages, letter, focus]);
+
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
   const decided = welcomed !== null && chat.hydrated;
@@ -177,10 +199,36 @@ export function CozyChat() {
   };
   // Every intro ends in the From Cozie letter. It arrives over the (blurred)
   // intro, which stays mounted underneath so the film isn't restarted.
+  /** Leave a hub for the chat: Cozie opens on that direction, then her
+   *  question (if she picked one) is sent. */
+  function chatFromFocus(id: FocusId, question?: string) {
+    const opener = focusOpener(account, id);
+    if (letter === 'arrive' && firstRun) {
+      localStorage.setItem(WELCOMED_KEY, '1');
+      profile.applyPatch(personaSeed());
+      chat.deliverLetter(LETTER_CARD, opener);
+      setWelcomed(true);
+    } else {
+      // Replayed intro or a reread letter: no second letter in the chat.
+      chat.deliverOpener(opener);
+    }
+    setReplaying(false);
+    setLetter(null);
+    setFocus(null);
+    if (question) setPendingQuestion(question);
+  }
+  const focusHub = focus && (
+    <div className="fh-layer">
+      <FocusHub id={focus} account={account} onBack={() => setFocus(null)} onChat={(q) => chatFromFocus(focus, q)} />
+    </div>
+  );
+
   const arrivingLetter = letter === 'arrive' && (
     <CozieLetter
       letter={FIRST_LETTER}
       mode="arrive"
+      account={account}
+      onOpenFocus={setFocus}
       onAction={(action) => {
         setReplaying(false);
         // A replay after onboarding is just a preview: don't seed the
@@ -218,6 +266,7 @@ export function CozyChat() {
           <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
         )}
         {arrivingLetter}
+        {focusHub}
         {importHost}
         {/* The film brings its own toast host; the sheet doesn't. */}
         {introVariant === 'guide' && <ToastHost />}
@@ -334,8 +383,15 @@ export function CozyChat() {
       <SourcesSheet open={sourcesOpen} onClose={() => setSourcesOpen(false)} />
 
       {letter === 'reread' && (
-        <CozieLetter letter={FIRST_LETTER} mode="reread" onClose={() => setLetter(null)} />
+        <CozieLetter
+          letter={FIRST_LETTER}
+          mode="reread"
+          onClose={() => setLetter(null)}
+          account={account}
+          onOpenFocus={setFocus}
+        />
       )}
+      {focusHub}
 
       {homeMounted && (
         <div className={cn('ch-panel', homeOpen && 'is-open')} inert={!homeOpen} aria-hidden={!homeOpen}>
