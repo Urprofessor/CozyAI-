@@ -4,6 +4,7 @@ import { INTRO_VARIANTS, replayIntro, setIntroVariant, useIntroVariant } from '@
 import { showFollowUpNow } from '@/lib/cozy/first-task';
 import { LETTER_VARIANTS, setLetterVariant, useLetterVariant } from '@/lib/cozy/letterVariant';
 import { ACCOUNT_PRESETS, setAccountPreset, useDemoAccount } from '@/lib/cozy/account-demo';
+import { STAGES, setLifeStage, useLifeStage } from '@/lib/cozy/lifecycle';
 import { resetAi, resetFiles, setHealthConnected, useConnections } from '@/lib/cozy/connections';
 
 /** Desktop-only reviewer panel beside the phone frame: pick which first-run
@@ -14,6 +15,7 @@ export function DemoPanel() {
   const connections = useConnections();
   const account = useDemoAccount();
   const letterVariant = useLetterVariant();
+  const stage = useLifeStage();
 
   return (
     <aside className="demo-panel" aria-label="Demo controls">
@@ -79,6 +81,32 @@ export function DemoPanel() {
             >
               <strong>{p.label}</strong>
               <small>{p.note}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="demo-panel__section">
+        <p className="demo-panel__subtitle">Lifecycle stage</p>
+        <p className="demo-panel__hint">
+          Changes the first-run recommendations. Pregnancy stages have no Momcozy device data, so the account above
+          is ignored there.
+        </p>
+        <div className="demo-panel__accounts" role="radiogroup" aria-label="Lifecycle stage">
+          {STAGES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="radio"
+              aria-checked={stage === s.id}
+              onClick={() => {
+                setLifeStage(s.id);
+                // Replay onboarding so the stage's opener + task card show now.
+                replayIntro();
+              }}
+            >
+              <strong>{s.label}</strong>
+              <small>{s.note}</small>
             </button>
           ))}
         </div>

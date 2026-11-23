@@ -160,6 +160,7 @@ export function insightFigures(account: DemoAccount, id: FocusId): InsightFigure
   }
   if (id === 'growth') {
     const weights = account.growth.flatMap((g) => (g.weightKg ? [g.weightKg] : []));
+    if (weights.length < 2) return { tone };
     return {
       tone,
       hero: {
@@ -358,6 +359,14 @@ function DataCard({ dataKey }: { dataKey: DataKey }) {
   }
 
   const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (!account.growth.length)
+    return (
+      <NoData
+        tone="green"
+        title="No growth log yet"
+        text={`Add a weigh-in in the Momcozy app and ${baby}’s growth shows up here.`}
+      />
+    );
   const latest = account.growth[account.growth.length - 1];
   return (
     <StoryCard

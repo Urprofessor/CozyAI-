@@ -43,13 +43,14 @@ import {
   FIRST_TASK_CARD,
   FOLLOW_UP_EVENT,
   followUpMessage,
-  hasFirstTask,
   planFromProposal,
   proposePumpPlan,
   scheduleFollowUp,
   takeDueFollowUp,
 } from '@/lib/cozy/first-task';
+import { recommendedForStage, taskKindOf, taskSentinel, taskSpec } from '@/lib/cozy/recommend';
 import { FirstTaskCard } from './cards/FirstTaskCard';
+import { StageTaskCard } from './cards/StageTaskCard';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
@@ -74,7 +75,9 @@ interface RowHandlers {
   onNegativeFeedback: (id: string) => void;
   onOpenSources: () => void;
   onOpenLetter: () => void;
-  /** The first-task card (lib/cozy/first-task.ts). */
+  /** Account, for the generic stage task cards (lib/cozy/recommend.ts). */
+  account: ReturnType<typeof useDemoAccount>;
+  /** The pump-plan first-task card (lib/cozy/first-task.ts). */
   firstTask: { account: ReturnType<typeof useDemoAccount>; saved: boolean; onSave: () => void; onSend: (text: string) => void };
 }
 
@@ -276,6 +279,24 @@ export function CozyChat() {
     setPreviewFocus(null);
     if (question) setPendingQuestion(question);
   }
+  // From the intro's "Get started". The postpartum 1–3 m stage keeps the
+  // "From Cozie" letter it was written for; every other stage goes straight to
+  // chat with its stage-specific opener (recommended questions) and task card.
+  function beginArrival() {
+    if (account.stage === 'pp-order') {
+      setLetter('arrive');
+      return;
+    }
+    const rec = recommendedForStage(account);
+    if (firstRun) {
+      localStorage.setItem(WELCOMED_KEY, '1');
+      profile.applyPatch(personaSeed());
+    }
+    chat.deliverOpener(rec.opener);
+    chat.appendSystem(taskSentinel(rec.taskCard));
+    setReplaying(false);
+    setWelcomed(true);
+  }
   const focusSheet = (
     <FocusSheet
       id={previewFocus}
@@ -297,18 +318,19 @@ export function CozyChat() {
         setReplaying(false);
         // A replay after onboarding is a preview: don't seed the persona or
         // post the letter again, but "Talk to Cozie" still shows its opener.
-        // "Talk to Cozie" with a pump: the first task follows Cozie's line.
-        const withTask = action.id === 'talk' && hasFirstTask(account);
+        // "Talk to Cozie" appends the stage's task card after Cozie's line.
+        const withTask = action.id === 'talk';
+        const taskCard = taskSentinel(recommendedForStage(account).taskCard);
         if (!firstRun) {
           if (!action.quiet) chat.deliverOpener(action.opener);
-          if (withTask) chat.appendSystem(FIRST_TASK_CARD);
+          if (withTask) chat.appendSystem(taskCard);
           setLetter(null);
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
         profile.applyPatch(personaSeed());
         chat.deliverLetter(LETTER_CARD, action.opener);
-        if (withTask) chat.appendSystem(FIRST_TASK_CARD);
+        if (withTask) chat.appendSystem(taskCard);
         setLetter(null);
         setWelcomed(true);
       }}
@@ -329,10 +351,10 @@ export function CozyChat() {
         {introVariant === 'guide' ? (
           // B · a 75% sheet over whichever tab Cozie was opened from — no chat
           // page behind it, so the tab shows through the dimmed top.
-          <GuidedIntroSheet onStart={() => setLetter('arrive')} onClose={closeIntro} />
+          <GuidedIntroSheet onStart={beginArrival} onClose={closeIntro} />
         ) : (
           // A · the film takes the whole screen.
-          <WelcomeGate onStart={() => setLetter('arrive')} onClose={closeIntro} />
+          <WelcomeGate onStart={beginArrival} onClose={closeIntro} />
         )}
         {arrivingLetter}
         {focusSheet}
@@ -360,6 +382,7 @@ export function CozyChat() {
     onNegativeFeedback: setFeedbackFor,
     onOpenSources: () => setSourcesOpen(true),
     onOpenLetter: () => setLetter('reread'),
+    account,
     firstTask: {
       account,
       saved: profile.profile.lactationPlan?.status === 'completed',
@@ -589,15 +612,23 @@ function renderStream(
       }
       continue;
     }
-    if (m.content === FIRST_TASK_CARD) {
+    // Stage task cards (lib/cozy/recommend.ts). The legacy FIRST_TASK_CARD
+    // sentinel from older histories maps to the pump-plan card.
+    const taskKind = m.content === FIRST_TASK_CARD ? 'pump-plan' : taskKindOf(m.content);
+    if (taskKind) {
+      const spec = taskKind === 'pump-plan' ? null : taskSpec(taskKind, rows.account);
       out.push(
         <div key={m.id} className="cz-row cz-row--card">
-          <FirstTaskCard
-            account={rows.firstTask.account}
-            saved={rows.firstTask.saved}
-            onSave={rows.firstTask.onSave}
-            onSend={rows.firstTask.onSend}
-          />
+          {taskKind === 'pump-plan' ? (
+            <FirstTaskCard
+              account={rows.firstTask.account}
+              saved={rows.firstTask.saved}
+              onSave={rows.firstTask.onSave}
+              onSend={rows.firstTask.onSend}
+            />
+          ) : spec ? (
+            <StageTaskCard spec={spec} />
+          ) : null}
         </div>
       );
       continue;

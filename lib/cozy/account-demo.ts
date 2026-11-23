@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { DEFAULT_STAGE, stageMeta, useLifeStage, type LifeStage, type Phase } from './lifecycle';
 
 /* What the Momcozy app already knows when mom first opens Cozie — the cold-
  * start advantage no general AI has. Demo only: there is no real account
@@ -42,8 +43,13 @@ export interface GrowthEntry {
 
 export interface DemoAccount {
   preset: AccountPreset;
+  /** Where in the journey she is (lib/cozy/lifecycle.ts). */
+  stage: LifeStage;
+  phase: Phase;
   mom: { name: string };
   baby: { name: string; birthDate: string; weeks: number };
+  /** Set on pregnancy stages instead of real baby data. */
+  pregnancy?: { gestWeek: number; edd: string };
   devices: Device[];
   /** Last 7 days, oldest first. Only with a pump. */
   pumping?: PumpDay[];
@@ -85,8 +91,30 @@ const iso = (t: number) => {
 /** Small fixed wobble so the logs look lived-in but never change between loads. */
 const wobble = (seed: number) => ((Math.sin(seed * 12.9898) * 43758.5453) % 1 + 1) % 1;
 
-export function buildAccount(preset: AccountPreset, now = Date.now()): DemoAccount {
-  const born = now - BABY_AGE_DAYS * DAY_MS;
+export function buildAccount(preset: AccountPreset, stage: LifeStage = DEFAULT_STAGE, now = Date.now()): DemoAccount {
+  const meta = stageMeta(stage);
+
+  // Pregnancy: no baby, no Momcozy device data yet — the cold-start advantage
+  // here is her due date and where she is in the term.
+  if (meta.phase === 'pregnancy') {
+    const gestWeek = meta.gestWeek ?? 8;
+    const edd = iso(now + (40 - gestWeek) * 7 * DAY_MS);
+    return {
+      preset,
+      stage,
+      phase: 'pregnancy',
+      mom: { name: 'Clara' },
+      baby: { name: 'your baby', birthDate: edd, weeks: 0 },
+      pregnancy: { gestWeek, edd },
+      devices: [],
+      growth: [],
+      vaccines: [],
+      nextCheckup: { date: edd, label: 'Due date' },
+    };
+  }
+
+  const babyAgeDays = meta.babyAgeDays ?? BABY_AGE_DAYS;
+  const born = now - babyAgeDays * DAY_MS;
   const devices = DEVICES[preset];
   const has = (k: DeviceKind) => devices.some((d) => d.kind === k);
   const lastWeek = Array.from({ length: 7 }, (_, i) => now - (6 - i) * DAY_MS);
@@ -120,8 +148,10 @@ export function buildAccount(preset: AccountPreset, now = Date.now()): DemoAccou
 
   return {
     preset,
+    stage,
+    phase: 'postpartum',
     mom: { name: 'Clara' },
-    baby: { name: 'Noah', birthDate: iso(born), weeks: Math.floor(BABY_AGE_DAYS / 7) },
+    baby: { name: 'Noah', birthDate: iso(born), weeks: Math.floor(babyAgeDays / 7) },
     devices,
     pumping,
     sleep,
@@ -185,6 +215,12 @@ export const deviceOf = (a: DemoAccount, kind: DeviceKind) => a.devices.find((d)
 
 /** Everything above in plain lines, for the chat model. */
 export function accountContext(a: DemoAccount): string {
+  if (a.phase === 'pregnancy' && a.pregnancy) {
+    return [
+      `Mom: ${a.mom.name}. Pregnant, about ${a.pregnancy.gestWeek} weeks along, due ${a.pregnancy.edd}.`,
+      'Momcozy devices: none yet.',
+    ].join('\n');
+  }
   const lines = [
     `Mom: ${a.mom.name}. Baby: ${a.baby.name}, born ${a.baby.birthDate} (${a.baby.weeks} weeks old).`,
     `Momcozy devices: ${a.devices.map((d) => d.name).join(', ') || 'none'}.`,
@@ -235,9 +271,11 @@ export function setAccountPreset(preset: AccountPreset) {
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: preset }));
 }
 
-/** The demo account for the current preset; follows the demo panel. */
+/** The demo account for the current preset and lifecycle stage; follows the
+ *  demo panel. */
 export function useDemoAccount(): DemoAccount {
   const [preset, setPreset] = useState<AccountPreset>(DEFAULT);
+  const stage = useLifeStage();
   useEffect(() => {
     setPreset(readPreset());
     const onChange = (e: Event) => setPreset((e as CustomEvent<AccountPreset>).detail);
@@ -250,7 +288,7 @@ export function useDemoAccount(): DemoAccount {
     };
   }, []);
   // Rebuilt per render is cheap, but keep it stable for effects.
-  const [account, setAccount] = useState(() => buildAccount(DEFAULT));
-  useEffect(() => setAccount(buildAccount(preset)), [preset]);
+  const [account, setAccount] = useState(() => buildAccount(DEFAULT, DEFAULT_STAGE));
+  useEffect(() => setAccount(buildAccount(preset, stage)), [preset, stage]);
   return account;
 }

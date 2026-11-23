@@ -925,3 +925,84 @@
 .ft .ft__btn:disabled {
   cursor: default;
 }
+
+/* ---------- Generic stage task cards (components/cozy/cards/StageTaskCard.tsx) ---------- */
+.ft .ft__foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--sc-soft);
+}
+.ft .ft__sections {
+  display: grid;
+  gap: 14px;
+}
+.ft .ft__section-head {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--sc-soft);
+}
+.ft .ft__section-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  list-style: disc;
+}
+.ft .ft__section-list li {
+  margin: 0;
+}
+.ft .ft__section--alert {
+  margin: 0 -2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(200, 54, 54, 0.08);
+}
+.ft .ft__section--alert .ft__section-head {
+  color: #b23a3a;
+}
+.ft .ft__section--alert .ft__section-list li::marker {
+  color: #b23a3a;
+}
+.ft .ft__steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.45;
+  list-style: decimal;
+}
+.ft .ft__steps li {
+  margin: 0;
+}
+.ft .ft__translate {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 12px;
+  list-style: none;
+}
+.ft .ft__translate li {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.ft .ft__translate li + li {
+  padding-top: 12px;
+  border-top: 1px solid var(--sc-line);
+}
+.ft .ft__translate code {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sc-ink);
+}
+.ft .ft__translate span {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sc-soft);
+}

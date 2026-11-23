@@ -115,10 +115,12 @@ export function cardSummary(a: DemoAccount, id: FocusId): { source: string; text
         ? { source: 'BM04 monitor', text: `Longest stretch now ${fmtMinutes(s.longestNow)}.` }
         : { source: 'No monitor paired', text: `Tell Cozie about ${baby}’s nights to start.` };
     case 'growth':
-      return {
-        source: 'Momcozy app',
-        text: `${a.growth[a.growth.length - 1].weightKg} kg now, check-up in ${daysUntil(a.nextCheckup.date)} days.`,
-      };
+      return a.growth.length
+        ? {
+            source: 'Momcozy app',
+            text: `${a.growth[a.growth.length - 1].weightKg} kg now, check-up in ${daysUntil(a.nextCheckup.date)} days.`,
+          }
+        : { source: 'Momcozy app', text: 'Add a weigh-in and your growth shows up here.' };
     case 'mood':
       return { source: 'Just for you', text: 'Private, and here whenever you need it.' };
   }
@@ -150,8 +152,9 @@ export function focusInsight(a: DemoAccount, id: FocusId): Insight | null {
       source: deviceOf(a, 'monitor')!.name,
     };
   }
-  if (id === 'growth') {
-    const [birth, , latest] = a.growth;
+  if (id === 'growth' && a.growth.length >= 2) {
+    const birth = a.growth[0];
+    const latest = a.growth[a.growth.length - 1];
     return {
       title: `${baby}’s 2-month check-up is in ${daysUntil(a.nextCheckup.date)} days`,
       text: `He’s gone from ${birth.weightKg} kg at birth to ${latest.weightKg} kg at the last weigh-in. Next on the list: ${a.nextCheckup.label.toLowerCase()}.`,
