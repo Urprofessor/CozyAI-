@@ -7,6 +7,9 @@ import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import type { FocusId } from '@/lib/cozy/focus';
 import { InsightStoryCard, insightFigures } from '../cards/StoryCard';
 import { InsightMoment } from './InsightMoment';
+import { LetterStory } from './LetterStory';
+import { storyPages } from '@/lib/cozy/letter-story';
+import { useLetterVariant } from '@/lib/cozy/letterVariant';
 import { FocusCards } from './LetterFocus';
 
 /* Body of the first letter. On arrival it is "written" in front of her:
@@ -75,8 +78,20 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
 
   // The observation gets its full-screen moment on first arrival (when it
   // has a number to show); it hands over when the moment has closed in.
-  const [moment, setMoment] = useState<'off' | 'playing' | 'landed'>('off');
+  // 'story': the year-in-review pages play first (Story letter style), then
+  // the moment; the letter underneath is already fully shown.
+  const [moment, setMoment] = useState<'off' | 'story' | 'playing' | 'landed'>('off');
   const momentOn = animate && !!insightFigures(account, letter.insightFocus).hero;
+  const variant = useLetterVariant();
+  const storyMode = momentOn && variant === 'story' && !prefersReducedMotion();
+  const pages = storyPages(account, letter.insightFocus);
+  useEffect(() => {
+    // The setting is read after mount; switch over before anything is written.
+    if (storyMode && moment === 'off' && step <= 0) {
+      setStep(ALL);
+      setMoment('story');
+    }
+  }, [storyMode, moment, step]);
   useEffect(() => {
     if (momentOn && current === 'insight' && ready && moment === 'off') setMoment('playing');
   }, [momentOn, current, ready, moment]);
@@ -90,7 +105,10 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, ready]);
 
-  const finishAll = () => setStep(ALL);
+  const finishAll = () => {
+    setStep(ALL);
+    setMoment((m) => (m === 'off' ? m : 'landed'));
+  };
   const writing = step < ALL;
 
   return (
@@ -110,7 +128,7 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
         ref={insightRef}
         className={cn(
           'cz-first__block',
-          moment === 'playing' && step === at('insight') && 'is-holding',
+          (moment === 'story' || moment === 'playing') && 'is-holding',
           moment === 'landed' ? 'is-in is-landed' : !momentOn && isIn(step, at('insight'), ready) && 'is-in',
           momentOn && moment !== 'landed' && step > at('insight') && 'is-in',
         )}
@@ -118,14 +136,24 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
         {/* Remounted when it appears, so the trend line draws in front of her. */}
         <InsightStoryCard key={isIn(step, at('insight'), ready) ? 'in' : 'wait'} account={account} id={letter.insightFocus} />
       </div>
-      {moment === 'playing' && step === at('insight') && (
+      {moment === 'story' && (
+        <LetterStory
+          pages={pages}
+          total={pages.length + 1}
+          anchor={() => insightRef.current}
+          onDone={() => setMoment('playing')}
+          onSkip={() => setMoment('landed')}
+        />
+      )}
+      {moment === 'playing' && (storyMode || step === at('insight')) && (
         <InsightMoment
           account={account}
           id={letter.insightFocus}
           target={() => insightRef.current?.querySelector<HTMLElement>('.sc') ?? null}
+          fromStory={storyMode ? { total: pages.length + 1 } : undefined}
           onDone={() => {
             setMoment('landed');
-            next('insight');
+            if (!storyMode) next('insight');
           }}
         />
       )}

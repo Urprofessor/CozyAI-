@@ -510,3 +510,265 @@
   animation: none;
   opacity: 1;
 }
+
+/* ---------- "Story" letter style: year-in-review pages (LetterStory.tsx) ---------- */
+.ls {
+  --ls-bg: #f4efe2;
+  --ls-ink: #2c1a24;
+  --ls-soft: rgba(44, 26, 36, 0.6);
+  position: absolute;
+  inset: 0;
+  z-index: 61;
+  overflow: hidden;
+  background: var(--ls-bg);
+  color: var(--ls-ink);
+  font-family: var(--cz-ui);
+  cursor: pointer;
+  transition:
+    background-color 600ms ease,
+    color 600ms ease;
+}
+.ls--pink {
+  --ls-bg: #f3c6cc;
+}
+.ls--green {
+  --ls-bg: #c2dbc6;
+}
+.ls--lavender {
+  --ls-bg: #d8cbe8;
+}
+.ls--yellow {
+  --ls-bg: #f2dcaa;
+}
+.ls--night {
+  --ls-bg: #211d3d;
+  --ls-ink: #f6f0ff;
+  --ls-soft: rgba(246, 240, 255, 0.66);
+}
+
+/* Progress bar: one segment per page (also drawn on the moment that follows). */
+.ls__progress {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+}
+.ls__progress i {
+  position: relative;
+  flex: 1;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ls-ink, #2c1a24) 18%, transparent);
+}
+.ls__progress i.is-done {
+  background: var(--ls-ink, #2c1a24);
+}
+.ls__progress i b {
+  position: absolute;
+  inset: 0;
+  background: var(--ls-ink, #2c1a24);
+  transform-origin: left;
+  animation: ls-fill linear forwards;
+}
+@keyframes ls-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.ls__skip {
+  position: absolute;
+  top: 26px;
+  right: 12px;
+  z-index: 3;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--ls-soft);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ls__page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 28px 120px;
+}
+.ls__page > * {
+  animation: im-rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ls__page > :nth-child(2) { animation-delay: 120ms; }
+.ls__page > :nth-child(3) { animation-delay: 240ms; }
+.ls__page > :nth-child(4) { animation-delay: 360ms; }
+.ls__page > :nth-child(5) { animation-delay: 520ms; }
+.ls .ls__eyebrow {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ls-soft);
+}
+.ls .ls__big {
+  margin: 0;
+  font: 400 58px/1.04 var(--cz-brand);
+  letter-spacing: -0.01em;
+}
+.ls .ls__big.is-long {
+  font-size: 42px;
+}
+.ls .ls__title {
+  margin: 10px 0 0;
+  font: 400 26px/1.2 var(--cz-brand);
+}
+.ls .ls__sub {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ls-soft);
+}
+.ls .ls__line {
+  max-width: 17em;
+  margin: 22px 0 0;
+  font: italic 400 19px/1.4 var(--cz-brand);
+}
+.ls .ls__art {
+  position: absolute;
+  right: 18px;
+  bottom: 84px;
+  width: 44%;
+  max-width: 200px;
+  height: auto;
+  animation:
+    im-rise 700ms 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    im-drift 4s 1000ms ease-in-out infinite alternate;
+}
+
+/* Night page: a few stars. */
+.ls__stars {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  animation: none !important;
+}
+.ls__stars i {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.2;
+  animation: ls-twinkle 2.4s ease-in-out infinite alternate;
+}
+@keyframes ls-twinkle {
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* The same little Cozie drifts between three spots as the pages change. */
+.ls__cozie {
+  position: absolute;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  object-fit: contain;
+  transition:
+    left 800ms cubic-bezier(0.3, 0.7, 0.2, 1),
+    bottom 800ms cubic-bezier(0.3, 0.7, 0.2, 1);
+  animation: im-drift 3s ease-in-out infinite alternate;
+}
+.ls__cozie.at-0 {
+  left: 26px;
+  bottom: 70px;
+}
+.ls__cozie.at-1 {
+  left: 72%;
+  bottom: 74%;
+}
+.ls__cozie.at-2 {
+  left: 10%;
+  bottom: 22%;
+}
+
+.ls__hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  z-index: 3;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ls-soft, rgba(44, 26, 36, 0.55));
+  animation: ls-pulse 2.2s ease-in-out infinite;
+}
+@keyframes ls-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* The moment, when it follows the story or shows its hint. */
+.im .im__progress {
+  --ls-ink: var(--sc-ink);
+}
+.im .im__hint {
+  --ls-soft: var(--sc-soft);
+}
+.im.is-out .im__progress,
+.im.is-out .im__hint {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.im .im__source {
+  bottom: 46px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls,
+  .ls__page > *,
+  .ls__cozie,
+  .ls__stars i,
+  .ls__hint,
+  .ls .ls__art {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Big type scales with the screen so it never runs off a narrow phone. */
+.sc.im,
+.ls {
+  container-type: inline-size;
+}
+.im .im__number {
+  font-size: min(64px, 14cqi);
+}
+.ls .ls__big {
+  font-size: min(58px, 14.5cqi);
+}
+.ls .ls__big.is-long {
+  font-size: min(42px, 11cqi);
+}
+
+/* Narrow cards: number and illustration share the row by the card's width. */
+.sc:not(.im) {
+  container-type: inline-size;
+}
+.sc .sc__split .sc__hero strong {
+  font-size: min(34px, 11cqi);
+}
+.sc .sc__split .sc__art--large {
+  width: min(108px, 30cqi);
+  height: min(108px, 30cqi);
+}

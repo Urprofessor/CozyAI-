@@ -31,9 +31,12 @@ interface Props {
   /** The card in the letter, where the moment closes in. */
   target: () => HTMLElement | null;
   onDone: () => void;
+  /** Coming straight from the story pages: no opening from the card (the
+   *  screen is already full), and the story's progress bar carries on. */
+  fromStory?: { total: number };
 }
 
-export function InsightMoment({ account, id, target, onDone }: Props) {
+export function InsightMoment({ account, id, target, onDone, fromStory }: Props) {
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const [phase, setPhase] = useState<Phase>('in');
   const boxRef = useRef<HTMLDivElement>(null);
@@ -78,7 +81,7 @@ export function InsightMoment({ account, id, target, onDone }: Props) {
   useEffect(() => {
     const box = boxRef.current;
     const from = cardClip();
-    if (!box || !from) return;
+    if (!box || !from || fromStory) return;
     const anim = box.animate([{ clipPath: from }, { clipPath: FULL }], {
       duration: IN_MS,
       easing: 'cubic-bezier(0.3, 0, 0.2, 1)',
@@ -124,10 +127,24 @@ export function InsightMoment({ account, id, target, onDone }: Props) {
   return createPortal(
     <div
       ref={boxRef}
-      className={cn('sc im', `sc--${figures.tone}`, `is-${phase}`)}
+      className={cn('sc im', `sc--${figures.tone}`, `is-${phase}`, fromStory && 'is-from-story')}
       role="img"
       aria-label={`${insight.title}: ${figures.hero.format(figures.hero.to)}`}
+      // A tap settles it now (the rest of the letter carries on as usual).
+      onClick={(e) => {
+        e.stopPropagation();
+        if (phase !== 'out') setPhase('out');
+      }}
     >
+      {fromStory && (
+        <div className="ls__progress im__progress" aria-hidden>
+          {Array.from({ length: fromStory.total }, (_, i) => (
+            <i key={i} className={cn(i < fromStory.total - 1 ? 'is-done' : 'is-now')}>
+              {i === fromStory.total - 1 && <b style={{ animationDuration: `${IN_MS + HOLD_MS}ms` }} />}
+            </i>
+          ))}
+        </div>
+      )}
       <div className="im__content">
         <p className="im__eyebrow">I noticed</p>
         <h2 className="im__title">{insight.title}</h2>
@@ -141,6 +158,7 @@ export function InsightMoment({ account, id, target, onDone }: Props) {
         {art && <img className="im__art" src={art} alt="" />}
         <p className="im__source">From {insight.source.replace(/^Momcozy /, 'your ')}</p>
       </div>
+      <p className="ls__hint im__hint">Tap to continue</p>
     </div>,
     root,
   );
