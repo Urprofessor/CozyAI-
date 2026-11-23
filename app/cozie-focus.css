@@ -715,22 +715,22 @@
   }
 }
 
-/* Letter-by-letter writing. */
-.cz-typed__rest {
-  visibility: hidden;
-}
-.cz-caret {
+/* Line-by-line writing: every word carries its line number (--l). */
+.cz-lines [data-w] {
   display: inline-block;
-  width: 1.5px;
-  height: 1em;
-  margin: 0 1px -0.15em;
-  background: currentColor;
-  animation: cz-caret 700ms steps(1) infinite;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 520ms ease,
+    transform 520ms ease;
+  transition-delay: calc(var(--l, 0) * 300ms);
 }
-@keyframes cz-caret {
-  50% {
-    opacity: 0;
-  }
+.cz-lines.is-run [data-w] {
+  opacity: 1;
+  transform: none;
+}
+.cz-lines.is-done [data-w] {
+  transition: none;
 }
 .cz-letter__body .cz-first__opening {
   margin: 0 0 18px;
@@ -935,8 +935,8 @@
   .cz-first__block,
   .cz-focus__card,
   .cz-stage__track i.is-now,
-  .cz-caret {
-    animation: none;
+  .cz-lines [data-w] {
+    transition: none;
     transition: none;
   }
 }

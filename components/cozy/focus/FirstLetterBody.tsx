@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
@@ -9,8 +9,8 @@ import { InsightStoryCard } from '../cards/StoryCard';
 import { FocusCards } from './LetterFocus';
 
 /* Body of the first letter. On arrival it is "written" in front of her:
- * the greeting and opening type out letter by letter, the observation rises
- * with its chart, the focus cards rise in, the closing line types out, then
+ * the greeting and opening appear line by line, the observation rises with
+ * its chart, the focus cards rise in, the closing line appears, then
  * the sign-off and buttons fade in. Anything below the fold waits until she
  * scrolls to it. A tap anywhere shows everything at once; rereading, or
  * "reduce motion", shows it all straight away. */
@@ -19,8 +19,10 @@ type Step = 'salutation' | 'opening' | 'insight' | 'focus' | 'emphasis' | 'sign'
 const ORDER: Step[] = ['salutation', 'opening', 'insight', 'focus', 'emphasis', 'sign', 'end'];
 const ALL = ORDER.length;
 
-/** How long each typed piece takes, whatever its length. */
-const TYPE_MS = { salutation: 450, opening: 2600, emphasis: 750 };
+/** Each line starts this long after the one above it. */
+const LINE_MS = 300;
+/** How long one line takes to fade up. */
+const LINE_FADE_MS = 520;
 /** The header settles first; then the writing starts. */
 const START_DELAY_MS = 650;
 /** Pause after a block finishes before the next one starts. */
@@ -85,13 +87,13 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
     <div className={cn('cz-first', writing && 'is-writing')} onClick={writing ? finishAll : undefined}>
       <div className="cz-letter__greeting">
         <p className="cz-letter__salutation">
-          <Typed text={letter.salutation} run={step === at('salutation')} done={step > at('salutation')} ms={TYPE_MS.salutation} onDone={() => next('salutation')} />
+          <Lines text={letter.salutation} run={step === at('salutation')} done={step > at('salutation')} onDone={() => next('salutation')} />
         </p>
         {art}
       </div>
 
       <p className="cz-first__opening">
-        <Typed text={letter.opening} run={step === at('opening')} done={step > at('opening')} ms={TYPE_MS.opening} onDone={() => next('opening')} />
+        <Lines text={letter.opening} run={step === at('opening')} done={step > at('opening')} onDone={() => next('opening')} />
       </p>
 
       <div ref={insightRef} className={cn('cz-first__block', isIn(step, at('insight'), ready) && 'is-in')}>
@@ -109,11 +111,10 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
       </div>
 
       <p ref={emphasisRef} className="cz-letter__emphasis cz-first__emphasis">
-        <Typed
+        <Lines
           text={letter.emphasis}
           run={step === at('emphasis') && ready}
           done={step > at('emphasis')}
-          ms={TYPE_MS.emphasis}
           onDone={() => next('emphasis')}
         />
       </p>
@@ -171,38 +172,52 @@ function useInView(ref: RefObject<HTMLElement | null> | undefined, active: boole
   return inView;
 }
 
-/** Text written out letter by letter. The untyped rest is laid out but
- *  invisible, so nothing below jumps while it types; screen readers get the
- *  whole text at once. */
-function Typed({ text, run, done, ms, onDone }: { text: string; run: boolean; done: boolean; ms: number; onDone: () => void }) {
-  const [n, setN] = useState(0);
+/** Text that appears line by line as it is laid out: each word knows which
+ *  line it landed on, and lines fade up one after another. The text keeps its
+ *  place while hidden, so nothing below jumps. */
+function Lines({ text, run, done, onDone }: { text: string; run: boolean; done: boolean; onDone: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [lineOf, setLineOf] = useState<number[]>([]);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const tokens = text.split(/(\s+)/).filter(Boolean);
 
+  // Which line each word sits on, from where it was laid out.
+  useLayoutEffect(() => {
+    const words = ref.current?.querySelectorAll<HTMLElement>('[data-w]');
+    if (!words) return;
+    const out: number[] = [];
+    let line = -1;
+    let top = -Infinity;
+    words.forEach((w) => {
+      if (w.offsetTop > top + 2) {
+        line++;
+        top = w.offsetTop;
+      }
+      out.push(line);
+    });
+    setLineOf(out);
+  }, [text]);
+
+  const lines = lineOf.length ? lineOf[lineOf.length - 1] + 1 : 1;
   useEffect(() => {
     if (!run) return;
-    setN(0);
-    const start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const count = Math.min(text.length, Math.ceil(((now - start) / ms) * text.length));
-      setN(count);
-      if (count < text.length) raf = requestAnimationFrame(tick);
-      else window.setTimeout(() => doneRef.current(), GAP_MS);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [run, text, ms]);
+    const t = window.setTimeout(() => doneRef.current(), (lines - 1) * LINE_MS + LINE_FADE_MS + GAP_MS);
+    return () => window.clearTimeout(t);
+  }, [run, lines]);
 
-  const count = done ? text.length : run ? n : 0;
+  let w = -1;
   return (
-    <>
-      <span className="sr-only">{text}</span>
-      <span aria-hidden>
-        {text.slice(0, count)}
-        {run && count < text.length && <i className="cz-caret" />}
-        <span className="cz-typed__rest">{text.slice(count)}</span>
-      </span>
-    </>
+    <span ref={ref} className={cn('cz-lines', (run || done) && 'is-run', done && 'is-done')}>
+      {tokens.map((t, i) => {
+        if (/^\s+$/.test(t)) return t;
+        w++;
+        return (
+          <span key={i} data-w="" style={{ '--l': lineOf[w] ?? 0 } as CSSProperties}>
+            {t}
+          </span>
+        );
+      })}
+    </span>
   );
 }

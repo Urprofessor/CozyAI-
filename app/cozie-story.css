@@ -43,7 +43,7 @@
 }
 .sc .sc__title {
   display: block;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font: 400 26px/1.12 var(--cz-brand);
   color: var(--sc-ink);
 }
@@ -57,33 +57,95 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* Illustration (or its line-drawing placeholder) in the top right, beside
- * the title; the title keeps clear of it and is at least as tall. */
-.sc--has-art .sc__title {
-  min-height: 58px;
-  padding-right: 72px;
+/* Layout with a hero: title across the top, then the hero and a large
+ * illustration side by side (after "Gentle Ways to Settle"). */
+.sc .sc__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
 }
-.sc--has-image .sc__title {
-  min-height: 80px;
-  padding-right: 96px;
+.sc .sc__split.is-solo {
+  grid-template-columns: 1fr;
 }
+.sc .sc__split .sc__hero {
+  margin: 0;
+}
+
+/* Layout without a hero: title and a small illustration in the top row
+ * (after "Signs of Active Feeding"). */
+.sc .sc__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.sc .sc__head.is-solo {
+  grid-template-columns: 1fr;
+}
+.sc .sc__head .sc__title {
+  margin: 0;
+}
+
 .sc .sc__art {
-  position: absolute;
-  top: 16px;
-  right: 14px;
-  width: 62px;
-  height: 62px;
+  display: block;
   color: var(--sc-ink);
-  opacity: 0.38;
   pointer-events: none;
 }
+.sc .sc__art--large {
+  width: 118px;
+  height: 118px;
+  margin: -6px -6px -6px 0;
+}
+.sc .sc__art--small {
+  width: 76px;
+  height: 76px;
+  margin: -6px -4px -8px 0;
+}
 .sc .sc__art--image {
-  top: 10px;
-  right: 8px;
-  width: 92px;
-  height: 92px;
   object-fit: contain;
-  opacity: 1;
+  object-position: center bottom;
+}
+.sc svg.sc__art {
+  opacity: 0.38;
+}
+
+/* Content panel: translucent white, like the boxes on the design cards. */
+.sc .sc__panel {
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.58);
+}
+.sc .sc__panel > :last-child {
+  margin-bottom: 0;
+}
+.sc .sc__panel .sc__steps li + li,
+.sc .sc__panel .sc__list li + li {
+  padding-top: 10px;
+  border-top: 1px solid var(--sc-line);
+}
+.sc .sc__panel .sc__steps,
+.sc .sc__panel .sc__list {
+  gap: 10px;
+}
+.sc .sc__panel .sc__steps li + li::before {
+  top: 8px;
+}
+.sc .sc__panel .sc__list li + li::before {
+  top: 18px;
+}
+.sc .sc__panel .sc__list--check li + li::before {
+  top: 12px;
+}
+.sc .sc__panel .sc__hero strong {
+  font-size: 36px;
+}
+.sc .sc__panel .sc__compare tr:last-child th,
+.sc .sc__panel .sc__compare tr:last-child td {
+  border-bottom: 0;
 }
 
 /* Hero: a big number with a line under it. */
@@ -295,4 +357,14 @@
   .sc--loading {
     animation: none;
   }
+}
+
+/* Beside a large illustration the number keeps to one line. */
+.sc .sc__split .sc__hero strong {
+  font-size: 34px;
+  white-space: nowrap;
+}
+.sc .sc__split .sc__art--large {
+  width: 108px;
+  height: 108px;
 }

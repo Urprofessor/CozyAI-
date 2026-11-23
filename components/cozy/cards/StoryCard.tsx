@@ -33,30 +33,55 @@ interface FrameProps {
   eyebrow?: string;
   title?: string;
   art?: IllustrationTopic;
+  /** Big number (or similar) shown beside the illustration, under the title. */
+  hero?: ReactNode;
   source?: string;
   children?: ReactNode;
   className?: string;
 }
 
-export function StoryCard({ tone, eyebrow, title, art, source, children, className }: FrameProps) {
+/** Two layouts, after the design team's cards:
+ *  - with a hero: title across the top, then the hero and a large
+ *    illustration side by side, then the rest ("Gentle Ways to Settle");
+ *  - without: title and a small illustration in the top row, content below
+ *    ("Signs of Active Feeding"). */
+export function StoryCard({ tone, eyebrow, title, art, hero, source, children, className }: FrameProps) {
+  const heading = title ? (
+    <h3 className="sc__title">{title}</h3>
+  ) : (
+    <span className="sc__title sc__title--wait" aria-hidden />
+  );
   return (
-    <section className={cn('sc', `sc--${tone}`, art && 'sc--has-art', art && ILLUSTRATIONS[art] && 'sc--has-image', className)}>
+    <section className={cn('sc', `sc--${tone}`, className)}>
       {eyebrow && <p className="sc__eyebrow">{eyebrow}</p>}
-      {title ? <h3 className="sc__title">{title}</h3> : <span className="sc__title sc__title--wait" aria-hidden />}
+      {hero ? (
+        <>
+          {heading}
+          <div className={cn('sc__split', !art && 'is-solo')}>
+            <div className="sc__split-main">{hero}</div>
+            {art && <Illustration topic={art} size="large" />}
+          </div>
+        </>
+      ) : (
+        <div className={cn('sc__head', !art && 'is-solo')}>
+          {heading}
+          {art && <Illustration topic={art} size="small" />}
+        </div>
+      )}
       {children}
-      {art && <Illustration topic={art} />}
       {source && <p className="sc__source">{source}</p>}
     </section>
   );
 }
 
-function Illustration({ topic }: { topic: IllustrationTopic }) {
+function Illustration({ topic, size }: { topic: IllustrationTopic; size: 'large' | 'small' }) {
   const src = ILLUSTRATIONS[topic];
-  if (src) return <img className="sc__art sc__art--image" src={src} alt="" aria-hidden />;
+  const cls = cn('sc__art', `sc__art--${size}`);
+  if (src) return <img className={cn(cls, 'sc__art--image')} src={src} alt="" aria-hidden />;
   if (topic === 'lactation' || topic === 'sleep' || topic === 'growth' || topic === 'mood') {
-    return <FocusArt id={topic} className="sc__art" />;
+    return <FocusArt id={topic} className={cls} />;
   }
-  return <SummaryArt type={topic} />;
+  return <SummaryArt type={topic} className={cls} />;
 }
 
 /** Big number with a small line under it. */
@@ -125,10 +150,10 @@ export function InsightStoryCard({ account, id }: { account: DemoAccount; id: Fo
       eyebrow="I noticed"
       title={insight.title}
       art={id}
+      hero={hero}
       source={`From ${insight.source.replace(/^Momcozy /, 'your ')}`}
       className="sc--insight"
     >
-      {hero}
       {trend}
       <p className="sc__note">{insight.text}</p>
     </StoryCard>
@@ -151,43 +176,47 @@ export function ChatCard({ spec, open }: { spec: CardSpec | null; open: boolean 
       source={open ? undefined : 'Cozie summary · general guidance, not medical advice'}
       className="sc--chat"
     >
-      {spec.number && <Hero number={spec.number} sub={spec.unit} />}
-      {spec.type === 'compare' && spec.rows.length > 0 && (
-        <table className="sc__compare">
-          {spec.columns && (
-            <thead>
-              <tr>
-                <th />
-                <th>{spec.columns[0]}</th>
-                <th>{spec.columns[1]}</th>
-              </tr>
-            </thead>
+      {(spec.number || spec.items.length > 0 || spec.rows.length > 0) && (
+        <div className="sc__panel">
+          {spec.number && <Hero number={spec.number} sub={spec.unit} />}
+          {spec.type === 'compare' && spec.rows.length > 0 && (
+            <table className="sc__compare">
+              {spec.columns && (
+                <thead>
+                  <tr>
+                    <th />
+                    <th>{spec.columns[0]}</th>
+                    <th>{spec.columns[1]}</th>
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {spec.rows.map((r) => (
+                  <tr key={r[0]}>
+                    <th>{r[0]}</th>
+                    <td>{r[1]}</td>
+                    <td>{r[2]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-          <tbody>
-            {spec.rows.map((r) => (
-              <tr key={r[0]}>
-                <th>{r[0]}</th>
-                <td>{r[1]}</td>
-                <td>{r[2]}</td>
-              </tr>
+          {spec.items.length > 0 &&
+            (spec.type === 'steps' ? (
+              <ol className="sc__steps">
+                {spec.items.map((i) => (
+                  <li key={i}>{i}</li>
+                ))}
+              </ol>
+            ) : (
+              <ul className={cn('sc__list', spec.type === 'checklist' && 'sc__list--check')}>
+                {spec.items.map((i) => (
+                  <li key={i}>{i}</li>
+                ))}
+              </ul>
             ))}
-          </tbody>
-        </table>
+        </div>
       )}
-      {spec.items.length > 0 &&
-        (spec.type === 'steps' ? (
-          <ol className="sc__steps">
-            {spec.items.map((i) => (
-              <li key={i}>{i}</li>
-            ))}
-          </ol>
-        ) : (
-          <ul className={cn('sc__list', spec.type === 'checklist' && 'sc__list--check')}>
-            {spec.items.map((i) => (
-              <li key={i}>{i}</li>
-            ))}
-          </ul>
-        ))}
       {spec.note && <p className="sc__note">{spec.note}</p>}
     </StoryCard>
   );
@@ -201,10 +230,28 @@ function DataCard({ dataKey }: { dataKey: DataKey }) {
 
   if (dataKey === 'pumping-week') {
     const p = pumpSummary(account);
-    if (!p) return <NoData tone="pink" title="No pumping data yet" text="Pair a Momcozy pump, or add a pumping log, and your week shows up here." />;
+    if (!p)
+      return (
+        <NoData
+          tone="pink"
+          title="No pumping data yet"
+          text="Pair a Momcozy pump, or add a pumping log, and your week shows up here."
+        />
+      );
     return (
-      <StoryCard tone="pink" title="Your pumping week" art="lactation" source={`From your ${deviceOf(account, 'pump')!.name.replace('Momcozy ', '')} · last 7 days`} className="sc--chat">
-        <Hero number={`${Math.round(p.perDay)} a day`} sub={`About ${p.avgMl} ml each · 3 a.m. is your fullest (${p.nightMl} ml)`} />
+      <StoryCard
+        tone="pink"
+        title="Your pumping week"
+        art="lactation"
+        source={`From your ${deviceOf(account, 'pump')!.name.replace('Momcozy ', '')} · last 7 days`}
+        className="sc--chat"
+        hero={
+          <Hero
+            number={`${Math.round(p.perDay)} a day`}
+            sub={`About ${p.avgMl} ml each · 3 a.m. is your fullest (${p.nightMl} ml)`}
+          />
+        }
+      >
         <TrendLine values={p.perDayMl} label={`Pumped each day: ${p.firstDayMl} → ${p.lastDayMl} ml`} />
       </StoryCard>
     );
@@ -212,11 +259,32 @@ function DataCard({ dataKey }: { dataKey: DataKey }) {
 
   if (dataKey === 'sleep-week') {
     const s = sleepSummary(account);
-    if (!s) return <NoData tone="lavender" title="No sleep data yet" text={`Pair a Momcozy monitor, or add a sleep tracker export, and ${baby}’s week shows up here.`} />;
+    if (!s)
+      return (
+        <NoData
+          tone="lavender"
+          title="No sleep data yet"
+          text={`Pair a Momcozy monitor, or add a sleep tracker export, and ${baby}’s week shows up here.`}
+        />
+      );
     return (
-      <StoryCard tone="lavender" title={`${baby}’s sleep this week`} art="sleep" source={`From your ${deviceOf(account, 'monitor')!.name.replace('Momcozy ', '')} · last 7 days`} className="sc--chat">
-        <Hero number={fmtMinutes(s.longestNow)} sub={`Longest stretch · night wakes ${s.wakesWeekAgo} → ${s.wakesNow}`} />
-        <TrendLine values={s.longest} label={`Longest sleep each day · about ${fmtMinutes(s.avgTotalMin)} a day in total`} />
+      <StoryCard
+        tone="lavender"
+        title={`${baby}’s sleep this week`}
+        art="sleep"
+        source={`From your ${deviceOf(account, 'monitor')!.name.replace('Momcozy ', '')} · last 7 days`}
+        className="sc--chat"
+        hero={
+          <Hero
+            number={fmtMinutes(s.longestNow)}
+            sub={`Longest stretch · night wakes ${s.wakesWeekAgo} → ${s.wakesNow}`}
+          />
+        }
+      >
+        <TrendLine
+          values={s.longest}
+          label={`Longest sleep each day · about ${fmtMinutes(s.avgTotalMin)} a day in total`}
+        />
       </StoryCard>
     );
   }
@@ -224,13 +292,20 @@ function DataCard({ dataKey }: { dataKey: DataKey }) {
   const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const latest = account.growth[account.growth.length - 1];
   return (
-    <StoryCard tone="green" title={`${baby}’s growth`} art="growth" source={`From ${baby}’s profile in the Momcozy app`} className="sc--chat">
-      <Hero number={`${latest.weightKg} kg`} sub={`Up from ${account.growth[0].weightKg} kg at birth`} />
+    <StoryCard
+      tone="green"
+      title={`${baby}’s growth`}
+      art="growth"
+      source={`From ${baby}’s profile in the Momcozy app`}
+      className="sc--chat"
+      hero={<Hero number={`${latest.weightKg} kg`} sub={`Up from ${account.growth[0].weightKg} kg at birth`} />}
+    >
       <ul className="sc__log">
         {account.growth.map((g) => (
           <li key={g.label}>
             <time>{fmt(g.date)}</time>
-            {g.label} · {[g.weightKg && `${g.weightKg} kg`, g.lengthCm && `${g.lengthCm} cm`].filter(Boolean).join(' · ')}
+            {g.label} ·{' '}
+            {[g.weightKg && `${g.weightKg} kg`, g.lengthCm && `${g.lengthCm} cm`].filter(Boolean).join(' · ')}
           </li>
         ))}
         <li className="is-next">
@@ -251,9 +326,18 @@ function NoData({ tone, title, text }: { tone: CardTone; title: string; text: st
 }
 
 /** Placeholder drawings for summary cards until the illustrations arrive. */
-function SummaryArt({ type }: { type: IllustrationTopic }) {
+function SummaryArt({ type, className }: { type: IllustrationTopic; className: string }) {
   return (
-    <svg className="sc__art" viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 80 80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       {type === 'checklist' ? (
         <>
           <rect x="18" y="12" width="44" height="58" rx="6" />
