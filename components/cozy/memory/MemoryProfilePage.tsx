@@ -19,8 +19,7 @@ import {
 import { ConfirmDialog, showToast } from '../ui';
 import { MemoryEditSheet } from './MemoryEditSheet';
 import { MemoryOrbit } from './MemoryOrbit';
-import { openAiImport } from './AiImport';
-import { openFileImport } from './FileImport';
+import { openDataSources } from '@/lib/cozy/sources';
 
 type Memory = ReturnType<typeof useMemoryProfile>;
 
@@ -98,27 +97,6 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
         </div>
 
         <div key={person.key} className="mp-body">
-          {/* Import sits first so it's seen without scrolling past every section. */}
-          <button type="button" className="mp-import" onClick={() => openAiImport()}>
-            <span className="mp-import__icon" aria-hidden>
-              AI
-            </span>
-            <span>
-              <strong>Bring what your AI already knows</strong>
-              <small>From Claude, ChatGPT, Gemini or Grok</small>
-            </span>
-            <Chevron dir="right" small />
-          </button>
-          <button type="button" className="mp-import" onClick={openFileImport}>
-            <span className="mp-import__icon" aria-hidden>
-              PDF
-            </span>
-            <span>
-              <strong>Add a file or report</strong>
-              <small>PDF, Word, a Huckleberry CSV or a photo</small>
-            </span>
-            <Chevron dir="right" small />
-          </button>
           {person.sections.length === 0 ? (
             <p className="mp-empty">
               Cozie doesn’t remember anything about {person.subject.kind === 'mom' ? 'you' : person.name} yet.
@@ -136,6 +114,11 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
               />
             ))
           )}
+          {/* What Cozie remembers lives here; where it comes from lives in Settings. */}
+          <button type="button" className="mp-sources-link" onClick={openDataSources}>
+            Where Cozie’s information comes from
+            <span>Manage data sources in Settings ›</span>
+          </button>
         </div>
       </div>
 

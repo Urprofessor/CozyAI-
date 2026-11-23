@@ -37,6 +37,7 @@ import { AiImportHost } from './memory/AiImport';
 import { FileImportHost } from './memory/FileImport';
 import { FocusSheet } from './focus/FocusSheet';
 import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
+import { OPEN_SOURCES_EVENT, filterAccount, readSourcesOff } from '@/lib/cozy/sources';
 import { chosenFocusContext, defaultFocus, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
@@ -97,6 +98,17 @@ export function CozyChat() {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsView, setSettingsView] = useState<'main' | 'sources'>('main');
+  // "Manage data sources" from the memory profile (or anywhere) opens
+  // Settings straight on Data sources.
+  useEffect(() => {
+    const onOpen = () => {
+      setSettingsView('sources');
+      setSettingsOpen(true);
+    };
+    window.addEventListener(OPEN_SOURCES_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SOURCES_EVENT, onOpen);
+  }, []);
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
@@ -113,8 +125,13 @@ export function CozyChat() {
   // drawer stays open underneath, so Back returns to it.
   const memory = useMemoryProfile();
   const account = useDemoAccount();
-  contextRef.current = () =>
-    [accountContext(account), chosenFocusContext(), memoryContext(memory.profile)].filter(Boolean).join('\n');
+  // Sources switched off in Settings → Data sources stay out of the chat.
+  contextRef.current = () => {
+    const off = readSourcesOff();
+    return [accountContext(filterAccount(account, off)), chosenFocusContext(), memoryContext(memory.profile, off)]
+      .filter(Boolean)
+      .join('\n');
+  };
   // The hub for the directions ticked on the letter, over the letter.
   // What Cozie keeps an eye on (the letter's focus tags): ticked to match her
   // devices, saved whenever it changes so chats lean that way.
@@ -331,6 +348,7 @@ export function CozyChat() {
         onOpenSettings={() => {
           // The App shows settings once the drawer has closed.
           setHistoryOpen(false);
+          setSettingsView('main');
           setTimeout(() => setSettingsOpen(true), 280);
         }}
         onOpenMemory={() => {
@@ -389,6 +407,16 @@ export function CozyChat() {
         onDeleteHistory={() => {
           chat.deleteAllSessions();
           setSettingsOpen(false);
+        }}
+        view={settingsView}
+        onView={setSettingsView}
+        account={account}
+        memory={memory.profile}
+        onForget={memory.forgetEntries}
+        onOpenMemory={() => {
+          setSettingsOpen(false);
+          setMemoryMounted(true);
+          setMemoryOpen(true);
         }}
       />
 

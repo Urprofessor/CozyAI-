@@ -640,3 +640,203 @@
 .mp-import + .mp-import {
   margin-top: -10px;
 }
+
+/* ---------- Settings → Data sources (components/cozy/DataSources.tsx) ---------- */
+.ds {
+  padding-top: 8px;
+}
+.ds__head {
+  margin: 4px 52px 18px 4px;
+}
+.ds__back {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cz-accent);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ds__head h2 {
+  margin: 4px 0 6px;
+  font: 400 26px/1.15 var(--cz-brand);
+  color: var(--cz-ink);
+}
+.ds__head p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--cz-ink-2);
+}
+.ds__label {
+  margin: 18px 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cz-ink-2);
+}
+.ds .cz-settings__card + .ds__label {
+  margin-top: 20px;
+}
+.ds__row {
+  min-height: 68px;
+  padding: 10px 16px;
+}
+.ds__row .cz-settings__text {
+  flex: 1;
+  min-width: 0;
+}
+.ds__row .cz-settings__text span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+.ds__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--colors-brands-mom-75, #fdeef1);
+  color: var(--cz-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ds__icon.is-health {
+  background: #fde6e9;
+  color: #e2566f;
+  font-size: 16px;
+}
+.ds__icon.is-ai {
+  background: var(--colors-brands-care-100, #ece6fb);
+  color: var(--colors-brands-care-700, #5b3fa6);
+}
+.ds__icon.is-file {
+  background: #e6f2ea;
+  color: #1f5a36;
+  font-size: 10px;
+}
+.ds__pill {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1px solid rgba(119, 5, 35, 0.25);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--cz-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ds__expand {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ds__actions {
+  display: grid;
+  gap: 2px;
+  padding: 0 16px 12px 64px;
+}
+.ds__actions button {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cz-accent);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ds__actions button.is-danger {
+  color: var(--cz-danger, #d20307);
+}
+.ds__empty {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--cz-ink-2);
+}
+.ds__add {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ds__add button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 16px;
+  border: 1px dashed rgba(119, 5, 35, 0.25);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--cz-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ds__add .cz-settings__text strong {
+  font-size: 15px;
+}
+.ds__add .cz-settings__text span {
+  font-size: 13px;
+}
+.ds__safe {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 14px 6px 0;
+  font-size: 12px;
+  line-height: 17px;
+  color: #3a5443;
+}
+.ds__safe svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #2e7d4a;
+}
+.ds__chevron {
+  margin-left: auto;
+  font-size: 22px;
+  color: var(--cz-ink-2);
+}
+/* The settings sheet scrolls when Data sources is longer than the screen. */
+.cz-settings {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Memory profile: where to manage sources. */
+.mp-sources-link {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin: 18px 0 8px;
+  padding: 14px 16px;
+  border: 1px dashed rgba(119, 5, 35, 0.22);
+  border-radius: 18px;
+  background: none;
+  color: var(--cz-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.mp-sources-link span {
+  font-size: 13px;
+  color: var(--cz-accent);
+}

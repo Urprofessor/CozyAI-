@@ -201,7 +201,8 @@ export function accountContext(a: DemoAccount): string {
       `Baby sleep, last 7 days (${deviceOf(a, 'monitor')!.name}): longest stretch grew from ${fmtMinutes(s.longestWeekAgo)} to ${fmtMinutes(s.longestNow)}; about ${fmtMinutes(s.avgTotalMin)} of sleep a day; night wakes went from ${s.wakesWeekAgo} to ${s.wakesNow}.`,
     );
   }
-  lines.push(
+  // The growth log and check-ups can be switched off in Data sources.
+  if (a.growth.length) lines.push(
     `Growth log (Momcozy app): ${a.growth
       .map((g) => `${g.label} ${g.date}${g.weightKg ? ` ${g.weightKg} kg` : ''}${g.lengthCm ? ` ${g.lengthCm} cm` : ''}`)
       .join('; ')}.`,

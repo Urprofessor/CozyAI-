@@ -96,5 +96,16 @@ export function useMemoryProfile() {
   const profile = useMemo(() => applyOverrides(seed, overrides), [seed, overrides]);
   const people = useMemo(() => peopleOf(profile), [profile]);
 
-  return { profile, people, editEntry, forgetEntry, addImported };
+  /** Forget several entries at once (e.g. everything one import brought). */
+  const forgetEntries = useCallback(
+    (ids: string[]) =>
+      update((o) => {
+        const edits = { ...o.edits };
+        for (const id of ids) delete edits[id];
+        return { ...o, edits, forgotten: [...new Set([...o.forgotten, ...ids])] };
+      }),
+    [update]
+  );
+
+  return { profile, people, editEntry, forgetEntry, forgetEntries, addImported };
 }
