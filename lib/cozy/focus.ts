@@ -43,6 +43,33 @@ export function recommendedFor(a: DemoAccount, id: FocusId): string | null {
   return null;
 }
 
+/** Ticked to begin with: whatever matches her devices (or a gentle start
+ *  without any). She can change it on the letter. */
+export function defaultFocus(a: DemoAccount): FocusId[] {
+  return FOCUS_LIST.filter((f) => recommendedFor(a, f.id)).map((f) => f.id);
+}
+
+const CHOSEN_KEY = 'cozyFocus';
+
+/** Remember what she picked, so later chats lean that way. */
+export function saveChosenFocus(ids: FocusId[]) {
+  try {
+    localStorage.setItem(CHOSEN_KEY, JSON.stringify(ids));
+  } catch {
+    /* private mode: only this visit knows */
+  }
+}
+
+export function chosenFocusContext(): string {
+  try {
+    const ids = JSON.parse(localStorage.getItem(CHOSEN_KEY) ?? '[]') as FocusId[];
+    const titles = ids.map((id) => FOCUS_LIST.find((f) => f.id === id)?.title).filter(Boolean);
+    return titles.length ? `She asked Cozie to focus on: ${titles.join(', ')}.` : '';
+  } catch {
+    return '';
+  }
+}
+
 /** One line on the letter card: proof that Cozie already knows something. */
 export function cardTeaser(a: DemoAccount, id: FocusId): string {
   const p = pumpSummary(a);

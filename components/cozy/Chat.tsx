@@ -37,7 +37,7 @@ import { AiImportHost } from './memory/AiImport';
 import { FileImportHost } from './memory/FileImport';
 import { FocusHub } from './focus/FocusHub';
 import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
-import { focusOpener, type FocusId } from '@/lib/cozy/focus';
+import { chosenFocusContext, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
@@ -113,10 +113,14 @@ export function CozyChat() {
   // drawer stays open underneath, so Back returns to it.
   const memory = useMemoryProfile();
   const account = useDemoAccount();
-  contextRef.current = () => `${accountContext(account)}
-${memoryContext(memory.profile)}`;
-  // A direction hub opened from the letter's cards, over the letter.
-  const [focus, setFocus] = useState<FocusId | null>(null);
+  contextRef.current = () =>
+    [accountContext(account), chosenFocusContext(), memoryContext(memory.profile)].filter(Boolean).join('\n');
+  // The hub for the directions ticked on the letter, over the letter.
+  const [focus, setFocus] = useState<FocusId[] | null>(null);
+  const openFocus = (ids: FocusId[]) => {
+    saveChosenFocus(ids);
+    setFocus(ids);
+  };
   // A question picked in a hub, sent once the chat has the letter and opener.
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -219,7 +223,7 @@ ${memoryContext(memory.profile)}`;
   }
   const focusHub = focus && (
     <div className="fh-layer">
-      <FocusHub id={focus} account={account} onBack={() => setFocus(null)} onChat={(q) => chatFromFocus(focus, q)} />
+      <FocusHub ids={focus} account={account} onBack={() => setFocus(null)} onChat={chatFromFocus} />
     </div>
   );
 
@@ -228,7 +232,7 @@ ${memoryContext(memory.profile)}`;
       letter={FIRST_LETTER}
       mode="arrive"
       account={account}
-      onOpenFocus={setFocus}
+      onOpenFocus={openFocus}
       onAction={(action) => {
         setReplaying(false);
         // A replay after onboarding is just a preview: don't seed the
@@ -388,7 +392,7 @@ ${memoryContext(memory.profile)}`;
           mode="reread"
           onClose={() => setLetter(null)}
           account={account}
-          onOpenFocus={setFocus}
+          onOpenFocus={openFocus}
         />
       )}
       {focusHub}

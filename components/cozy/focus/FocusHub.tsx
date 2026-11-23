@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { daysUntil, pumpSummary, sleepSummary, fmtMinutes, type DemoAccount } from '@/lib/cozy/account-demo';
 import { focusAsks, focusDef, focusInsight, focusQuestions, type FocusId, type SharperAsk } from '@/lib/cozy/focus';
@@ -9,12 +9,19 @@ import { openAiImport } from '../memory/AiImport';
 import { openFileImport } from '../memory/FileImport';
 import { ShieldIcon } from '../memory/ImportParts';
 
-/* A hub for one direction, between the letter and the chat: what Cozie
+/* The hub between the letter and the chat, for every direction mom ticked
+ * (a switcher on top when there's more than one). Per direction: what Cozie
  * already knows (from the Momcozy account, with its source named), one thing
  * it noticed, questions to start with, and what would make answers sharper.
  * Every way forward leads into the chat. */
 
 const MOODS = ['Calm', 'Tired', 'Overwhelmed', 'Low'];
+const TAB: Record<FocusId, string> = {
+  lactation: 'Pumping',
+  sleep: 'Sleep',
+  growth: 'Growth',
+  mood: 'Feelings',
+};
 const CTA: Record<FocusId, string> = {
   lactation: 'Chat about pumping',
   sleep: 'Chat about sleep',
@@ -23,14 +30,26 @@ const CTA: Record<FocusId, string> = {
 };
 
 interface Props {
-  id: FocusId;
+  /** The directions she ticked, in card order. */
+  ids: FocusId[];
   account: DemoAccount;
   onBack: () => void;
-  /** Into the chat, optionally with a question to send. */
-  onChat: (question?: string) => void;
+  /** Into the chat on one direction, optionally with a question to send. */
+  onChat: (id: FocusId, question?: string) => void;
 }
 
-export function FocusHub({ id, account, onBack, onChat }: Props) {
+export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
+  const [active, setActive] = useState<FocusId>(ids[0]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ids.includes(active)) setActive(ids[0]);
+  }, [ids, active]);
+  const id = ids.includes(active) ? active : ids[0];
+  const onChat = (question?: string) => chatOn(id, question);
+  function pick(next: FocusId) {
+    setActive(next);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
   const def = focusDef(id);
   const insight = focusInsight(account, id);
   const questions = focusQuestions(account, id);
@@ -57,9 +76,25 @@ export function FocusHub({ id, account, onBack, onChat }: Props) {
             />
           </svg>
         </button>
+        {ids.length > 1 && (
+          <div className="fh-tabs" role="tablist" aria-label="Your directions">
+            {ids.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={t === id}
+                className={`is-${t}`}
+                onClick={() => pick(t)}
+              >
+                {TAB[t]}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
-      <div className="fh-scroll">
+      <div className={cn('fh-scroll', ids.length > 1 && 'has-tabs')} ref={scrollRef} key={id}>
         <div className="fh-hero">
           <FocusIcon id={id} />
           <h2>{def.title}</h2>

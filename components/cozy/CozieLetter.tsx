@@ -25,10 +25,10 @@ interface Props {
   mode: 'arrive' | 'reread';
   onAction?: (action: LetterAction) => void;
   onClose?: () => void;
-  /** The first letter ends in four direction cards; each opens its hub.
+  /** The first letter ends in four direction checkboxes; Continue opens one hub for those picked.
    *  (The data-source cards in LetterConnections.tsx are kept for reuse.) */
   account?: DemoAccount;
-  onOpenFocus?: (id: FocusId) => void;
+  onOpenFocus?: (ids: FocusId[]) => void;
 }
 
 /** "From Cozie": a letter that arrives sealed, opens itself and unfolds to a
@@ -139,7 +139,7 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, onOpenFo
             ))}
             {offerConnections && (
               <>
-                <LetterFocus account={account} onPick={onOpenFocus} />
+                <LetterFocus account={account} onContinue={onOpenFocus} />
                 {skipConnection && onAction && (
                   <div className="cz-letter__connection-actions">
                     <button type="button" className="cz-letter__btn is-quiet" onClick={() => onAction(skipConnection)}>

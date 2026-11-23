@@ -474,3 +474,92 @@
     animation: none;
   }
 }
+
+/* ---------- Letter: tick boxes and Continue ---------- */
+.cz-focus__card:not(.is-on) {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(121, 10, 48, 0.12);
+  box-shadow: none;
+}
+.cz-focus__card.is-on {
+  box-shadow:
+    0 0 0 2px currentColor,
+    0 5px 16px #790a301a;
+}
+.cz-focus__check {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.45;
+  transition:
+    background 160ms ease,
+    opacity 160ms ease;
+}
+.cz-focus__check svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.cz-focus__card.is-on .cz-focus__check {
+  background: currentColor;
+  opacity: 1;
+}
+.cz-focus__card.is-on .cz-focus__check svg {
+  opacity: 1;
+}
+/* the check sits on currentColor, so draw it in white */
+.cz-focus__card.is-on .cz-focus__check svg path {
+  stroke: #fff;
+}
+.cz-focus__continue {
+  width: 100%;
+  margin-top: 16px;
+}
+.cz-focus__continue:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Hub: switcher between the picked directions ---------- */
+.fh-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fh-tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  scrollbar-width: none;
+}
+.fh-tabs button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: none;
+  color: var(--cz-ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fh-tabs button[aria-selected='true'] {
+  background: #fff;
+  color: var(--fh-ink);
+  box-shadow: 0 2px 8px rgba(36, 15, 27, 0.08);
+}
