@@ -121,9 +121,30 @@ function TrendLine({ values, label }: { values: number[]; label: string }) {
 
 /* ---------- The first letter's "I noticed" ---------- */
 
+/** "I noticed" for one direction — the first letter, and each direction's
+ *  preview sheet and hub. Without device data it says what would fill it in. */
 export function InsightStoryCard({ account, id }: { account: DemoAccount; id: FocusId }) {
   const insight = focusInsight(account, id);
-  if (!insight) return null;
+  if (!insight) {
+    const baby = account.baby.name;
+    return (
+      <StoryCard
+        tone={FOCUS_TONE[id]}
+        eyebrow={id === 'mood' ? 'For you' : 'I noticed'}
+        title={id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}
+        art={id}
+        className="sc--insight"
+      >
+        <p className="sc__note">
+          {id === 'lactation'
+            ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
+            : id === 'sleep'
+              ? `Pair a Momcozy monitor and Cozie will see how ${baby} sleeps. Until then, a sleep tracker export or a quick chat works too.`
+              : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
+        </p>
+      </StoryCard>
+    );
+  }
   const p = pumpSummary(account);
   const s = sleepSummary(account);
   let hero: ReactNode = null;
@@ -143,6 +164,8 @@ export function InsightStoryCard({ account, id }: { account: DemoAccount; id: Fo
         label={`Weight since birth · check-up in ${daysUntil(account.nextCheckup.date)} days`}
       />
     );
+  } else if (id === 'mood' && p) {
+    hero = <Hero number={`${p.nightsPumped} of 7`} sub="Nights with a 3 a.m. pump this week" />;
   }
   return (
     <StoryCard

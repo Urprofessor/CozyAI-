@@ -8,7 +8,8 @@ import { BottomSheet, CZ, showToast } from '../ui';
 import { openAiImport } from '../memory/AiImport';
 import { openFileImport } from '../memory/FileImport';
 import { ShieldIcon } from '../memory/ImportParts';
-import { FocusIcon, InsightCard } from './FocusHub';
+import { FocusIcon } from './FocusHub';
+import { InsightStoryCard } from '../cards/StoryCard';
 
 /* Light preview of one direction, opened from a focus tag on the first
  * letter: what Cozie can do there, one observation, questions to start with,
@@ -64,7 +65,7 @@ export function FocusSheet({ id, account, included, onToggleInclude, onClose, on
             ))}
           </ul>
 
-          <InsightCard account={account} id={shown} />
+          <InsightStoryCard account={account} id={shown} />
 
           <section className="fh-section">
             <h3>Ask Cozie</h3>

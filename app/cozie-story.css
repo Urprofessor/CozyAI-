@@ -368,3 +368,9 @@
   width: 108px;
   height: 108px;
 }
+
+/* In a direction's preview sheet and hub. */
+.fs .sc--insight,
+.fh .sc--insight {
+  margin: 0 0 22px;
+}

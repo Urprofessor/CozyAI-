@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { daysUntil, pumpSummary, sleepSummary, fmtMinutes, type DemoAccount } from '@/lib/cozy/account-demo';
-import { focusAsks, focusDef, focusInsight, focusQuestions, type FocusId, type SharperAsk } from '@/lib/cozy/focus';
-import { CZ, showToast } from '../ui';
+import { daysUntil, type DemoAccount } from '@/lib/cozy/account-demo';
+import { focusAsks, focusDef, focusQuestions, type FocusId, type SharperAsk } from '@/lib/cozy/focus';
+import { showToast } from '../ui';
 import { openAiImport } from '../memory/AiImport';
 import { openFileImport } from '../memory/FileImport';
 import { ShieldIcon } from '../memory/ImportParts';
+import { InsightStoryCard } from '../cards/StoryCard';
 
 /* The hub between the letter and the chat, for every direction mom ticked
  * (a switcher on top when there's more than one). Per direction: what Cozie
@@ -51,7 +52,6 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
     scrollRef.current?.scrollTo({ top: 0 });
   }
   const def = focusDef(id);
-  const insight = focusInsight(account, id);
   const questions = focusQuestions(account, id);
   const asks = focusAsks(account, id);
 
@@ -101,7 +101,7 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
           <p>{def.helpers}</p>
         </div>
 
-        <InsightCard account={account} id={id} />
+        <InsightStoryCard account={account} id={id} />
 
         {id === 'growth' && <GrowthLog account={account} />}
 
@@ -171,84 +171,8 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
   );
 }
 
-/** "Cozie noticed": one observation with its chart and source, or what
- *  would fill this in when there's no device data yet. Shared by the hub,
- *  the first letter and the preview sheet. */
-export function InsightCard({ account, id, eyebrow = 'Cozie noticed' }: { account: DemoAccount; id: FocusId; eyebrow?: string }) {
-  const insight = focusInsight(account, id);
-  if (!insight) {
-    return (
-      <section className="fh-card fh-empty">
-        <h3>{id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}</h3>
-        <p>
-          {id === 'lactation'
-            ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
-            : id === 'sleep'
-              ? `Pair a Momcozy monitor and Cozie will see how ${account.baby.name} sleeps. Until then, a sleep tracker export or a quick chat works too.`
-              : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
-        </p>
-      </section>
-    );
-  }
-  return (
-    <section className={cn('fh-card fh-insight', `fh--${id}`)}>
-      <p className="fh-eyebrow">
-        <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
-        {eyebrow}
-      </p>
-      <h3>{insight.title}</h3>
-      <Chart account={account} id={id} />
-      <p>{insight.text}</p>
-      <Source>{insight.source}</Source>
-    </section>
-  );
-}
-
 function Source({ children }: { children: ReactNode }) {
   return <p className="fh-source">From {children}</p>;
-}
-
-/** Last 7 days as bars: pumped ml for lactation and mood, longest sleep for sleep. */
-function Chart({ account, id }: { account: DemoAccount; id: FocusId }) {
-  const p = pumpSummary(account);
-  const s = sleepSummary(account);
-  let values: number[] = [];
-  let label = (v: number) => String(v);
-  let highlight = -1;
-  if ((id === 'lactation' || id === 'mood') && p) {
-    values = p.perDayMl;
-    label = (v) => `${v}`;
-    highlight = values.length - 1;
-  } else if (id === 'sleep' && s) {
-    values = s.longest;
-    label = (v) => fmtMinutes(v).replace(' min', 'm').replace(' h', 'h');
-    highlight = values.length - 1;
-  } else return null;
-
-  // Bars start from a floor so a week's change is visible, not flattened by
-  // the absolute size of the numbers.
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const height = (v: number) => (max === min ? 70 : 30 + ((v - min) / (max - min)) * 55);
-  const days = (id === 'sleep' ? account.sleep : account.pumping)!.map((d) =>
-    new Date(`${d.date}T12:00:00`).toLocaleDateString('en-US', {
-      weekday: 'narrow',
-    }),
-  );
-  return (
-    <>
-      <div className="fh-chart" role="img" aria-label={`Last 7 days: ${values.map(label).join(', ')}`}>
-        {values.map((v, i) => (
-          <div key={i} className={cn('fh-chart__col', i === highlight && 'is-now')}>
-            <span className="fh-chart__val">{i === highlight || i === 0 ? label(v) : ''}</span>
-            <i style={{ height: `${Math.round(height(v))}%` }} />
-            <span className="fh-chart__day">{days[i]}</span>
-          </div>
-        ))}
-      </div>
-      <p className="fh-chart__unit">{id === 'sleep' ? 'Longest sleep each day' : 'ml pumped each day'} · last 7 days</p>
-    </>
-  );
 }
 
 export function GrowthLog({ account }: { account: DemoAccount }) {
