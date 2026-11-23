@@ -68,20 +68,6 @@ export function FocusSheet({ id, account, included, onToggleInclude, onClose, on
           <InsightStoryCard account={account} id={shown} />
 
           <section className="fh-section">
-            <h3>Ask Cozie</h3>
-            <ul className="fh-questions">
-              {focusQuestions(account, shown).map((q) => (
-                <li key={q}>
-                  <button type="button" onClick={() => onAsk(shown, q)}>
-                    {q}
-                    <span aria-hidden>↗</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="fh-section">
             <h3>Make answers sharper</h3>
             <ul className="fh-asks">
               {focusAsks(account, shown).map((a) => (
@@ -105,6 +91,20 @@ export function FocusSheet({ id, account, included, onToggleInclude, onClose, on
               <ShieldIcon />
               Optional. You review everything before Cozie keeps it, and can delete it anytime.
             </p>
+          </section>
+
+          <section className="fh-section">
+            <h3>Ask Cozie</h3>
+            <ul className="fh-questions">
+              {focusQuestions(account, shown).map((q) => (
+                <li key={q}>
+                  <button type="button" onClick={() => onAsk(shown, q)}>
+                    {q}
+                    <span aria-hidden>↗</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </section>
         </div>
 

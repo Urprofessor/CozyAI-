@@ -119,20 +119,6 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
         )}
 
         <section className="fh-section">
-          <h3>Ask Cozie</h3>
-          <ul className="fh-questions">
-            {questions.map((q) => (
-              <li key={q}>
-                <button type="button" onClick={() => onChat(q)}>
-                  {q}
-                  <span aria-hidden>↗</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="fh-section">
           <h3>Make answers sharper</h3>
           <p className="fh-section__lead">
             The more Cozie knows, the more its answers fit you and Noah. Each is optional.
@@ -159,6 +145,20 @@ export function FocusHub({ ids, account, onBack, onChat: chatOn }: Props) {
             <ShieldIcon />
             You review everything before Cozie keeps it, and can delete it anytime.
           </p>
+        </section>
+
+        <section className="fh-section">
+          <h3>Ask Cozie</h3>
+          <ul className="fh-questions">
+            {questions.map((q) => (
+              <li key={q}>
+                <button type="button" onClick={() => onChat(q)}>
+                  {q}
+                  <span aria-hidden>↗</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
       </div>
 

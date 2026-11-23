@@ -192,8 +192,8 @@ App 有 4 个 Tab（Home / Device / Community / Me），右侧有一个独立的
 1. 方向标题和对应助手（例如 "Health & growth log · CareLog"）
 2. Cozie 在这个方向能做什么（3 条）
 3. "Cozie noticed"观察卡（同 4.4 ③ 的格式；没有设备数据时，说明配对设备或导入文件后能看到什么）
-4. **Ask Cozie**：3 个问题，点了就带着问题进聊天
-5. **Make answers sharper**：上传文件或报告、导入其他 AI 的记忆（注明"Optional"）
+4. **Make answers sharper**：上传文件或报告、导入其他 AI 的记忆（注明"Optional"）
+5. **Ask Cozie**：3 个问题，点了就带着问题进聊天
 6. 底部固定：**"Include in my Cozie"** 开关，和信件上卡片的勾选同步
 
 ### 4.6 进入聊天 ✅（第 3 步）
