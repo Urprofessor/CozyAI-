@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 
 /** How the first letter opens. Reviewers flip between them from the desktop
  *  demo panel to compare:
- *  - moment: the letter appears line by line, and only "I noticed" fills the
- *            screen for a moment before settling into its card
+ *  - moment: just the letter, appearing line by line (the id predates the
+ *            change; the full-screen moment now belongs to the story)
  *  - story:  a few full-screen year-in-review pages play first (one fact
  *            each, tap to continue), the last being "I noticed", which settles
  *            into its card in the fully shown letter */
 export type LetterVariant = 'moment' | 'story';
 
 export const LETTER_VARIANTS: { id: LetterVariant; label: string; note: string }[] = [
-  { id: 'moment', label: 'Letter · one moment', note: 'Line by line; only the insight fills the screen.' },
+  { id: 'moment', label: 'Letter', note: 'The letter appears line by line.' },
   { id: 'story', label: 'Story · year in review', note: 'A few full-screen pages, then the letter.' },
 ];
 

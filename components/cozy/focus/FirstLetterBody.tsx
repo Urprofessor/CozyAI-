@@ -76,14 +76,14 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
   const current = ORDER[step] as Step | undefined;
   const ready = useInView(current ? refs[current] : undefined, step < ALL);
 
-  // The observation gets its full-screen moment on first arrival (when it
-  // has a number to show); it hands over when the moment has closed in.
-  // 'story': the year-in-review pages play first (Story letter style), then
-  // the moment; the letter underneath is already fully shown.
+  // Story letter style: the year-in-review pages play first, then "I noticed"
+  // fills the screen and settles into its card; the letter underneath is
+  // already fully shown. The Letter style just writes the letter (no moment).
   const [moment, setMoment] = useState<'off' | 'story' | 'playing' | 'landed'>('off');
-  const momentOn = animate && !!insightFigures(account, letter.insightFocus).hero;
   const variant = useLetterVariant();
-  const storyMode = momentOn && variant === 'story' && !prefersReducedMotion();
+  const storyMode =
+    animate && variant === 'story' && !!insightFigures(account, letter.insightFocus).hero && !prefersReducedMotion();
+  const momentOn = storyMode;
   const pages = storyPages(account, letter.insightFocus);
   useEffect(() => {
     // The setting is read after mount; switch over before anything is written.
@@ -92,9 +92,6 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
       setMoment('story');
     }
   }, [storyMode, moment, step]);
-  useEffect(() => {
-    if (momentOn && current === 'insight' && ready && moment === 'off') setMoment('playing');
-  }, [momentOn, current, ready, moment]);
 
   // Fade-in steps hand over on a timer once they're on screen.
   useEffect(() => {
