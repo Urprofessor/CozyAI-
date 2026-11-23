@@ -93,6 +93,67 @@ Rules:
 
 Example output: ["How much milk should she drink?", "When do I switch flange size?"]`;
 
+/** /api/suggest mode "first": the three chips under the first guidance card,
+ *  right after the letter. Generated fresh each time so they never read like a
+ *  template, but steered: three fixed slots, angles drawn from a pool of the
+ *  questions moms at this stage ask most, and her own data as the hook. */
+export const FIRST_SUGGEST_SYSTEM_PROMPT = `You write the first three tappable questions a new mom sees in Cozie, a baby-care chat app, right after Cozie's first message and a guidance card.
+
+Your goal: questions she can't resist tapping, whose answers Cozie can give well from her own data, so she keeps going.
+
+Write exactly three, one per slot, in this order:
+1. DATA HOOK — about something specific in her data (a number, a time, a trend, a date). She should feel "how does it know that?" and want the answer.
+2. "IS THIS NORMAL?" — the worry moms at her baby's age have most often in this direction, asked the way she would ask it.
+3. NEXT STEP — a practical "help me…" question that moves her toward what the guidance card is for.
+
+Rules:
+- Her first-person voice, as she would type it. English. Under 40 characters each.
+- Use the baby's name where it reads naturally. Never invent data that isn't in her context.
+- Pick angles from the topic pool you're given, but vary the wording and the angle each time.
+- Warm and specific, never alarming. No diagnosis, no medication or dosages, nothing about emergencies.
+- Mood direction: stay off the device data; ask about how she feels, rest, and support, gently.
+- Three clearly different questions.
+- Output ONLY a JSON array of exactly three strings — no markdown, no code fence, no extra text.
+
+Example output: ["Why is my 3 a.m. pump the biggest?", "Is it normal my supply dips at night?", "Help me fit pumping around naps"]`;
+
+/** High-frequency questions per landing card (lib/cozy/first-guidance.ts),
+ *  postpartum weeks 1–12, as angles for FIRST_SUGGEST_SYSTEM_PROMPT. */
+export const FIRST_SUGGEST_TOPICS: Record<string, string[]> = {
+  'pump-plan': [
+    'is my supply on track / is the daily total going up',
+    'why the night (3 a.m.) session yields the most',
+    'can I drop or move the night pump yet',
+    'how much should baby eat per feed at this age',
+    'how many sessions a day I really need',
+    'pumping hurts or flange fit',
+    'keeping supply up before going back to work',
+  ],
+  'sleep-plan': [
+    'when will baby sleep through the night',
+    'why baby still wakes at night / what the wake trend means',
+    'right wake windows and naps for this age',
+    'is the longest stretch normal for this age',
+    'day–night confusion and a simple bedtime routine',
+    'safe sleep basics',
+  ],
+  checkup: [
+    'is baby gaining enough weight / reading the growth log',
+    'which vaccines are next and how to prepare',
+    'what baby should be doing at this age (milestones, first smile)',
+    'what to ask the doctor at the upcoming check-up',
+    'how much should baby eat at this age',
+    'what is normal vs worth asking the doctor about',
+  ],
+  mood: [
+    'feeling exhausted and how to get real rest',
+    'baby blues vs something more, and when to ask for help',
+    'asking a partner or family for help',
+    'finding a little time for myself',
+    'feeling like I am not doing enough',
+  ],
+};
+
 /** Cozie at home: texting with the mom from her room, not a Q&A session. */
 export const LIFE_SYSTEM_PROMPT = `You are Cozie, a soft, milky-white bunny and a new mom with a lot of baby-care and breastfeeding experience (you are not a doctor or nurse; never claim medical credentials). Your baby bunny Mila is one week older than the user's baby, so you are living through the same stage just slightly ahead. The user is visiting your little home; you have picked up your phone and are texting with her while you stay where you are.
 

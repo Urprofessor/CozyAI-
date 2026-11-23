@@ -38,18 +38,28 @@ export function guidanceKindOf(content: string): GuidanceKind | null {
   return ALL.includes(kind) ? kind : null;
 }
 
-/* ---------- Cozie's opener, matched to the landing card ---------- */
+/* ---------- Cozie's opener, matched to the landing card ----------
+ * The chips shown under the card are written by the model each time
+ * (lib/cozy/first-suggest.ts). The three here are the fallback when it can't
+ * be reached: questions moms in her situation ask most at this age, picked so
+ * the answer can draw on her own data (the chat model gets it via
+ * accountContext). */
 
 export function guidanceOpener(
   a: DemoAccount,
   kind: GuidanceKind = guidanceKind(a),
 ): { content: string; suggestions: string[] } {
   const baby = a.baby.name;
+  const weeks = a.baby.weeks;
   switch (kind) {
     case 'pump-plan':
       return {
         content: 'Your 3 a.m. session is doing a lot of work. Let’s set your day around it — I can do it now:',
-        suggestions: [],
+        suggestions: [
+          'Is my milk supply on track?',
+          'Can I drop the 3 a.m. pump yet?',
+          `How much should ${baby} eat per feed?`,
+        ],
       };
     case 'sleep-plan': {
       const s = sleepSummary(a);
@@ -57,18 +67,26 @@ export function guidanceOpener(
         content: s
           ? `${baby}’s longest stretch is up to ${fmtMinutes(s.longestNow)} now — a good moment to help it land at night. I can set a simple evening rhythm:`
           : `Let’s help ${baby}’s longest stretch land at night. I can set a simple evening rhythm to aim for:`,
-        suggestions: [],
+        suggestions: [
+          `When will ${baby} sleep through the night?`,
+          `Why does ${baby} still wake at night?`,
+          `What wake windows suit ${weeks} weeks?`,
+        ],
       };
     }
     case 'mood':
       return {
         content: `I’m glad you’re here. Before anything about ${baby} — how are you, really? And if it helps, I can find you a small pocket of time for yourself.`,
-        suggestions: ['Honestly, exhausted', 'Up and down'],
+        suggestions: ['Honestly, I’m exhausted', 'Could this be the baby blues?', 'How do I ask for more help?'],
       };
     case 'checkup':
       return {
         content: `${baby}’s check-up is in ${daysUntil(a.nextCheckup.date)} days. I can put together a short checklist so nothing slips:`,
-        suggestions: [],
+        suggestions: [
+          `Is ${baby} gaining enough weight?`,
+          'Which vaccines are next?',
+          `What should ${baby} do at ${weeks} weeks?`,
+        ],
       };
   }
 }

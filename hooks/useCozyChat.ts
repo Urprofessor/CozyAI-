@@ -618,15 +618,16 @@ export function useCozyChat(opts: Options = {}) {
 
 
   /** Deliver a letter into the conversation: its card, then Cozie's fixed
-   *  opener for whichever reply mom picked. */
+   *  opener for whichever reply mom picked. Returns the opener's id. */
   const deliverLetter = useCallback(
     (sentinel: string, opener: { content: string; suggestions?: string[] }) => {
       const now = Date.now();
+      const id = newId();
       setMessages((prev) => [
         ...prev,
         { id: newId(), role: 'system', content: sentinel, createdAt: now },
         {
-          id: newId(),
+          id,
           role: 'assistant',
           content: opener.content,
           persona: 'qa',
@@ -635,16 +636,19 @@ export function useCozyChat(opts: Options = {}) {
           ...(opener.suggestions ? { suggestions: opener.suggestions } : {}),
         },
       ]);
+      return id;
     },
     []
   );
 
-  /** Cozie's scripted opener on its own (no letter card), e.g. after a hub. */
+  /** Cozie's scripted opener on its own (no letter card), e.g. after a hub.
+   *  Returns its id. */
   const deliverOpener = useCallback((opener: { content: string; suggestions?: string[] }) => {
+    const id = newId();
     setMessages((prev) => [
       ...prev,
       {
-        id: newId(),
+        id,
         role: 'assistant',
         content: opener.content,
         persona: 'qa',
@@ -653,6 +657,13 @@ export function useCozyChat(opts: Options = {}) {
         ...(opener.suggestions ? { suggestions: opener.suggestions } : {}),
       },
     ]);
+    return id;
+  }, []);
+
+  /** Attach follow-up chips to a message once they arrive (e.g. the first
+   *  guidance chips, generated while she read the letter). */
+  const setSuggestions = useCallback((msgId: string, suggestions: string[]) => {
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, suggestions } : m)));
   }, []);
 
   const appendAssistant = useCallback(
@@ -702,6 +713,7 @@ export function useCozyChat(opts: Options = {}) {
     appendAssistant,
     deliverLetter,
     deliverOpener,
+    setSuggestions,
     startSkill,
     showPlanCard,
     pageSize: COZY_PAGE_SIZE,

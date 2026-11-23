@@ -49,6 +49,7 @@ import {
   takeDueFollowUp,
 } from '@/lib/cozy/first-task';
 import { guidanceKind, guidanceKindOf, guidanceOpener, guidanceSentinel } from '@/lib/cozy/first-guidance';
+import { clearFirstChips, fillChips, prefetchFirstChips } from '@/lib/cozy/first-suggest';
 import { FirstTaskCard } from './cards/FirstTaskCard';
 import { SleepPlanCard } from './cards/SleepPlanCard';
 import { CheckupCard } from './cards/CheckupCard';
@@ -170,6 +171,22 @@ export function CozyChat() {
       saveChosenFocus(next);
       return next;
     });
+  // The chips under the first guidance card are written by the model; ask for
+  // them while she reads the letter so they're ready when she taps "Talk to
+  // Cozie". Ticking tags can change the card (only feelings → mood), so ask
+  // again for the new one.
+  const guideKindNow = guidanceKind(account, chosenFocus);
+  useEffect(() => {
+    clearFirstChips();
+  }, [account]);
+  useEffect(() => {
+    if (letter !== 'arrive') return;
+    prefetchFirstChips({
+      kind: guideKindNow,
+      context: contextRef.current(),
+      opener: guidanceOpener(account, guideKindNow).content,
+    });
+  }, [letter, guideKindNow, account]);
   // A tag's preview sheet, over the letter.
   const [previewFocus, setPreviewFocus] = useState<FocusId | null>(null);
   const letterFocus = { chosen: chosenFocus, onToggle: toggleFocus, onPreview: setPreviewFocus };
@@ -310,19 +327,31 @@ export function CozyChat() {
         // "Talk to Cozie" appends the first-guidance card for her direction —
         // the mood card if she kept only feelings ticked — with an opener that
         // introduces that same card.
+        // Its three chips come from the model (ready now if the prefetch
+        // finished, attached when it does otherwise), topped up from the
+        // built-in ones.
         const withTask = action.id === 'talk';
         const kind = guidanceKind(account, chosenFocus);
         const guideCard = guidanceSentinel(kind);
-        const opener = withTask ? guidanceOpener(account, kind) : action.opener;
+        const base = guidanceOpener(account, kind);
+        const chips = withTask
+          ? prefetchFirstChips({ kind, context: contextRef.current(), opener: base.content })
+          : null;
+        const opener = !withTask
+          ? action.opener
+          : { content: base.content, suggestions: chips?.result ? fillChips(chips.result, base.suggestions) : undefined };
+        const attachChips = (id: string) => {
+          if (chips && !chips.result) chips.promise.then((r) => chat.setSuggestions(id, fillChips(r, base.suggestions)));
+        };
         if (!firstRun) {
-          if (!action.quiet) chat.deliverOpener(opener);
+          if (!action.quiet) attachChips(chat.deliverOpener(opener));
           if (withTask) chat.appendSystem(guideCard);
           setLetter(null);
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
         profile.applyPatch(personaSeed());
-        chat.deliverLetter(LETTER_CARD, opener);
+        attachChips(chat.deliverLetter(LETTER_CARD, opener));
         if (withTask) chat.appendSystem(guideCard);
         setLetter(null);
         setWelcomed(true);
@@ -555,6 +584,17 @@ function renderStream(
   }
   const latestReplyId = lastTurn?.role === 'assistant' ? lastTurn.id : null;
 
+  // When the newest reply introduces a guidance card ("…I can do it now:"),
+  // its follow-up chips go under the card, not between the text and the card.
+  let chipsAfterId: string | null = null;
+  if (lastTurn?.role === 'assistant' && lastTurn.suggestions?.length) {
+    const after = chat.messages.slice(chat.messages.indexOf(lastTurn) + 1);
+    const isGuide = (c: string) => c === FIRST_TASK_CARD || !!guidanceKindOf(c);
+    if (after.length && after.every((m) => m.role === 'system' && isGuide(m.content))) {
+      chipsAfterId = after[after.length - 1].id;
+    }
+  }
+
   let lastDay = '';
   for (const m of chat.messages) {
     // Date separator before the first message of each local day.
@@ -623,6 +663,19 @@ function renderStream(
           )}
         </div>
       );
+      if (m.id === chipsAfterId && lastTurn?.suggestions && !chat.streaming) {
+        out.push(
+          <div key={`chips-${m.id}`} className="cz-row cz-row--agent">
+            <div className="cz-followups">
+              {lastTurn.suggestions.map((q) => (
+                <button key={q} type="button" className="cz-chip" onClick={() => chat.send(q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
       continue;
     }
     if (m.content === LETTER_CARD) {
@@ -670,7 +723,7 @@ function renderStream(
         onOpenImage={rows.onOpenImage}
         streaming={midStream}
         isLatestReply={m.id === latestReplyId}
-        showSuggestions={m.id === latestReplyId && !midStream}
+        showSuggestions={m.id === latestReplyId && !midStream && !chipsAfterId}
         onSuggest={chat.send}
         onRetry={m.scripted ? undefined : () => chat.regenerate(m.id)}
         rating={rows.ratings[m.id] ?? null}
