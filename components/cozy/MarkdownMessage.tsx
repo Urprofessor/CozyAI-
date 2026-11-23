@@ -3,16 +3,41 @@
 import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { splitCards } from '@/lib/cozy/story-card';
+import { ChatCard } from './cards/StoryCard';
 
 // Invisible sentinel appended while streaming; rendered as the bunny "cursor"
 // that trails the latest text (like a typing caret).
 const CURSOR = '⁣cozy-cursor⁣';
 
 /** Renders an assistant reply as GitHub-flavored Markdown (tables, task lists,
- *  strikethrough, autolinks). Styling lives in `.cozy-md` in app-shell.css,
+ *  strikethrough, autolinks), with ```card blocks shown as story cards
+ *  (lib/cozy/story-card.ts). Styling lives in `.cozy-md` in app-shell.css,
  *  mapped to the Momcozy tokens per the Figma spec. While `streaming`, a small
  *  bunny caret trails the text. */
 export const MarkdownMessage = memo(function MarkdownMessage({
+  content,
+  streaming = false,
+}: {
+  content: string;
+  streaming?: boolean;
+}) {
+  const segments = splitCards(content);
+  if (!segments.some((s) => s.kind === 'card')) return <Markdown content={content} streaming={streaming} />;
+  return (
+    <>
+      {segments.map((s, i) =>
+        s.kind === 'card' ? (
+          <ChatCard key={i} spec={s.spec} open={s.open} />
+        ) : (
+          <Markdown key={i} content={s.text} streaming={streaming && i === segments.length - 1} />
+        ),
+      )}
+    </>
+  );
+});
+
+function Markdown({
   content,
   streaming = false,
 }: {
@@ -68,4 +93,4 @@ export const MarkdownMessage = memo(function MarkdownMessage({
       {src}
     </ReactMarkdown>
   );
-});
+}

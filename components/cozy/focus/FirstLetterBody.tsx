@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import type { FocusId } from '@/lib/cozy/focus';
-import { InsightCard } from './FocusHub';
+import { InsightStoryCard } from '../cards/StoryCard';
 import { FocusCards } from './LetterFocus';
 
 /* Body of the first letter. On arrival it is "written" in front of her:
@@ -95,8 +95,8 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
       </p>
 
       <div ref={insightRef} className={cn('cz-first__block', isIn(step, at('insight'), ready) && 'is-in')}>
-        {/* Remounted when it appears, so the chart grows in front of her. */}
-        <InsightCard key={isIn(step, at('insight'), ready) ? 'in' : 'wait'} account={account} id={letter.insightFocus} eyebrow="I noticed" />
+        {/* Remounted when it appears, so the trend line draws in front of her. */}
+        <InsightStoryCard key={isIn(step, at('insight'), ready) ? 'in' : 'wait'} account={account} id={letter.insightFocus} />
       </div>
 
       <div ref={focusRef} className={cn('cz-first__block cz-first__focus', isIn(step, at('focus'), ready) && 'is-in')}>

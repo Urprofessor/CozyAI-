@@ -77,10 +77,10 @@ export function FocusCards({
 }
 
 /** Faint line drawing in the card's right side. */
-function FocusArt({ id }: { id: FocusId }) {
+export function FocusArt({ id, className = 'cz-focus__art' }: { id: FocusId; className?: string }) {
   return (
     <svg
-      className="cz-focus__art"
+      className={className}
       viewBox="0 0 80 80"
       fill="none"
       stroke="currentColor"

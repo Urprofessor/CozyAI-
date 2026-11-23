@@ -1,0 +1,298 @@
+/* Story cards (components/cozy/cards/StoryCard.tsx): solid pastel cards with a
+ * large serif title, one hero, a short note, an illustration and a source
+ * line. Selectors are two classes deep so they win over `.cozy-md` element
+ * styles when a card sits inside a reply. */
+
+.sc {
+  --sc-bg: #f3c6cc;
+  --sc-ink: #2c1a24;
+  --sc-soft: rgba(44, 26, 36, 0.62);
+  --sc-line: rgba(44, 26, 36, 0.14);
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 20px 18px 16px;
+  border-radius: 18px;
+  background: var(--sc-bg);
+  color: var(--sc-ink);
+  font-family: var(--cz-ui);
+}
+.sc--pink {
+  --sc-bg: #f3c6cc;
+}
+.sc--green {
+  --sc-bg: #c2dbc6;
+}
+.sc--yellow {
+  --sc-bg: #f2dcaa;
+}
+.sc--lavender {
+  --sc-bg: #d8cbe8;
+}
+.sc--cream {
+  --sc-bg: #f4efe2;
+}
+
+.sc .sc__eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sc-soft);
+}
+.sc .sc__title {
+  display: block;
+  margin: 0 0 14px;
+  font: 400 26px/1.12 var(--cz-brand);
+  color: var(--sc-ink);
+}
+.sc--chat .sc__title {
+  font-size: 22px;
+}
+.sc .sc__title--wait {
+  width: 60%;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Illustration (or its line-drawing placeholder) in the top right, beside
+ * the title; the title keeps clear of it and is at least as tall. */
+.sc--has-art .sc__title {
+  min-height: 58px;
+  padding-right: 72px;
+}
+.sc--has-image .sc__title {
+  min-height: 80px;
+  padding-right: 96px;
+}
+.sc .sc__art {
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  width: 62px;
+  height: 62px;
+  color: var(--sc-ink);
+  opacity: 0.38;
+  pointer-events: none;
+}
+.sc .sc__art--image {
+  top: 10px;
+  right: 8px;
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  opacity: 1;
+}
+
+/* Hero: a big number with a line under it. */
+.sc .sc__hero {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 10px;
+}
+.sc .sc__hero strong {
+  font: 400 40px/1 var(--cz-brand);
+  letter-spacing: -0.01em;
+}
+.sc .sc__hero span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sc-soft);
+}
+
+/* Thin trend line that draws itself in. */
+.sc .sc__trend {
+  margin: 4px 0 12px;
+}
+.sc .sc__trend svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.sc .sc__trend-base {
+  stroke: var(--sc-line);
+  stroke-width: 1;
+}
+.sc .sc__trend-line {
+  fill: none;
+  stroke: var(--sc-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: sc-draw 1100ms 200ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+.sc .sc__trend-dot {
+  fill: var(--sc-ink);
+  opacity: 0;
+  animation: sc-dot 300ms 1200ms ease-out forwards;
+}
+.sc .sc__trend figcaption {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--sc-soft);
+}
+@keyframes sc-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes sc-dot {
+  to {
+    opacity: 1;
+  }
+}
+
+.sc .sc__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--sc-ink);
+}
+.sc .sc__source {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--sc-line);
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--sc-soft);
+}
+
+/* Lists */
+.sc .sc__steps,
+.sc .sc__list,
+.sc .sc__log {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.sc .sc__steps {
+  counter-reset: sc-step;
+}
+.sc .sc__steps li,
+.sc .sc__list li {
+  position: relative;
+  margin: 0;
+  padding-left: 26px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.sc .sc__steps li {
+  counter-increment: sc-step;
+}
+.sc .sc__steps li::before {
+  content: counter(sc-step);
+  position: absolute;
+  left: 0;
+  top: -2px;
+  font: 400 19px/1.2 var(--cz-brand);
+  color: var(--sc-soft);
+}
+.sc .sc__list li::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sc-ink);
+  opacity: 0.55;
+}
+.sc .sc__list--check li::before {
+  left: 0;
+  top: 2px;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--sc-ink);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 0.7;
+}
+.sc .sc__log li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.sc .sc__log time {
+  color: var(--sc-soft);
+}
+.sc .sc__log li.is-next {
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Small comparison table */
+.sc .sc__compare {
+  width: 100%;
+  margin: 0 0 12px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.sc .sc__compare th,
+.sc .sc__compare td {
+  padding: 7px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--sc-line);
+  background: none;
+  text-align: left;
+  vertical-align: top;
+}
+.sc .sc__compare thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sc-soft);
+}
+.sc .sc__compare tbody th {
+  font-weight: 600;
+}
+
+/* In the chat: full width of the reply, a little room around it. */
+.cozy-md .sc--chat {
+  margin: 10px 0 12px;
+}
+.sc--loading {
+  min-height: 132px;
+  background: linear-gradient(100deg, #f4efe2 30%, #faf7ef 50%, #f4efe2 70%);
+  background-size: 200% 100%;
+  animation: sc-shimmer 1.2s linear infinite;
+}
+@keyframes sc-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* In the letter: sits where the white observation card used to be. */
+.cz-first .sc--insight {
+  margin-bottom: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc .sc__trend-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .sc .sc__trend-dot {
+    animation: none;
+    opacity: 1;
+  }
+  .sc--loading {
+    animation: none;
+  }
+}
