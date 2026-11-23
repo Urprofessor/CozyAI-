@@ -8,6 +8,8 @@ import type { DemoAccount } from '@/lib/cozy/account-demo';
 import type { FocusId } from '@/lib/cozy/focus';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import { FirstLetterBody } from './focus/FirstLetterBody';
+import { LetterStage } from './focus/LetterStage';
+import { useStageStyle } from '@/lib/cozy/stageStyle';
 
 type Phase = 'arrive' | 'seal' | 'open' | 'rise' | 'read';
 
@@ -80,6 +82,7 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, focus }:
   // The direction cards show when rereading too; "Maybe later" belongs to
   // the first arrival only.
   const first = letter.offerDataConnections && account && focus ? { account, focus } : null;
+  const stageStyle = useStageStyle();
   const offerConnections = !!first;
   const skipConnection = mode === 'arrive' && onAction ? letter.actions.find((action) => action.quiet) : undefined;
 
@@ -114,10 +117,11 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, focus }:
             <div>
               {letter.offerDataConnections && <span className="cz-letter__brand">momcozy</span>}
               <h2>{heading}</h2>
-              <span>{first ? `${letter.kicker} · ${date}` : letter.kicker}</span>
+              {/* With the stamp, the date is on the postmark instead. */}
+              <span>{first && stageStyle !== 'stamp' ? `${letter.kicker} · ${date}` : letter.kicker}</span>
             </div>
             <div className="cz-letter__head-side">
-              {first && <Stage week={first.account.baby.weeks} />}
+              {first && <LetterStage style={stageStyle} week={first.account.baby.weeks} date={date} />}
               {mode === 'reread' && onClose ? (
                 <button type="button" className="cz-letter__close" onClick={onClose} aria-label="Close">
                   <img src={`${CZ}/icons/settings_close.svg`} alt="" />
@@ -198,23 +202,6 @@ const GREETING_ART = (
     <path d="M91 82c-13 1-27 12-40 23m53-9c-18 0-34 18-50 22-12 3-23-2-25-11-2-7 2-14 7-18" />
   </svg>
 );
-
-/** Where mom and baby are, beside the letter's heading: Birth · now · next. */
-function Stage({ week }: { week: number }) {
-  return (
-    <div className="cz-stage" aria-label={`Week ${week}, between birth and week ${week + 2}`}>
-      <span className="cz-stage__label">
-        <i aria-hidden />
-        Week {week}
-      </span>
-      <span className="cz-stage__track" aria-hidden>
-        <i className="is-past" />
-        <i className="is-now" />
-        <i />
-      </span>
-    </div>
-  );
-}
 
 function Block({ block }: { block: LetterBlock }) {
   if (block.kind === 'emphasis') return <p className="cz-letter__emphasis">{block.text}</p>;

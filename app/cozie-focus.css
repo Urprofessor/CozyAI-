@@ -935,3 +935,289 @@
     transition: none;
   }
 }
+
+/* ---------- Letter stage, top right (components/cozy/focus/LetterStage.tsx) ---------- */
+.cz-stage-wrap {
+  position: relative;
+}
+.cz-stage-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.cz-stage-btn:focus-visible {
+  outline: 2px solid #790a30;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Stamp: a white perforated paper (holes are transparent dots on the edge)
+ * with a pastel face, and a postmark over its lower-left corner. */
+.cz-stamp {
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 72px;
+  margin: -6px 2px 0 0;
+  transform: rotate(4deg);
+  animation: cz-stamp-in 520ms 500ms cubic-bezier(0.3, 1.3, 0.5, 1) both;
+}
+.cz-stamp__paper {
+  position: absolute;
+  inset: 0;
+  padding: 4px;
+  background: radial-gradient(circle, transparent 2.1px, #fffdf9 2.6px) -3px -3px / 6px 6px;
+  filter: drop-shadow(0 1.5px 2px rgba(121, 10, 48, 0.18));
+}
+/* The week sits on top, like a stamp's value; the postmark cancels the picture below. */
+.cz-stamp__face {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  height: 100%;
+  padding: 3px 2px 4px;
+  border: 1px solid rgba(121, 10, 48, 0.18);
+  background: linear-gradient(160deg, #fbe1e6, #e9d8f0);
+}
+.cz-stamp__face img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.cz-letter__head .cz-stamp__face b {
+  order: -1;
+  margin-bottom: 1px;
+  font: 600 8.5px/1 var(--cz-ui);
+  letter-spacing: 0.12em;
+  color: #790a30;
+}
+@keyframes cz-stamp-in {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) translateY(-8px);
+  }
+}
+
+/* Postmark: ink ring with the date and wavy cancellation lines. */
+.cz-postmark {
+  position: absolute;
+  left: -30px;
+  bottom: -34px;
+  width: 76px;
+  height: 44px;
+  stroke: rgba(121, 10, 48, 0.62);
+  fill: none;
+  transform: rotate(-12deg);
+  transform-origin: 28% 50%;
+  pointer-events: none;
+  animation: cz-postmark-down 420ms 1050ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.cz-postmark text {
+  fill: rgba(121, 10, 48, 0.68);
+  stroke: none;
+  font-family: var(--cz-ui);
+}
+.cz-postmark__ring {
+  font-size: 5.6px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+}
+.cz-postmark__month {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.cz-postmark__day {
+  font-size: 10px;
+  font-weight: 700;
+}
+@keyframes cz-postmark-down {
+  0% {
+    opacity: 0;
+    transform: rotate(-12deg) scale(1.7);
+  }
+  60% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-12deg) scale(1);
+  }
+}
+
+/* Footprints: eight little prints, past ones inked, the current one lit,
+ * the coming ones just outlined. */
+.cz-trail {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  padding-top: 2px;
+}
+.cz-letter__head .cz-trail__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #790a30;
+}
+.cz-letter__head .cz-trail__label small {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(121, 10, 48, 0.55);
+}
+.cz-letter__head .cz-trail__path {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+}
+.cz-print {
+  display: block;
+  width: 9px;
+  height: 14px;
+  animation: cz-print-in 260ms ease-out both;
+}
+.cz-print.is-left {
+  transform: translateY(3px) rotate(-12deg);
+}
+.cz-print.is-right {
+  transform: translateY(-3px) rotate(12deg);
+}
+.cz-print svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: rgba(121, 10, 48, 0.42);
+}
+.cz-print.is-now svg {
+  fill: #790a30;
+  filter: drop-shadow(0 0 3px rgba(226, 86, 111, 0.65));
+  animation: cz-print-glow 1.8s 1.8s ease-in-out infinite alternate;
+}
+.cz-print.is-next svg {
+  fill: none;
+  stroke: rgba(121, 10, 48, 0.35);
+  stroke-width: 0.7;
+  stroke-dasharray: 1.2 1;
+}
+@keyframes cz-print-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+@keyframes cz-print-glow {
+  to {
+    filter: drop-shadow(0 0 5px rgba(226, 86, 111, 0.9));
+  }
+}
+.cz-letter__head .cz-trail__ends {
+  display: flex;
+  justify-content: space-between;
+  align-self: stretch;
+  font-size: 9px;
+  letter-spacing: 0;
+  color: rgba(121, 10, 48, 0.5);
+}
+
+/* The note a tap opens: what's typical this week. */
+.cz-stage-note {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -6px;
+  z-index: 5;
+  width: 200px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fffdf9;
+  box-shadow: 0 10px 28px rgba(121, 10, 48, 0.18);
+  color: #3a1b29;
+  font-family: var(--cz-ui);
+  text-align: left;
+  animation: cz-note-in 220ms ease-out both;
+  cursor: pointer;
+}
+.cz-stage-note::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 22px;
+  width: 12px;
+  height: 12px;
+  background: #fffdf9;
+  transform: rotate(45deg);
+}
+.cz-letter__head .cz-stage-note p,
+.cz-letter__head .cz-stage-note li {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.cz-letter__head .cz-stage-note__title {
+  margin: 0 0 6px;
+  font: 400 15px/1.2 var(--cz-brand);
+  color: #790a30;
+}
+.cz-stage-note ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 14px;
+  list-style: disc;
+}
+.cz-stage-note li::marker {
+  color: #e2566f;
+}
+.cz-letter__head .cz-stage-note__foot {
+  margin: 8px 0 0;
+  color: rgba(58, 27, 41, 0.55);
+}
+@keyframes cz-note-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-stamp,
+  .cz-postmark,
+  .cz-print,
+  .cz-print.is-now svg,
+  .cz-stage-note {
+    animation: none;
+  }
+}
+
+/* The stage note drops over the letter body, so the header sits above it. */
+.cz-letter__head:has(.cz-stage-wrap) {
+  position: relative;
+  z-index: 3;
+}
+
+/* Footprints: a touch bigger, and the Birth / Week 8 labels spread under the trail. */
+.cz-trail {
+  display: inline-grid;
+}
+.cz-print {
+  width: 10.5px;
+  height: 16px;
+}
+.cz-letter__head .cz-trail__path {
+  height: 24px;
+  gap: 2.5px;
+}
+.cz-letter__head .cz-trail__ends {
+  justify-self: stretch;
+}
+.cz-letter__head .cz-trail__ends span {
+  font-size: 9px;
+  line-height: 12px;
+  letter-spacing: 0;
+  color: rgba(121, 10, 48, 0.5);
+}
