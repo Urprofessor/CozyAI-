@@ -772,3 +772,156 @@
   width: min(108px, 30cqi);
   height: min(108px, 30cqi);
 }
+
+/* ---------- First task card (components/cozy/cards/FirstTaskCard.tsx) ---------- */
+.ft .ft__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 14px;
+}
+.ft .ft__primary {
+  min-height: 46px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 23px;
+  background: var(--sc-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ft .ft__quiet {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sc-ink);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.ft .ft__others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--sc-soft);
+}
+.ft .ft__others button {
+  padding: 6px 12px;
+  border: 1px solid rgba(44, 26, 36, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--sc-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ft .ft__times {
+  display: grid;
+  gap: 0;
+  margin: 0 0 12px;
+  list-style: none;
+}
+.ft .ft__times li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 9px 0;
+  font-size: 14px;
+}
+.ft .ft__times li + li {
+  border-top: 1px solid var(--sc-line);
+}
+.ft .ft__times time {
+  font: 400 18px/1 var(--cz-brand);
+  white-space: nowrap;
+}
+.ft .ft__times span {
+  white-space: nowrap;
+}
+.ft .ft__times em {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+.ft .ft__times span {
+  font-size: 12px;
+  color: var(--sc-soft);
+}
+.ft .ft__notes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  list-style: disc;
+}
+.ft .ft__notes li {
+  margin: 0;
+}
+.ft .ft__done {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.ft .ft__done span {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #2e7d4a;
+  color: #fff;
+  font-size: 12px;
+}
+.ft .ft__remind {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+}
+.ft .ft__remind strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ft .ft__remind small {
+  font-size: 12px;
+  color: var(--sc-soft);
+}
+.ft .ft__btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--sc-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ft .ft__btn.is-on {
+  background: #2e7d4a;
+}
+.ft .ft__btn:disabled {
+  cursor: default;
+}

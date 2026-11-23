@@ -1,6 +1,7 @@
 'use client';
 
 import { INTRO_VARIANTS, replayIntro, setIntroVariant, useIntroVariant } from '@/lib/cozy/introVariant';
+import { showFollowUpNow } from '@/lib/cozy/first-task';
 import { LETTER_VARIANTS, setLetterVariant, useLetterVariant } from '@/lib/cozy/letterVariant';
 import { ACCOUNT_PRESETS, setAccountPreset, useDemoAccount } from '@/lib/cozy/account-demo';
 import { resetAi, resetFiles, setHealthConnected, useConnections } from '@/lib/cozy/connections';
@@ -110,6 +111,13 @@ export function DemoPanel() {
           onClick={resetAi}
         >
           Reset AI assistant card
+        </button>
+      </div>
+
+      <div className="demo-panel__section">
+        <p className="demo-panel__subtitle">First task</p>
+        <button type="button" className="demo-panel__link" onClick={showFollowUpNow}>
+          Show tomorrow’s check-in now
         </button>
       </div>
     </aside>

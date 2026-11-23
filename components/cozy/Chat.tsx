@@ -39,6 +39,17 @@ import { FocusSheet } from './focus/FocusSheet';
 import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
 import { OPEN_SOURCES_EVENT, filterAccount, readSourcesOff } from '@/lib/cozy/sources';
 import { chosenFocusContext, defaultFocus, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
+import {
+  FIRST_TASK_CARD,
+  FOLLOW_UP_EVENT,
+  followUpMessage,
+  hasFirstTask,
+  planFromProposal,
+  proposePumpPlan,
+  scheduleFollowUp,
+  takeDueFollowUp,
+} from '@/lib/cozy/first-task';
+import { FirstTaskCard } from './cards/FirstTaskCard';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
@@ -63,6 +74,8 @@ interface RowHandlers {
   onNegativeFeedback: (id: string) => void;
   onOpenSources: () => void;
   onOpenLetter: () => void;
+  /** The first-task card (lib/cozy/first-task.ts). */
+  firstTask: { account: ReturnType<typeof useDemoAccount>; saved: boolean; onSave: () => void; onSend: (text: string) => void };
 }
 
 const WELCOMED_KEY = 'cozyWelcomed';
@@ -219,6 +232,19 @@ export function CozyChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingQuestion, chat.messages, letter, previewFocus]);
 
+  // The visit after she saved her first plan: Cozie checks in once. The demo
+  // panel can make it due now.
+  useEffect(() => {
+    if (!chat.hydrated || !welcomed) return;
+    const check = () => {
+      if (takeDueFollowUp()) chat.deliverOpener(followUpMessage(account.baby.name));
+    };
+    check();
+    window.addEventListener(FOLLOW_UP_EVENT, check);
+    return () => window.removeEventListener(FOLLOW_UP_EVENT, check);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.hydrated, welcomed]);
+
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
   const decided = welcomed !== null && chat.hydrated;
@@ -271,14 +297,18 @@ export function CozyChat() {
         setReplaying(false);
         // A replay after onboarding is a preview: don't seed the persona or
         // post the letter again, but "Talk to Cozie" still shows its opener.
+        // "Talk to Cozie" with a pump: the first task follows Cozie's line.
+        const withTask = action.id === 'talk' && hasFirstTask(account);
         if (!firstRun) {
           if (!action.quiet) chat.deliverOpener(action.opener);
+          if (withTask) chat.appendSystem(FIRST_TASK_CARD);
           setLetter(null);
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
         profile.applyPatch(personaSeed());
         chat.deliverLetter(LETTER_CARD, action.opener);
+        if (withTask) chat.appendSystem(FIRST_TASK_CARD);
         setLetter(null);
         setWelcomed(true);
       }}
@@ -330,6 +360,23 @@ export function CozyChat() {
     onNegativeFeedback: setFeedbackFor,
     onOpenSources: () => setSourcesOpen(true),
     onOpenLetter: () => setLetter('reread'),
+    firstTask: {
+      account,
+      saved: profile.profile.lactationPlan?.status === 'completed',
+      onSend: chat.send,
+      onSave: () => {
+        const proposal = proposePumpPlan(account);
+        if (!proposal) return;
+        // Saving closes the loop: the plan lands in her lactation plan (its
+        // card appears below), and Cozie follows up next time she opens.
+        profile.applyPatch({ lactationPlan: planFromProposal(proposal) });
+        scheduleFollowUp();
+        chat.deliverOpener({
+          content: `Done — your pumping plan is saved, ${proposal.times.length} sessions a day. You’ll find it under Lactation plan, and next time you open Cozie I’ll ask how it went.`,
+          suggestions: ['Show today’s schedule', 'Change a time'],
+        });
+      },
+    },
   };
 
   return (
@@ -540,6 +587,19 @@ function renderStream(
           </div>
         );
       }
+      continue;
+    }
+    if (m.content === FIRST_TASK_CARD) {
+      out.push(
+        <div key={m.id} className="cz-row cz-row--card">
+          <FirstTaskCard
+            account={rows.firstTask.account}
+            saved={rows.firstTask.saved}
+            onSave={rows.firstTask.onSave}
+            onSend={rows.firstTask.onSend}
+          />
+        </div>
+      );
       continue;
     }
     if (m.content === LETTER_CARD) {

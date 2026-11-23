@@ -1,5 +1,6 @@
 import { daysUntil, deviceOf, type DemoAccount } from './account-demo';
 import { focusInsight, type FocusId, type Insight } from './focus';
+import { hasFirstTask } from './first-task';
 
 /* The first "From Cozie" letter, written for the account she has.
  *
@@ -45,8 +46,17 @@ export function buildFirstLetter(a: DemoAccount): FirstLetter {
   const checkup = `${new Date(`${a.nextCheckup.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   const hasPump = !!deviceOf(a, 'pump');
 
-  const firstMessage: FirstLetter['firstMessage'] =
-    focus === 'sleep'
+  // With a pump, the first message is one line: the first-task card that
+  // follows it holds the main action (plan her pumping) and the quieter ones.
+  const firstMessage: FirstLetter['firstMessage'] = hasFirstTask(a)
+    ? {
+        content:
+          focus === 'sleep'
+            ? `${baby}’s long stretch is getting longer — a good moment to set your pumping around it. I can do it now:`
+            : 'Your 3 a.m. session is doing a lot of work. Let’s set your day around it — I can do it now:',
+        suggestions: [],
+      }
+    : focus === 'sleep'
       ? {
           content: `Since ${baby}’s long stretch is growing, want help making it land at night? I can also get you ready for his ${checkup} check-up${hasPump ? ', or look over your pumping week' : ''}.`,
           suggestions: [
