@@ -1,20 +1,28 @@
 import { daysUntil, deviceOf, fmtMinutes, pumpSummary, sleepSummary, type DemoAccount } from './account-demo';
+import { defaultFocus, type FocusId } from './focus';
 
 /* The first guidance card Cozie offers after the letter, one per direction
  * (lib/cozy/focus.ts): the pump plan for a pump user, a night-sleep rhythm for
  * a monitor user, and — with no device bound — the check-up checklist (growth),
  * which is the default concern when there's nothing to measure yet. The mood
- * card isn't a landing card; it's a gentle aside opened on demand. Each card
+ * card lands when she narrows the letter's focus to feelings alone. Each card
  * does one concrete thing and remembers that it's done. */
 
 export type GuidanceKind = 'pump-plan' | 'sleep-plan' | 'checkup' | 'mood';
 
 const ALL: GuidanceKind[] = ['pump-plan', 'sleep-plan', 'checkup', 'mood'];
 
-/** The card that lands after the letter, by her devices. With no device bound,
- *  growth (the check-up) is the default concern. Mood is a gentle aside, never
- *  the landing card. */
-export function guidanceKind(a: DemoAccount): GuidanceKind {
+/** The card that lands after the letter. By her devices — and with no device
+ *  bound, growth (the check-up) is the default concern. If she unticks the
+ *  rest in the letter and keeps only feelings, the mood card leads instead.
+ *  (A no-device account starts with only feelings ticked; that default alone
+ *  doesn't count as narrowing, so it still lands on growth.) */
+export function guidanceKind(a: DemoAccount, chosenFocus?: FocusId[]): GuidanceKind {
+  if (chosenFocus && chosenFocus.length === 1 && chosenFocus[0] === 'mood') {
+    const def = defaultFocus(a);
+    const moodIsDefault = def.length === 1 && def[0] === 'mood';
+    if (!moodIsDefault) return 'mood';
+  }
   if (deviceOf(a, 'pump')) return 'pump-plan';
   if (deviceOf(a, 'monitor')) return 'sleep-plan';
   return 'checkup';
@@ -32,9 +40,12 @@ export function guidanceKindOf(content: string): GuidanceKind | null {
 
 /* ---------- Cozie's opener, matched to the landing card ---------- */
 
-export function guidanceOpener(a: DemoAccount): { content: string; suggestions: string[] } {
+export function guidanceOpener(
+  a: DemoAccount,
+  kind: GuidanceKind = guidanceKind(a),
+): { content: string; suggestions: string[] } {
   const baby = a.baby.name;
-  switch (guidanceKind(a)) {
+  switch (kind) {
     case 'pump-plan':
       return {
         content: 'Your 3 a.m. session is doing a lot of work. Let’s set your day around it — I can do it now:',

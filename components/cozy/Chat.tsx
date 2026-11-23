@@ -48,7 +48,7 @@ import {
   scheduleFollowUp,
   takeDueFollowUp,
 } from '@/lib/cozy/first-task';
-import { guidanceKind, guidanceKindOf, guidanceSentinel } from '@/lib/cozy/first-guidance';
+import { guidanceKind, guidanceKindOf, guidanceOpener, guidanceSentinel } from '@/lib/cozy/first-guidance';
 import { FirstTaskCard } from './cards/FirstTaskCard';
 import { SleepPlanCard } from './cards/SleepPlanCard';
 import { CheckupCard } from './cards/CheckupCard';
@@ -307,18 +307,22 @@ export function CozyChat() {
         setReplaying(false);
         // A replay after onboarding is a preview: don't seed the persona or
         // post the letter again, but "Talk to Cozie" still shows its opener.
-        // "Talk to Cozie" appends the first-guidance card for her direction.
+        // "Talk to Cozie" appends the first-guidance card for her direction —
+        // the mood card if she kept only feelings ticked — with an opener that
+        // introduces that same card.
         const withTask = action.id === 'talk';
-        const guideCard = guidanceSentinel(guidanceKind(account));
+        const kind = guidanceKind(account, chosenFocus);
+        const guideCard = guidanceSentinel(kind);
+        const opener = withTask ? guidanceOpener(account, kind) : action.opener;
         if (!firstRun) {
-          if (!action.quiet) chat.deliverOpener(action.opener);
+          if (!action.quiet) chat.deliverOpener(opener);
           if (withTask) chat.appendSystem(guideCard);
           setLetter(null);
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
         profile.applyPatch(personaSeed());
-        chat.deliverLetter(LETTER_CARD, action.opener);
+        chat.deliverLetter(LETTER_CARD, opener);
         if (withTask) chat.appendSystem(guideCard);
         setLetter(null);
         setWelcomed(true);
