@@ -24,9 +24,11 @@ interface Props {
   onSave: () => void;
   /** Send one of the quieter options as her message. */
   onSend: (text: string) => void;
+  /** Open the check-up checklist card (growth direction). */
+  onCheckup: () => void;
 }
 
-export function FirstTaskCard({ account, saved, onSave, onSend }: Props) {
+export function FirstTaskCard({ account, saved, onSave, onSend, onCheckup }: Props) {
   const [stage, setStage] = useState<Stage>('offer');
   const [reminders, setReminders] = useState<'off' | 'working' | 'on'>('off');
   const plan = proposePumpPlan(account);
@@ -119,7 +121,7 @@ export function FirstTaskCard({ account, saved, onSave, onSend }: Props) {
       </div>
       <div className="ft__others">
         <span>Or</span>
-        <button type="button" onClick={() => onSend('Make my check-up checklist')}>
+        <button type="button" onClick={onCheckup}>
           Make my check-up checklist
         </button>
         <button type="button" onClick={() => onSend('I just want to talk')}>

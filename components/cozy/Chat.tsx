@@ -43,13 +43,16 @@ import {
   FIRST_TASK_CARD,
   FOLLOW_UP_EVENT,
   followUpMessage,
-  hasFirstTask,
   planFromProposal,
   proposePumpPlan,
   scheduleFollowUp,
   takeDueFollowUp,
 } from '@/lib/cozy/first-task';
+import { guidanceKind, guidanceKindOf, guidanceSentinel } from '@/lib/cozy/first-guidance';
 import { FirstTaskCard } from './cards/FirstTaskCard';
+import { SleepPlanCard } from './cards/SleepPlanCard';
+import { CheckupCard } from './cards/CheckupCard';
+import { MoodCard } from './cards/MoodCard';
 import { memoryContext } from '@/lib/cozy/memory-context';
 
 // Card messages in the stream (system messages with a sentinel body).
@@ -74,8 +77,15 @@ interface RowHandlers {
   onNegativeFeedback: (id: string) => void;
   onOpenSources: () => void;
   onOpenLetter: () => void;
-  /** The first-task card (lib/cozy/first-task.ts). */
-  firstTask: { account: ReturnType<typeof useDemoAccount>; saved: boolean; onSave: () => void; onSend: (text: string) => void };
+  /** The first-guidance cards, one per direction (lib/cozy/first-guidance.ts). */
+  firstTask: {
+    account: ReturnType<typeof useDemoAccount>;
+    saved: boolean;
+    onSave: () => void;
+    onSend: (text: string) => void;
+    /** Open the check-up checklist card (the growth direction, on demand). */
+    onCheckup: () => void;
+  };
 }
 
 const WELCOMED_KEY = 'cozyWelcomed';
@@ -297,18 +307,19 @@ export function CozyChat() {
         setReplaying(false);
         // A replay after onboarding is a preview: don't seed the persona or
         // post the letter again, but "Talk to Cozie" still shows its opener.
-        // "Talk to Cozie" with a pump: the first task follows Cozie's line.
-        const withTask = action.id === 'talk' && hasFirstTask(account);
+        // "Talk to Cozie" appends the first-guidance card for her direction.
+        const withTask = action.id === 'talk';
+        const guideCard = guidanceSentinel(guidanceKind(account));
         if (!firstRun) {
           if (!action.quiet) chat.deliverOpener(action.opener);
-          if (withTask) chat.appendSystem(FIRST_TASK_CARD);
+          if (withTask) chat.appendSystem(guideCard);
           setLetter(null);
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
         profile.applyPatch(personaSeed());
         chat.deliverLetter(LETTER_CARD, action.opener);
-        if (withTask) chat.appendSystem(FIRST_TASK_CARD);
+        if (withTask) chat.appendSystem(guideCard);
         setLetter(null);
         setWelcomed(true);
       }}
@@ -364,6 +375,7 @@ export function CozyChat() {
       account,
       saved: profile.profile.lactationPlan?.status === 'completed',
       onSend: chat.send,
+      onCheckup: () => chat.appendSystem(guidanceSentinel('checkup')),
       onSave: () => {
         const proposal = proposePumpPlan(account);
         if (!proposal) return;
@@ -589,15 +601,22 @@ function renderStream(
       }
       continue;
     }
-    if (m.content === FIRST_TASK_CARD) {
+    // First-guidance cards, one per direction (lib/cozy/first-guidance.ts).
+    // The legacy FIRST_TASK_CARD sentinel maps to the pump-plan card.
+    const guideKind = m.content === FIRST_TASK_CARD ? 'pump-plan' : guidanceKindOf(m.content);
+    if (guideKind) {
+      const ft = rows.firstTask;
       out.push(
         <div key={m.id} className="cz-row cz-row--card">
-          <FirstTaskCard
-            account={rows.firstTask.account}
-            saved={rows.firstTask.saved}
-            onSave={rows.firstTask.onSave}
-            onSend={rows.firstTask.onSend}
-          />
+          {guideKind === 'pump-plan' ? (
+            <FirstTaskCard account={ft.account} saved={ft.saved} onSave={ft.onSave} onSend={ft.onSend} onCheckup={ft.onCheckup} />
+          ) : guideKind === 'sleep-plan' ? (
+            <SleepPlanCard account={ft.account} onCheckup={ft.onCheckup} />
+          ) : guideKind === 'checkup' ? (
+            <CheckupCard account={ft.account} />
+          ) : (
+            <MoodCard account={ft.account} onSend={ft.onSend} />
+          )}
         </div>
       );
       continue;
