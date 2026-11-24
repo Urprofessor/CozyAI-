@@ -24,6 +24,10 @@ interface Props {
   onRate?: (rating: Rating) => void;
   onNegativeFeedback?: () => void;
   onOpenSources?: () => void;
+  /** A reply followed by cards is drawn in two parts: its text where it is
+   *  ('body'), and its actions, disclaimer and chips under the last card
+   *  ('tail'). Default: both together. */
+  part?: 'all' | 'body' | 'tail';
 }
 
 const DISCLAIMER = 'For information purpose only. Not medical advice.';
@@ -43,6 +47,7 @@ export function Bubble({
   onRate,
   onNegativeFeedback,
   onOpenSources,
+  part = 'all',
 }: Props) {
   if (msg.role === 'system') {
     // The __HANDOFF_CARD__ sentinel is intercepted by Chat.tsx to render the card.
@@ -62,9 +67,19 @@ export function Bubble({
   const isSupport = msg.persona === 'support';
   const done = !streaming;
 
+  if (part === 'body') {
+    return msg.content ? (
+      <div className="cz-row cz-row--agent">
+        <div className="cozy-md">
+          <MarkdownMessage content={msg.content} />
+        </div>
+      </div>
+    ) : null;
+  }
+
   return (
     <div className="cz-row cz-row--agent">
-      {msg.content && (
+      {part === 'all' && msg.content && (
         <div className="cozy-md">
           <MarkdownMessage content={msg.content} />
         </div>

@@ -629,19 +629,49 @@ function renderStream(
   }
   const latestReplyId = lastTurn?.role === 'assistant' ? lastTurn.id : null;
 
-  // When the newest reply introduces a guidance card ("…I can do it now:"),
-  // its follow-up chips go under the card, not between the text and the card.
-  let chipsAfterId: string | null = null;
-  if (lastTurn?.role === 'assistant' && lastTurn.suggestions?.length) {
-    const after = chat.messages.slice(chat.messages.indexOf(lastTurn) + 1);
-    const isGuide = (c: string) => c === FIRST_TASK_CARD || !!guidanceKindOf(c) || !!nextStepOf(c);
-    if (after.length && after.every((m) => m.role === 'system' && isGuide(m.content))) {
-      chipsAfterId = after[after.length - 1].id;
+  // A reply followed by cards ("…I can do it now:" + the card) reads as one
+  // answer: its text, then the cards, then its copy / rate / sources row,
+  // the disclaimer and the follow-up chips. tailAfter maps the reply to the
+  // last card right after it.
+  const isCard = (c: string) =>
+    c === FIRST_TASK_CARD ||
+    c === CARD.questionnaire ||
+    c === CARD.plan ||
+    c === CARD.schedule ||
+    !!guidanceKindOf(c) ||
+    !!nextStepOf(c);
+  const tailAfter = new Map<string, CozyMessage>(); // last card id → reply
+  const splitReplies = new Set<string>();
+  chat.messages.forEach((m, i) => {
+    if (m.role !== 'assistant') return;
+    let j = i + 1;
+    while (j < chat.messages.length && chat.messages[j].role === 'system' && isCard(chat.messages[j].content)) j++;
+    if (j > i + 1) {
+      tailAfter.set(chat.messages[j - 1].id, m);
+      splitReplies.add(m.id);
     }
-  }
+  });
+  const bubbleProps = (m: CozyMessage) => ({
+    msg: m,
+    onOpenImage: rows.onOpenImage,
+    isLatestReply: m.id === latestReplyId,
+    showSuggestions: m.id === latestReplyId && !chat.streaming,
+    onSuggest: chat.send,
+    onRetry: m.scripted ? undefined : () => chat.regenerate(m.id),
+    rating: rows.ratings[m.id] ?? null,
+    onRate: (r: Rating) => rows.onRate(m.id, r),
+    onNegativeFeedback: () => rows.onNegativeFeedback(m.id),
+    onOpenSources: rows.onOpenSources,
+  });
 
   let lastDay = '';
+  let prevId: string | null = null;
   for (const m of chat.messages) {
+    // The previous message was the last card under a reply: its tail goes here.
+    const owner = prevId ? tailAfter.get(prevId) : undefined;
+    if (owner) out.push(<Bubble key={`tail-${owner.id}`} {...bubbleProps(owner)} part="tail" />);
+    prevId = m.id;
+
     // Date separator before the first message of each local day.
     if (m.createdAt && (m.role === 'user' || m.role === 'assistant' || m.content === LETTER_CARD)) {
       const day = new Date(m.createdAt).toDateString();
@@ -713,19 +743,6 @@ function renderStream(
           )}
         </div>
       );
-      if (m.id === chipsAfterId && lastTurn?.suggestions && !chat.streaming) {
-        out.push(
-          <div key={`chips-${m.id}`} className="cz-row cz-row--agent">
-            <div className="cz-followups">
-              {lastTurn.suggestions.map((q) => (
-                <button key={q} type="button" className="cz-chip" onClick={() => chat.send(q)}>
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
       continue;
     }
     if (m.content === LETTER_CARD) {
@@ -769,20 +786,17 @@ function renderStream(
     out.push(
       <Bubble
         key={m.id}
-        msg={m}
-        onOpenImage={rows.onOpenImage}
+        {...bubbleProps(m)}
         streaming={midStream}
-        isLatestReply={m.id === latestReplyId}
-        showSuggestions={m.id === latestReplyId && !midStream && !chipsAfterId}
-        onSuggest={chat.send}
-        onRetry={m.scripted ? undefined : () => chat.regenerate(m.id)}
-        rating={rows.ratings[m.id] ?? null}
-        onRate={(r) => rows.onRate(m.id, r)}
-        onNegativeFeedback={() => rows.onNegativeFeedback(m.id)}
-        onOpenSources={rows.onOpenSources}
+        showSuggestions={m.id === latestReplyId && !midStream}
+        // Followed by cards: only the text here; the rest goes under them.
+        part={splitReplies.has(m.id) ? 'body' : 'all'}
       />
     );
   }
+  // The conversation ends on the last card under a reply.
+  const lastOwner = prevId ? tailAfter.get(prevId) : undefined;
+  if (lastOwner) out.push(<Bubble key={`tail-${lastOwner.id}`} {...bubbleProps(lastOwner)} part="tail" />);
 
   // Pre-first-token gap: Cozie's run status (Sarah keeps her typing indicator).
   if (chat.streaming && last?.role !== 'assistant') {
