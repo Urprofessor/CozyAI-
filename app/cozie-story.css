@@ -964,3 +964,156 @@
   line-height: 1.45;
   color: var(--sc-soft);
 }
+
+/* ---------- What's next after the first task (NextSteps.tsx) ---------- */
+
+/* The line on an unfinished card: what she gets for doing it. */
+.ft .ns__offer {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sc-soft);
+}
+
+/* "What's next" in the Done state: a short timeline and a reminder. */
+.sc .ns {
+  margin: 4px 0 0;
+}
+.sc .ns__label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sc-soft);
+}
+.sc .ns__steps {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* The thread joining the dots. */
+.sc .ns__steps::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 1.5px;
+  background: var(--sc-line);
+}
+.sc .ns__steps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+.sc .ns__dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--sc-ink);
+  border-radius: 50%;
+  background: #fff;
+}
+.sc .ns__steps li.is-done .ns__dot {
+  background: #2e7d4a;
+  border-color: #2e7d4a;
+}
+.sc .ns__when {
+  grid-row: span 2;
+  min-width: 62px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--sc-ink);
+}
+.sc .ns__steps li.is-done .ns__when {
+  color: #2e7d4a;
+}
+.sc .ns__steps strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.sc .ns__steps small {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--sc-soft);
+}
+.sc .ns__remind {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sc-line);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Cards that keep the promise. */
+.sc .ns__q {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.sc .ns__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.sc .ns__choices button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(44, 26, 36, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--sc-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sc .ns__choices button.is-on {
+  background: var(--sc-ink);
+  border-color: var(--sc-ink);
+  color: #fff;
+}
+.sc .ns__saved {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2e7d4a;
+}
+.sc .ns__note {
+  margin: 0 0 12px;
+}
+.sc .ns__note div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sc-line);
+  font-size: 13px;
+}
+.sc .ns__note div:last-child {
+  border-bottom: 0;
+}
+.sc .ns__note dt {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--sc-soft);
+}
+.sc .ns__note dd {
+  margin: 0;
+  text-align: right;
+}

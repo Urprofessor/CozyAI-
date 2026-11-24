@@ -40,15 +40,18 @@ import { FocusSheet } from './focus/FocusSheet';
 import { accountContext, useDemoAccount } from '@/lib/cozy/account-demo';
 import { OPEN_SOURCES_EVENT, filterAccount, readSourcesOff } from '@/lib/cozy/sources';
 import { chosenFocusContext, defaultFocus, focusOpener, saveChosenFocus, type FocusId } from '@/lib/cozy/focus';
+import { FIRST_TASK_CARD, planFromProposal, proposePumpPlan } from '@/lib/cozy/first-task';
 import {
-  FIRST_TASK_CARD,
-  FOLLOW_UP_EVENT,
-  followUpMessage,
-  planFromProposal,
-  proposePumpPlan,
-  scheduleFollowUp,
-  takeDueFollowUp,
-} from '@/lib/cozy/first-task';
+  NEXT_STEPS_EVENT,
+  dueSteps,
+  markDelivered,
+  nextStepOf,
+  nextStepSentinel,
+  nextStepsPlan,
+  startNextSteps,
+} from '@/lib/cozy/next-steps';
+import { NextStepCard } from './cards/NextSteps';
+import { useCozyVisible } from '@/components/shell/cozyClose';
 import { guidanceKind, guidanceKindOf, guidanceOpener, guidanceSentinel } from '@/lib/cozy/first-guidance';
 import { clearFirstChips, fillChips, prefetchFirstChips } from '@/lib/cozy/first-suggest';
 import { FirstTaskCard } from './cards/FirstTaskCard';
@@ -265,18 +268,25 @@ export function CozyChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingQuestion, chat.messages, letter, previewFocus]);
 
-  // The visit after she saved her first plan: Cozie checks in once. The demo
-  // panel can make it due now.
+  // Keeping the first task's promises (lib/cozy/next-steps.ts): when she
+  // opens Cozie on or after the promised day, Cozie posts that day's card.
+  // The demo panel can move the clock forward.
+  const visible = useCozyVisible();
   useEffect(() => {
-    if (!chat.hydrated || !welcomed) return;
-    const check = () => {
-      if (takeDueFollowUp()) chat.deliverOpener(followUpMessage(account.baby.name));
+    if (!chat.hydrated || !welcomed || !visible || chat.streaming) return;
+    const deliver = () => {
+      for (const { kind, day } of dueSteps()) {
+        const plan = nextStepsPlan(account, kind);
+        markDelivered(kind, day);
+        chat.deliverOpener({ content: plan.opener[day], suggestions: plan.chips?.[day] });
+        chat.appendSystem(nextStepSentinel(kind, day));
+      }
     };
-    check();
-    window.addEventListener(FOLLOW_UP_EVENT, check);
-    return () => window.removeEventListener(FOLLOW_UP_EVENT, check);
+    deliver();
+    window.addEventListener(NEXT_STEPS_EVENT, deliver);
+    return () => window.removeEventListener(NEXT_STEPS_EVENT, deliver);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chat.hydrated, welcomed]);
+  }, [chat.hydrated, welcomed, visible, chat.streaming, account]);
 
   // Wait until we know both the welcomed flag and the loaded history before
   // choosing a view, so neither the welcome nor the chat flashes first.
@@ -427,11 +437,11 @@ export function CozyChat() {
         const proposal = proposePumpPlan(account);
         if (!proposal) return;
         // Saving closes the loop: the plan lands in her lactation plan (its
-        // card appears below), and Cozie follows up next time she opens.
+        // card appears below), and tomorrow Cozie shows how day one went.
         profile.applyPatch({ lactationPlan: planFromProposal(proposal) });
-        scheduleFollowUp();
+        startNextSteps('pump-plan');
         chat.deliverOpener({
-          content: `Done — your pumping plan is saved, ${proposal.times.length} sessions a day. You’ll find it under Lactation plan, and next time you open Cozie I’ll ask how it went.`,
+          content: `Done — your pumping plan is saved, ${proposal.times.length} sessions a day. You’ll find it under Lactation plan, and tomorrow I’ll show you how day one went.`,
           suggestions: ['Show today’s schedule', 'Change a time'],
         });
       },
@@ -624,7 +634,7 @@ function renderStream(
   let chipsAfterId: string | null = null;
   if (lastTurn?.role === 'assistant' && lastTurn.suggestions?.length) {
     const after = chat.messages.slice(chat.messages.indexOf(lastTurn) + 1);
-    const isGuide = (c: string) => c === FIRST_TASK_CARD || !!guidanceKindOf(c);
+    const isGuide = (c: string) => c === FIRST_TASK_CARD || !!guidanceKindOf(c) || !!nextStepOf(c);
     if (after.length && after.every((m) => m.role === 'system' && isGuide(m.content))) {
       chipsAfterId = after[after.length - 1].id;
     }
@@ -682,12 +692,17 @@ function renderStream(
     }
     // First-guidance cards, one per direction (lib/cozy/first-guidance.ts).
     // The legacy FIRST_TASK_CARD sentinel maps to the pump-plan card.
+    // …and the cards that keep their promises on day 1 and day 3
+    // (lib/cozy/next-steps.ts).
     const guideKind = m.content === FIRST_TASK_CARD ? 'pump-plan' : guidanceKindOf(m.content);
-    if (guideKind) {
+    const step = guideKind ? null : nextStepOf(m.content);
+    if (guideKind || step) {
       const ft = rows.firstTask;
       out.push(
         <div key={m.id} className="cz-row cz-row--card">
-          {guideKind === 'pump-plan' ? (
+          {step ? (
+            <NextStepCard account={ft.account} kind={step.kind} day={step.day} onSend={ft.onSend} />
+          ) : guideKind === 'pump-plan' ? (
             <FirstTaskCard account={ft.account} saved={ft.saved} onSave={ft.onSave} onSend={ft.onSend} onCheckup={ft.onCheckup} />
           ) : guideKind === 'sleep-plan' ? (
             <SleepPlanCard account={ft.account} onCheckup={ft.onCheckup} />

@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { clock12, proposePumpPlan } from '@/lib/cozy/first-task';
-import { showToast } from '../ui';
+import { NextStepsOffer, NextStepsPanel } from './NextSteps';
 import { StoryCard } from './StoryCard';
 
 /* The first task Cozie finishes with mom, in one card that moves on as she
  * goes (lib/cozy/first-task.ts):
  *   offer  → one main action, two quieter ones
  *   plan   → tomorrow's pumping, worked out from her own M5 sessions
- *   saved  → in her lactation plan, with an offer of reminders
+ *   saved  → in her lactation plan, with what comes tomorrow and on day 3
+ *            (lib/cozy/next-steps.ts)
  * Saving is what closes the loop; the card shows it's done whenever the
  * plan exists, even after a reload. */
 
@@ -30,23 +30,10 @@ interface Props {
 
 export function FirstTaskCard({ account, saved, onSave, onSend, onCheckup }: Props) {
   const [stage, setStage] = useState<Stage>('offer');
-  const [reminders, setReminders] = useState<'off' | 'working' | 'on'>('off');
   const plan = proposePumpPlan(account);
   if (!plan) return null;
   const baby = account.baby.name;
   const fmt = clock12;
-
-  async function turnOnReminders() {
-    if (reminders !== 'off') return;
-    setReminders('working');
-    try {
-      if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-    } catch {
-      /* unsupported (e.g. iOS Safari outside a home-screen app) */
-    }
-    setReminders('on');
-    showToast('Reminders are on. Cozie will nudge you before each session.');
-  }
 
   if (saved) {
     return (
@@ -54,20 +41,7 @@ export function FirstTaskCard({ account, saved, onSave, onSend, onCheckup }: Pro
         <p className="ft__done">
           <span aria-hidden>✓</span> Saved to your lactation plan · {plan.times.length} sessions a day
         </p>
-        <div className="sc__panel ft__remind">
-          <span>
-            <strong>Nudge me before each session</strong>
-            <small>{reminders === 'on' ? 'On — Cozie will remind you.' : 'So you don’t have to keep the times in your head.'}</small>
-          </span>
-          <button
-            type="button"
-            className={cn('ft__btn', reminders === 'on' && 'is-on')}
-            disabled={reminders !== 'off'}
-            onClick={turnOnReminders}
-          >
-            {reminders === 'on' ? '✓ On' : reminders === 'working' ? '…' : 'Turn on'}
-          </button>
-        </div>
+        <NextStepsPanel account={account} kind="pump-plan" />
       </StoryCard>
     );
   }
@@ -96,6 +70,7 @@ export function FirstTaskCard({ account, saved, onSave, onSend, onCheckup }: Pro
             <li key={n}>{n}</li>
           ))}
         </ul>
+        <NextStepsOffer account={account} kind="pump-plan" />
         <div className="ft__actions">
           <button type="button" className="ft__primary" onClick={onSave}>
             Save this plan

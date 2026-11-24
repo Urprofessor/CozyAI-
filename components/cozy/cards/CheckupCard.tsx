@@ -4,6 +4,8 @@ import { useState } from 'react';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { daysUntil } from '@/lib/cozy/first-guidance';
 import { showToast } from '../ui';
+import { startNextSteps } from '@/lib/cozy/next-steps';
+import { NextStepsOffer, NextStepsPanel } from './NextSteps';
 import { StoryCard } from './StoryCard';
 
 /* The growth direction's first-guidance card: a short, saveable checklist so
@@ -38,6 +40,7 @@ export function CheckupCard({ account }: { account: DemoAccount }) {
       /* private mode */
     }
     setSaved(true);
+    startNextSteps('checkup');
     showToast('Saved to your check-up list.');
   }
 
@@ -47,6 +50,7 @@ export function CheckupCard({ account }: { account: DemoAccount }) {
         <p className="ft__done">
           <span aria-hidden>✓</span> Saved — {account.nextCheckup.label} in {days} days. I’ll remind you the day before.
         </p>
+        <NextStepsPanel account={account} kind="checkup" />
       </StoryCard>
     );
   }
@@ -66,6 +70,7 @@ export function CheckupCard({ account }: { account: DemoAccount }) {
           <li key={t}>{t}</li>
         ))}
       </ul>
+      <NextStepsOffer account={account} kind="checkup" />
       <div className="ft__actions">
         <button type="button" className="ft__primary" onClick={save}>
           Save this checklist

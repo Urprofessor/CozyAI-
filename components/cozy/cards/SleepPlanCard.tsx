@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { deviceOf, type DemoAccount } from '@/lib/cozy/account-demo';
 import { fmtMinutes, sleepSummary } from '@/lib/cozy/first-guidance';
 import { showToast } from '../ui';
+import { startNextSteps } from '@/lib/cozy/next-steps';
+import { NextStepsOffer, NextStepsPanel } from './NextSteps';
 import { StoryCard } from './StoryCard';
 
 /* The sleep direction's first-guidance card: help the longest stretch land at
@@ -38,6 +40,7 @@ export function SleepPlanCard({ account, onCheckup }: { account: DemoAccount; on
       /* private mode */
     }
     setSaved(true);
+    startNextSteps('sleep-plan');
     showToast('Saved to your sleep rhythm.');
   }
 
@@ -47,6 +50,7 @@ export function SleepPlanCard({ account, onCheckup }: { account: DemoAccount; on
         <p className="ft__done">
           <span aria-hidden>✓</span> Saved — I’ll help you hold it, and nudge gently if the nights slip.
         </p>
+        <NextStepsPanel account={account} kind="sleep-plan" />
       </StoryCard>
     );
   }
@@ -70,6 +74,7 @@ export function SleepPlanCard({ account, onCheckup }: { account: DemoAccount; on
           <li key={t}>{t}</li>
         ))}
       </ol>
+      <NextStepsOffer account={account} kind="sleep-plan" />
       <div className="ft__actions">
         <button type="button" className="ft__primary" onClick={save}>
           Save this rhythm

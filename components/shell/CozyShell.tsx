@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { CozyChat } from '@/components/cozy/Chat';
 import { CozyCloseContext, CozyVisibleContext } from './cozyClose';
 import { GlassTabBar } from './GlassTabBar';
+import { NotifyBanner } from './NotifyBanner';
 import { REPLAY_INTRO_EVENT } from '@/lib/cozy/introVariant';
 
 const RETURN_KEY = 'cozyReturnTo';
@@ -102,6 +103,14 @@ export function CozyShell({ children }: { children: ReactNode }) {
     <CozyCloseContext.Provider value={close}>
       {children}
       {!onCozyRoute && <GlassTabBar onOpenCozy={openCozy} />}
+      {/* Demo stand-in for a push notification; tapping it opens Cozie. */}
+      <NotifyBanner
+        onOpen={() => {
+          if (open || onCozyRoute) return;
+          const launcher = document.querySelector<HTMLElement>('.glass-tab-bar__cozie');
+          if (launcher) openCozy(launcher);
+        }}
+      />
       {!onCozyRoute && (
         <div
           ref={stageRef}

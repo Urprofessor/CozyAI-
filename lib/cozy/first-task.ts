@@ -75,50 +75,5 @@ export function planFromProposal(p: ProposedPlan): LactationPlan {
 
 export const hasFirstTask = (a: DemoAccount) => !!deviceOf(a, 'pump') && !!a.pumping;
 
-/* ---------- Following up next time ---------- */
-
-const FOLLOW_KEY = 'cozyFollowUp';
-export const FOLLOW_UP_EVENT = 'cozie:follow-up';
-
-interface FollowUp {
-  kind: 'pump-plan';
-  /** Local day (YYYY-MM-DD) from which the check-in is due. */
-  due: string;
-}
-
-const tomorrowKey = () => todayKey(new Date(Date.now() + 86_400_000));
-
-export function scheduleFollowUp() {
-  try {
-    localStorage.setItem(FOLLOW_KEY, JSON.stringify({ kind: 'pump-plan', due: tomorrowKey() } satisfies FollowUp));
-  } catch {
-    /* private mode — no check-in next time */
-  }
-}
-
-/** The check-in to post now, if one is due; clears it. */
-export function takeDueFollowUp(): FollowUp | null {
-  try {
-    const f = JSON.parse(localStorage.getItem(FOLLOW_KEY) ?? 'null') as FollowUp | null;
-    if (!f || f.due > todayKey()) return null;
-    localStorage.removeItem(FOLLOW_KEY);
-    return f;
-  } catch {
-    return null;
-  }
-}
-
-/** Demo panel: make tomorrow's check-in due now. */
-export function showFollowUpNow() {
-  try {
-    localStorage.setItem(FOLLOW_KEY, JSON.stringify({ kind: 'pump-plan', due: todayKey() } satisfies FollowUp));
-  } catch {
-    /* ignore */
-  }
-  window.dispatchEvent(new Event(FOLLOW_UP_EVENT));
-}
-
-export const followUpMessage = (baby: string) => ({
-  content: `Welcome back. How did yesterday’s pumping plan go — did the times work for you and ${baby}?`,
-  suggestions: ['It went well', 'I missed a few', 'Let’s adjust the times'],
-});
+// What happens after the plan is saved — tomorrow and day 3 — lives in
+// lib/cozy/next-steps.ts.
