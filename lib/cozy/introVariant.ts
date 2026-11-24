@@ -7,12 +7,15 @@ import { useEffect, useState } from 'react';
  *  - film:  A · the full-screen intro video with Get started over it
  *  - guide: B · four guided steps (three iOS-style animated mini-phone pages
  *           and a permissions page) with a progress bar
- *  Both end in the From Cozie letter. */
+ *  Both end in the From Cozie letter.
+ *
+ *  For now only B is offered: A is commented out below and every visit gets
+ *  B. Restore the list entry and read() to bring A back. */
 export type IntroVariant = 'film' | 'guide';
 
 export const INTRO_VARIANTS: { id: IntroVariant; tag: string; label: string; note: string }[] = [
-  { id: 'film', tag: 'A', label: 'Intro film', note: 'Full-screen video, then Get started.' },
-  { id: 'guide', tag: 'B', label: 'Guided intro', note: 'Four short steps, then Get started.' },
+  // { id: 'film', tag: 'A', label: 'Intro film', note: 'Full-screen video, then Get started.' },
+  { id: 'guide', tag: 'B', label: 'Guided intro', note: 'Three short steps, then the letter.' },
 ];
 
 const KEY = 'cozyIntroVariant';
@@ -21,13 +24,15 @@ const CHANGE_EVENT = 'cozie:intro-variant';
 export const REPLAY_INTRO_EVENT = 'cozie:replay-intro';
 
 function read(): IntroVariant {
-  try {
-    const v = localStorage.getItem(KEY);
-    // 'steps' was a short-lived option C; it became B.
-    return v === 'guide' || v === 'steps' ? 'guide' : 'film';
-  } catch {
-    return 'film';
-  }
+  // A is parked for now: always B.
+  // try {
+  //   const v = localStorage.getItem(KEY);
+  //   // 'steps' was a short-lived option C; it became B.
+  //   return v === 'guide' || v === 'steps' ? 'guide' : 'film';
+  // } catch {
+  //   return 'film';
+  // }
+  return 'guide';
 }
 
 export function setIntroVariant(v: IntroVariant) {
@@ -45,7 +50,7 @@ export function replayIntro() {
 
 /** Current variant; follows changes from the demo panel (and other tabs). */
 export function useIntroVariant(): IntroVariant {
-  const [v, setV] = useState<IntroVariant>('film');
+  const [v, setV] = useState<IntroVariant>('guide');
   useEffect(() => {
     setV(read());
     const sync = () => setV(read());
