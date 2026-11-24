@@ -27,6 +27,9 @@ interface Props {
   onAsk: (id: FocusId, question: string) => void;
 }
 
+/** The "Ask Cozie" questions in the sheet are switched off for now. */
+const SHOW_ASK = false;
+
 export function FocusSheet({ id, account, included, onToggleInclude, onClose, onAsk }: Props) {
   // Keep the last direction on screen while the sheet slides away.
   const [shown, setShown] = useState<FocusId | null>(id);
@@ -93,6 +96,8 @@ export function FocusSheet({ id, account, included, onToggleInclude, onClose, on
             </p>
           </section>
 
+          {/* "Ask Cozie" is parked for now (kept for reuse): flip SHOW_ASK to bring it back. */}
+          {SHOW_ASK && (
           <section className="fh-section">
             <h3>Ask Cozie</h3>
             <ul className="fh-questions">
@@ -106,6 +111,7 @@ export function FocusSheet({ id, account, included, onToggleInclude, onClose, on
               ))}
             </ul>
           </section>
+          )}
         </div>
 
         <div className="cz-import__footer fs-footer">
