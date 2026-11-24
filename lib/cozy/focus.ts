@@ -67,11 +67,13 @@ export const focusDef = (id: FocusId) => FOCUS_LIST.find((f) => f.id === id)!;
 export function recommendedFor(a: DemoAccount, id: FocusId): string | null {
   if (id === 'lactation' && deviceOf(a, 'pump')) return 'For your M5 pump';
   if (id === 'sleep' && deviceOf(a, 'monitor')) return 'For your BM04 monitor';
-  if (id === 'mood' && !a.devices.length) return 'A good place to start';
+  // No device: nothing to measure yet, so the growth log (the coming
+  // check-up) is where to start — the same as the letter's own insight.
+  if (id === 'growth' && !a.devices.length) return 'A good place to start';
   return null;
 }
 
-/** Ticked to begin with: whatever matches her devices (or a gentle start
+/** Ticked to begin with: whatever matches her devices (the growth log
  *  without any). She can change it on the letter. */
 export function defaultFocus(a: DemoAccount): FocusId[] {
   return FOCUS_LIST.filter((f) => recommendedFor(a, f.id)).map((f) => f.id);

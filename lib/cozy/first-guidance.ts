@@ -1,5 +1,5 @@
 import { daysUntil, deviceOf, fmtMinutes, pumpSummary, sleepSummary, type DemoAccount } from './account-demo';
-import { defaultFocus, type FocusId } from './focus';
+import type { FocusId } from './focus';
 
 /* The first guidance card Cozie offers after the letter, one per direction
  * (lib/cozy/focus.ts): the pump plan for a pump user, a night-sleep rhythm for
@@ -13,16 +13,11 @@ export type GuidanceKind = 'pump-plan' | 'sleep-plan' | 'checkup' | 'mood';
 const ALL: GuidanceKind[] = ['pump-plan', 'sleep-plan', 'checkup', 'mood'];
 
 /** The card that lands after the letter. By her devices — and with no device
- *  bound, growth (the check-up) is the default concern. If she unticks the
- *  rest in the letter and keeps only feelings, the mood card leads instead.
- *  (A no-device account starts with only feelings ticked; that default alone
- *  doesn't count as narrowing, so it still lands on growth.) */
+ *  bound, growth (the check-up) is the default concern, matching the letter's
+ *  default tick. If she keeps only feelings ticked in the letter, the mood
+ *  card leads instead. */
 export function guidanceKind(a: DemoAccount, chosenFocus?: FocusId[]): GuidanceKind {
-  if (chosenFocus && chosenFocus.length === 1 && chosenFocus[0] === 'mood') {
-    const def = defaultFocus(a);
-    const moodIsDefault = def.length === 1 && def[0] === 'mood';
-    if (!moodIsDefault) return 'mood';
-  }
+  if (chosenFocus && chosenFocus.length === 1 && chosenFocus[0] === 'mood') return 'mood';
   if (deviceOf(a, 'pump')) return 'pump-plan';
   if (deviceOf(a, 'monitor')) return 'sleep-plan';
   return 'checkup';
