@@ -31,7 +31,41 @@ export interface MemoryPerson {
   name: string;
   portraitUrl?: string;
   ageLabel?: string; // babies only
-  sections: Array<{ dim: Dimension; section: AnySection }>;
+  sections: PersonSection[];
+}
+
+/** One card on the page. `hidden` counts entries kept out because their
+ *  source is off in Data sources; `blocked` means she asked Cozie not to
+ *  remember this topic at all. */
+export interface PersonSection {
+  dim: Dimension;
+  section: AnySection;
+  hidden?: { count: number; sources: string[] };
+  blocked?: boolean;
+}
+
+/** What the page and the chat leave out: sources switched off in Data
+ *  sources, and topics she asked Cozie not to remember. */
+export interface MemoryView {
+  off: Set<string>;
+  blocked: Set<string>;
+}
+
+export const blockKey = (person: string, dim: Dimension) => `${person}:${dim}`;
+
+/** The Data sources key an entry depends on, if it can be switched off.
+ *  Chat memories and her own additions have no switch. */
+export function entrySourceKey(source: MemorySource): string | null {
+  if (source.kind === 'momcozyProfile') return 'account';
+  if (source.kind === 'imported') return `import:${source.from}`;
+  return null;
+}
+
+/** Display name of a Data sources key, for "hidden because … is off". */
+export function sourceKeyLabel(key: string): string {
+  if (key === 'account') return 'Momcozy account';
+  if (key.startsWith('import:')) return key.slice('import:'.length);
+  return key;
 }
 
 // ---------- Labels ----------
@@ -122,7 +156,9 @@ export function isEditable(entry: AnyEntry): boolean {
 
 // ---------- People ----------
 
-export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson[] {
+const NO_VIEW: MemoryView = { off: new Set(), blocked: new Set() };
+
+export function peopleOf(profile: MemoryProfile, now = new Date(), view: MemoryView = NO_VIEW): MemoryPerson[] {
   const momSections = profile.mom.sections as Partial<Record<Dimension, AnySection>>;
   const people: MemoryPerson[] = [
     {
@@ -130,12 +166,15 @@ export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson
       subject: { kind: 'mom' },
       name: profile.mom.displayName,
       portraitUrl: profile.mom.portraitUrl,
-      sections: orderedSections(momSections, MOM_MEMORY_DIMENSIONS, now),
+      sections: orderedSections('mom', momSections, MOM_MEMORY_DIMENSIONS, now, view),
     },
   ];
   for (const baby of profile.babies) {
     const sections = baby.sections as Partial<Record<Dimension, AnySection>>;
-    const fields = (sections.basics?.entries ?? []).filter((e): e is AnyField => e.kind === 'field');
+    const ordered = orderedSections(baby.babyId, sections, BABY_MEMORY_DIMENSIONS, now, view);
+    // Age comes from what's still visible: no birthday once the account is off.
+    const basics = ordered.find((s) => s.dim === 'basics' && !s.blocked)?.section;
+    const fields = (basics?.entries ?? []).filter((e): e is AnyField => e.kind === 'field');
     const birth = fields.find((e) => e.field === 'birthDate');
     const ageText = fields.find((e) => e.field === 'ageText');
     people.push({
@@ -146,29 +185,53 @@ export function peopleOf(profile: MemoryProfile, now = new Date()): MemoryPerson
       ageLabel: birth
         ? ageFromBirthDate(birth.value as string, now)
         : (ageText?.value as string | undefined),
-      sections: orderedSections(sections, BABY_MEMORY_DIMENSIONS, now),
+      sections: ordered,
     });
   }
   return people;
 }
 
 function orderedSections(
+  person: string,
   sections: Partial<Record<Dimension, AnySection>>,
   order: readonly Dimension[],
-  now: Date
-): MemoryPerson['sections'] {
+  now: Date,
+  view: MemoryView
+): PersonSection[] {
   const cutoff = startOfDay(now);
   cutoff.setDate(cutoff.getDate() - 14);
-  return order.flatMap((dim) => {
+  return order.flatMap((dim): PersonSection[] => {
     const section = sections[dim];
+    // A topic she stopped stays on the page, so she can turn it back on.
+    if (view.blocked.has(blockKey(person, dim))) {
+      return [{ dim, section: { entries: [] }, blocked: true }];
+    }
     if (!section) return [];
-    const entries = dim === 'recentConcerns'
+    const recent = dim === 'recentConcerns'
       ? section.entries.filter((entry) => {
           if (entry.kind === 'memory') return parseDate(entry.createdAt) >= cutoff;
           return entry.field === 'recentConcern' && parseDate(entry.value.date) >= cutoff;
         })
       : section.entries;
-    return entries.length ? [{ dim, section: { ...section, entries } }] : [];
+    const offKeys = new Set<string>();
+    const entries = recent.filter((e) => {
+      const key = entrySourceKey(e.source);
+      if (key && view.off.has(key)) {
+        offKeys.add(key);
+        return false;
+      }
+      return true;
+    });
+    const hiddenCount = recent.length - entries.length;
+    if (!entries.length && !hiddenCount) return [];
+    return [
+      {
+        dim,
+        // A summary that cites a hidden entry would leak it: drop it.
+        section: { ...section, entries, summary: hiddenCount ? undefined : section.summary },
+        ...(hiddenCount ? { hidden: { count: hiddenCount, sources: [...offKeys].map(sourceKeyLabel) } } : {}),
+      },
+    ];
   });
 }
 
@@ -200,9 +263,11 @@ export interface MemoryOverrides {
   edits: Record<string, EntryEdit>;
   forgotten: string[];
   added: AddedEntry[];
+  /** Topics she asked Cozie not to remember, as blockKey(person, dim). */
+  blocked: string[];
 }
 
-export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [], added: [] };
+export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [], added: [], blocked: [] };
 
 /** Apply the demo's local edits to the seed. A summary that cites an edited or
  *  forgotten entry is dropped, so the section falls back to its entries.

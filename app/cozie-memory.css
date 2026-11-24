@@ -623,3 +623,51 @@
     animation: none;
   }
 }
+
+/* ---------- Hidden by a source, and stopped topics ---------- */
+
+/* "2 items hidden · Momcozy account is off in Data sources ›" */
+.sc.mp-card .mp-card__hidden {
+  display: block;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sc-soft);
+  font-family: var(--cz-ui);
+  font-size: 12px;
+  line-height: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* "Stop remembering this": quiet, under the card's content. */
+.sc.mp-card .mp-card__block {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 8px 0 -4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sc-soft);
+  font-family: var(--cz-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+.sc.mp-card .mp-card__block:hover {
+  color: var(--sc-ink);
+}
+
+/* A stopped topic keeps its place but steps back. */
+.sc.mp-card.is-blocked {
+  --sc-bg: #f0eeef;
+}
+.sc.mp-card.is-blocked .sc__title {
+  margin-bottom: 8px;
+  color: var(--sc-soft);
+}
+.sc.mp-card.is-blocked .sc__note {
+  color: var(--sc-soft);
+}

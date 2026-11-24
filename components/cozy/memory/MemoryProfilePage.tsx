@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import type { useMemoryProfile } from '@/hooks/useMemoryProfile';
+import { sectionEntries, type useMemoryProfile } from '@/hooks/useMemoryProfile';
 import type { DatedLabel, SavedProfileMemory } from '@/lib/cozy/memory-profile';
 import {
   DIMENSION_LABELS,
@@ -15,6 +15,7 @@ import {
   type AnyField,
   type AnySection,
   type Dimension,
+  type PersonSection,
 } from '@/lib/cozy/memory-profile-demo';
 import { ConfirmDialog, showToast } from '../ui';
 import { StoryCard } from '../cards/StoryCard';
@@ -34,7 +35,9 @@ interface Props {
 /** Memory profile: switch between mom and each baby on the orbit, then read,
  *  edit or forget what Cozie remembers about them, by dimension. */
 export function MemoryProfilePage({ memory, onBack }: Props) {
-  const { people, editEntry, forgetEntry } = memory;
+  const { people, editEntry, forgetEntry, blockSection, unblockSection } = memory;
+  // The topic waiting on "Stop remembering?", with what it would forget.
+  const [blocking, setBlocking] = useState<{ dim: Dimension; forget: number; kept: boolean } | null>(null);
   // The demo Home does not expose a selected baby. Start with the first baby.
   const [index, setIndex] = useState(() => people.length > 1 ? 1 : 0);
   const [showPeople, setShowPeople] = useState(false);
@@ -111,7 +114,7 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
             <p className="mp-privacy__title">Private to your family</p>
             <p className="mp-privacy__text">
               Cozie uses these memories only to tailor its help for you and your baby — never for ads, and never shared
-              without your permission. You can edit or forget anything here at any time.
+              without your permission. You can edit or forget anything here, or tell Cozie to stop remembering a topic.
             </p>
             <button type="button" className="mp-privacy__link" onClick={openDataSources}>
               Choose what Cozie can see ›
@@ -125,17 +128,38 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
               Cozie doesn’t remember anything about {person.subject.kind === 'mom' ? 'you' : person.name} yet.
             </p>
           ) : (
-            person.sections.map(({ dim, section }) => (
-              <SectionView
-                key={dim}
-                dim={dim}
-                section={section}
-                expanded={expanded.has(`${person.key}:${dim}`)}
-                onToggle={() => toggle(dim)}
-                onEdit={openEdit}
-                onForget={setForgetting}
-              />
-            ))
+            person.sections.map(({ dim, section, hidden, blocked }) =>
+              blocked ? (
+                <BlockedView
+                  key={dim}
+                  dim={dim}
+                  who={person.subject.kind === 'mom' ? 'you' : person.name}
+                  onUnblock={() => {
+                    unblockSection(person.key, dim);
+                    showToast(`Cozie can remember ${DIMENSION_LABELS[dim].toLowerCase()} again.`);
+                  }}
+                />
+              ) : (
+                <SectionView
+                  key={dim}
+                  dim={dim}
+                  section={section}
+                  hidden={hidden}
+                  expanded={expanded.has(`${person.key}:${dim}`)}
+                  onToggle={() => toggle(dim)}
+                  onEdit={openEdit}
+                  onForget={setForgetting}
+                  onBlock={() => {
+                    const all = sectionEntries(memory.profile, person.key, dim);
+                    setBlocking({
+                      dim,
+                      forget: all.filter((e) => e.source.kind !== 'momcozyProfile').length,
+                      kept: all.some((e) => e.source.kind === 'momcozyProfile'),
+                    });
+                  }}
+                />
+              )
+            )
           )}
           {/* What Cozie remembers lives here; where it comes from lives in Settings. */}
           <button type="button" className="mp-sources-link" onClick={openDataSources}>
@@ -161,6 +185,28 @@ export function MemoryProfilePage({ memory, onBack }: Props) {
           if (entry) setForgetting(entry);
         }}
       />
+
+      {blocking && (
+        <ConfirmDialog
+          title={`Stop remembering ${DIMENSION_LABELS[blocking.dim].toLowerCase()}?`}
+          message={[
+            blocking.forget
+              ? `Cozie will forget the ${blocking.forget === 1 ? 'thing' : `${blocking.forget} things`} it remembers here and won’t save anything new about it.`
+              : 'Cozie won’t save anything new about it.',
+            blocking.kept ? 'Details from your Momcozy profile are only hidden.' : '',
+            'You can turn it back on anytime.',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          confirmLabel="Stop"
+          onCancel={() => setBlocking(null)}
+          onConfirm={() => {
+            blockSection(person.key, blocking.dim);
+            setBlocking(null);
+            showToast('Cozie won’t remember this.');
+          }}
+        />
+      )}
 
       {forgetting && (
         <ConfirmDialog
@@ -213,17 +259,21 @@ const newestFirst = (a: SavedProfileMemory, b: SavedProfileMemory) =>
 function SectionView({
   dim,
   section,
+  hidden,
   expanded,
   onToggle,
   onEdit,
   onForget,
+  onBlock,
 }: {
   dim: Dimension;
   section: AnySection;
+  hidden?: PersonSection['hidden'];
   expanded: boolean;
   onToggle: () => void;
   onEdit: (entry: AnyEntry) => void;
   onForget: (entry: AnyEntry) => void;
+  onBlock: () => void;
 }) {
   const label = DIMENSION_LABELS[dim];
   const fields = section.entries.filter((e): e is AnyField => e.kind === 'field');
@@ -245,6 +295,17 @@ function SectionView({
       className="sc--chat mp-card"
     >
       {children}
+      {hidden && (
+        // Kept out because its source is off: nothing is deleted.
+        <button type="button" className="mp-card__hidden" onClick={openDataSources}>
+          {hidden.count === 1 ? '1 item hidden' : `${hidden.count} items hidden`} · {hidden.sources.join(', ')}{' '}
+          {hidden.sources.length === 1 ? 'is' : 'are'} off in Data sources ›
+        </button>
+      )}
+      <button type="button" className="mp-card__block" onClick={onBlock}>
+        <EyeOffIcon />
+        Stop remembering this
+      </button>
     </StoryCard>
   );
 
@@ -287,6 +348,36 @@ function SectionView({
         </button>
       )}
     </>,
+  );
+}
+
+/** A topic she asked Cozie not to remember: stays in its place, quiet, with
+ *  the way back. */
+function BlockedView({ dim, who, onUnblock }: { dim: Dimension; who: string; onUnblock: () => void }) {
+  return (
+    <StoryCard
+      tone={DIM_TONE[dim]}
+      eyebrow="Not remembering"
+      title={DIMENSION_LABELS[dim]}
+      className="sc--chat mp-card is-blocked"
+    >
+      <p className="sc__note">
+        You asked Cozie not to remember this. It won’t save or use anything here about {who}.
+      </p>
+      <button type="button" className="mp-card__more" onClick={onUnblock}>
+        Remember again
+      </button>
+    </StoryCard>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.2 2.3-2.4 3.6M6.6 6.6C4.4 8 2.8 10.1 2 12c1 2.5 5 7 10 7 1.8 0 3.4-.6 4.8-1.4" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
   );
 }
 

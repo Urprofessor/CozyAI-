@@ -153,7 +153,11 @@ export function CozyChat() {
   // Sources switched off in Settings → Data sources stay out of the chat.
   contextRef.current = () => {
     const off = readSourcesOff();
-    return [accountContext(filterAccount(account, off)), chosenFocusContext(), memoryContext(memory.profile, off)]
+    return [
+      accountContext(filterAccount(account, off)),
+      chosenFocusContext(),
+      memoryContext(memory.profile, off, memory.blocked),
+    ]
       .filter(Boolean)
       .join('\n');
   };

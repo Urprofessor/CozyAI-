@@ -62,7 +62,8 @@ export function DataSources({ account, memory, onBack, onDeleteImport, onOpenMem
         </button>
         <h2>Data sources</h2>
         <p>
-          What Cozie can use to tailor its answers. Turning a source off stops Cozie using it — nothing is deleted.
+          What Cozie can use to tailor its answers. Turning a source off stops Cozie using it and hides what it
+          brought from your memory profile — nothing is deleted.
         </p>
       </header>
 
