@@ -32,6 +32,7 @@ function readLocal(): MemoryOverrides {
       forgotten: parsed.forgotten ?? [],
       added: parsed.added ?? [],
       blocked: parsed.blocked ?? [],
+      restored: parsed.restored ?? [],
     };
   } catch {
     return EMPTY_OVERRIDES;
@@ -133,6 +134,7 @@ export function useMemoryProfile() {
           edits,
           forgotten: [...new Set([...o.forgotten, ...ids])],
           blocked: o.blocked.includes(key) ? o.blocked : [...o.blocked, key],
+          restored: (o.restored ?? []).filter((k) => k !== key),
         };
       }),
     [seed, update]
@@ -140,7 +142,15 @@ export function useMemoryProfile() {
 
   const unblockSection = useCallback(
     (person: string, dim: Dimension) =>
-      update((o) => ({ ...o, blocked: o.blocked.filter((k) => k !== blockKey(person, dim)) })),
+      update((o) => {
+        // Back to a fresh, empty card: what was there was forgotten when she stopped it.
+        const key = blockKey(person, dim);
+        return {
+          ...o,
+          blocked: o.blocked.filter((k) => k !== key),
+          restored: [...new Set([...(o.restored ?? []), key])],
+        };
+      }),
     [update]
   );
 
@@ -150,7 +160,11 @@ export function useMemoryProfile() {
   blockedRef.current = blocked;
   const profile = useMemo(() => applyOverrides(seed, overrides), [seed, overrides]);
   // What the page shows: sources switched off and stopped topics left out.
-  const people = useMemo(() => peopleOf(profile, new Date(), { off, blocked }), [profile, off, blocked]);
+  const restored = useMemo(() => new Set(overrides.restored ?? []), [overrides.restored]);
+  const people = useMemo(
+    () => peopleOf(profile, new Date(), { off, blocked, restored }),
+    [profile, off, blocked, restored]
+  );
 
   /** Forget several entries at once (e.g. everything one import brought). */
   const forgetEntries = useCallback(

@@ -660,14 +660,24 @@
   color: var(--sc-ink);
 }
 
-/* A stopped topic keeps its place but steps back. */
+/* A stopped topic: the same card, frozen — its colour drained, its
+   picture faded, nothing to act on but the way back. */
 .sc.mp-card.is-blocked {
-  --sc-bg: #f0eeef;
+  filter: saturate(0.25);
+}
+.sc.mp-card.is-blocked .sc__art {
+  opacity: 0.35;
 }
 .sc.mp-card.is-blocked .sc__title {
   margin-bottom: 8px;
   color: var(--sc-soft);
 }
 .sc.mp-card.is-blocked .sc__note {
+  color: var(--sc-soft);
+}
+
+/* A fresh card, turned back on: its starting state. */
+.sc.mp-card .mp-card__empty {
+  margin: 0;
   color: var(--sc-soft);
 }

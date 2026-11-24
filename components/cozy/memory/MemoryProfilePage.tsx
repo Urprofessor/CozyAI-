@@ -309,6 +309,14 @@ function SectionView({
     </StoryCard>
   );
 
+  // A fresh card (turned back on after being stopped): its starting state.
+  if (!section.entries.length && !hidden) {
+    return card(
+      <p className="sc__note mp-card__empty">Nothing here yet. As you chat, Cozie will remember new things here.</p>,
+      false,
+    );
+  }
+
   if (foldable) {
     return card(
       <>
@@ -351,14 +359,15 @@ function SectionView({
   );
 }
 
-/** A topic she asked Cozie not to remember: stays in its place, quiet, with
- *  the way back. */
+/** A topic she asked Cozie not to remember: the same card, still in its
+ *  place, frozen — with the way back. */
 function BlockedView({ dim, who, onUnblock }: { dim: Dimension; who: string; onUnblock: () => void }) {
   return (
     <StoryCard
       tone={DIM_TONE[dim]}
       eyebrow="Not remembering"
       title={DIMENSION_LABELS[dim]}
+      art={DIM_ART[dim]}
       className="sc--chat mp-card is-blocked"
     >
       <p className="sc__note">

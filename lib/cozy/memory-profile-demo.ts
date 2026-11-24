@@ -45,10 +45,13 @@ export interface PersonSection {
 }
 
 /** What the page and the chat leave out: sources switched off in Data
- *  sources, and topics she asked Cozie not to remember. */
+ *  sources, and topics she asked Cozie not to remember. `restored` topics
+ *  were stopped and turned back on: their card stays, empty until Cozie
+ *  learns something new there. */
 export interface MemoryView {
   off: Set<string>;
   blocked: Set<string>;
+  restored?: Set<string>;
 }
 
 export const blockKey = (person: string, dim: Dimension) => `${person}:${dim}`;
@@ -206,7 +209,8 @@ function orderedSections(
     if (view.blocked.has(blockKey(person, dim))) {
       return [{ dim, section: { entries: [] }, blocked: true }];
     }
-    if (!section) return [];
+    const fresh: PersonSection[] = view.restored?.has(blockKey(person, dim)) ? [{ dim, section: { entries: [] } }] : [];
+    if (!section) return fresh;
     const recent = dim === 'recentConcerns'
       ? section.entries.filter((entry) => {
           if (entry.kind === 'memory') return parseDate(entry.createdAt) >= cutoff;
@@ -223,7 +227,7 @@ function orderedSections(
       return true;
     });
     const hiddenCount = recent.length - entries.length;
-    if (!entries.length && !hiddenCount) return [];
+    if (!entries.length && !hiddenCount) return fresh;
     return [
       {
         dim,
@@ -265,9 +269,11 @@ export interface MemoryOverrides {
   added: AddedEntry[];
   /** Topics she asked Cozie not to remember, as blockKey(person, dim). */
   blocked: string[];
+  /** Topics she stopped and then turned back on, as blockKey(person, dim). */
+  restored: string[];
 }
 
-export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [], added: [], blocked: [] };
+export const EMPTY_OVERRIDES: MemoryOverrides = { edits: {}, forgotten: [], added: [], blocked: [], restored: [] };
 
 /** Apply the demo's local edits to the seed. A summary that cites an edited or
  *  forgotten entry is dropped, so the section falls back to its entries.
