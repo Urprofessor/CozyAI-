@@ -349,6 +349,8 @@ export function CozyChat() {
           if (!action.quiet) attachChips(chat.deliverOpener(opener));
           if (withTask) chat.appendSystem(guideCard);
           setLetter(null);
+          // "Maybe later": back to the tab Cozie was opened from.
+          if (action.quiet) closeCozy();
           return;
         }
         localStorage.setItem(WELCOMED_KEY, '1');
@@ -357,6 +359,9 @@ export function CozyChat() {
         if (withTask) chat.appendSystem(guideCard);
         setLetter(null);
         setWelcomed(true);
+        // "Maybe later": onboarding still counts as done and the letter waits
+        // in the chat, but she goes back to the tab Cozie was opened from.
+        if (action.quiet) closeCozy();
       }}
     />
   );
