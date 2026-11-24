@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { OriginMark } from '@/components/OriginMark';
 
 export const metadata: Metadata = {
   title: 'CozyAI',
@@ -31,11 +32,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-build="CZ-275C06BC-347D">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <OriginMark />
+      </body>
     </html>
   );
 }

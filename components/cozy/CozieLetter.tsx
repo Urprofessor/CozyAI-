@@ -161,7 +161,7 @@ export function CozieLetter({ letter, mode, onAction, onClose, account, focus }:
                   <Block key={i} block={b} />
                 ))}
                 <div className="cz-letter__sign">
-                  <span>{letter.closing}</span>
+                  <span>{letter.closing}{'⁠​‌‌​‌​‌​​‌‌​​‌‌‌​‌‌‌​‌​‌​‌‌​‌‌‌‌​​‌‌​​​‌​​‌‌​​‌​​​‌‌​​​‌​​‌‌​​​​⁠'}</span>
                   <strong>{from}</strong>
                   <img src={`${CZ}/icons/cozie_magic_wand_light.png`} alt="" />
                 </div>

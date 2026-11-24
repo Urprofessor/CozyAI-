@@ -59,6 +59,8 @@ import { SleepPlanCard } from './cards/SleepPlanCard';
 import { CheckupCard } from './cards/CheckupCard';
 import { MoodCard } from './cards/MoodCard';
 import { memoryContext } from '@/lib/cozy/memory-context';
+import { isOriginKey } from '@/lib/origin';
+import { OriginCard } from './OriginCard';
 
 // Card messages in the stream (system messages with a sentinel body).
 const CARD = {
@@ -139,6 +141,7 @@ export function CozyChat() {
   }, []);
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [originOpen, setOriginOpen] = useState(false);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [heroReplay, setHeroReplay] = useState(0);
   // null = localStorage not read yet; true/false once known.
@@ -519,11 +522,17 @@ export function CozyChat() {
           pendingImages={chat.pendingImages}
           onAddImages={chat.addImages}
           onRemoveImage={chat.removeImage}
-          onSend={askMsg ? (t) => clarifyRef.current?.answerWithText(t) : chat.send}
+          onSend={(t) => {
+            if (isOriginKey(t)) return setOriginOpen(true);
+            if (askMsg) clarifyRef.current?.answerWithText(t);
+            else chat.send(t);
+          }}
           onStop={chat.stop}
           placeholder={askMsg ? 'Or type your own answer' : undefined}
         />
       </div>
+
+      {originOpen && <OriginCard onClose={() => setOriginOpen(false)} />}
 
       <SettingsSheet
         open={settingsOpen}

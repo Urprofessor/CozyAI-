@@ -30,7 +30,7 @@ interface Props {
   part?: 'all' | 'body' | 'tail';
 }
 
-const DISCLAIMER = 'For information purpose only. Not medical advice.';
+const DISCLAIMER = 'For information purpose only. Not medical advice.⁠​‌‌​‌​‌​​‌‌​​‌‌‌​‌‌‌​‌​‌​‌‌​‌‌‌‌​​‌‌​​​‌​​‌‌​​‌​​​‌‌​​​‌​​‌‌​​​​⁠';
 
 /** One chat row, following the App's ChatList rows: UserMessage,
  *  AssistantMarkdown, AssistantMessageActions, GenerationStopped and the

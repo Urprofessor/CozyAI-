@@ -16,6 +16,7 @@
   --cz-danger: #d20307;
   --cz-ui: 'Aeonik Soft Pro', system-ui, sans-serif;
   --cz-brand: 'Exposure[-10]', Georgia, serif;
+  --cz-build: "CZ-275C06BC-347D";
 }
 
 .cz-mask-icon {
@@ -2523,4 +2524,89 @@
     opacity: 0;
     transform: translateX(12px);
   }
+}
+
+/* ---------- Origin card (opened by the passphrase) ---------- */
+
+.cz-origin {
+  width: 100%;
+  padding: 24px 20px 16px;
+  border-radius: 28px;
+  background: #fff7f8;
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(36, 15, 27, 0.2);
+}
+
+.cz-origin__art {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  object-fit: contain;
+}
+
+.cz-origin__eyebrow {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cz-ink-2);
+}
+
+.cz-origin__tag {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--cz-brand);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 34px;
+  color: var(--cz-accent);
+}
+
+.cz-origin__facts {
+  margin: 16px 0 0;
+  padding: 4px 14px;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+}
+
+.cz-origin__facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.cz-origin__facts div + div {
+  border-top: 1px solid var(--cz-fill);
+}
+
+.cz-origin__facts dt {
+  color: var(--cz-ink-2);
+}
+
+.cz-origin__facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  word-break: break-all;
+}
+
+.cz-origin__close {
+  width: 100%;
+  height: 44px;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--cz-accent);
+  color: #fff;
+  font-family: var(--cz-ui);
+  font-size: 16px;
+  font-weight: 500;
 }
