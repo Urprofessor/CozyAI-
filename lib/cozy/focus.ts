@@ -152,8 +152,10 @@ export function focusInsight(a: DemoAccount, id: FocusId): Insight | null {
       source: deviceOf(a, 'monitor')!.name,
     };
   }
-  if (id === 'growth') {
-    const [birth, , latest] = a.growth;
+  const weighed = a.growth.filter((g) => g.weightKg);
+  if (id === 'growth' && weighed.length >= 2) {
+    const birth = weighed[0];
+    const latest = weighed[weighed.length - 1];
     return {
       title: `${baby}’s 2-month check-up is in ${daysUntil(a.nextCheckup.date)} days`,
       text: `He’s gone from ${birth.weightKg} kg at birth to ${latest.weightKg} kg at the last weigh-in. Next on the list: ${a.nextCheckup.label.toLowerCase()}.`,
@@ -168,6 +170,118 @@ export function focusInsight(a: DemoAccount, id: FocusId): Insight | null {
     };
   }
   return null;
+}
+
+export interface StageQuestion {
+  /** What moms at this stage often ask, in her words. */
+  q: string;
+  /** The Cozie feature that answers it. */
+  feature: string;
+  /** How that feature helps, in one sentence. */
+  help: string;
+}
+
+export interface StageCommon {
+  title: string;
+  items: StageQuestion[];
+  /** What would turn this into her own "I noticed" (none for feelings). */
+  bridge?: string;
+}
+
+/** When there's no data for a direction: what moms at this stage commonly
+ *  ask, and how Cozie helps with each. Written for about six weeks (the demo
+ *  baby's age). General patterns only — never a diagnosis. */
+export function stageCommon(a: DemoAccount, id: FocusId): StageCommon {
+  const baby = a.baby.name;
+  switch (id) {
+    case 'lactation':
+      return {
+        title: 'What moms ask about feeding',
+        items: [
+          {
+            q: 'My breasts feel softer. Is my supply dropping?',
+            feature: 'Feeding log',
+            help: 'Often it’s supply settling to what the baby needs. Log a few days and Cozie can tell a dip from a normal change.',
+          },
+          {
+            q: `${baby} suddenly wants to feed all the time.`,
+            feature: 'Smart pumping schedule',
+            help: 'Many babies have a growth spurt around now. Cozie adjusts your schedule while it lasts.',
+          },
+          {
+            q: 'How do I keep my supply when I go back to work?',
+            feature: 'AI lactation plan',
+            help: 'Cozie asks about your workday and builds a pumping plan around your breaks.',
+          },
+        ],
+        bridge: 'Pair a Momcozy pump and this card shows your own sessions.',
+      };
+    case 'sleep':
+      return {
+        title: 'What moms ask about sleep',
+        items: [
+          {
+            q: `Why does ${baby} still wake every two or three hours?`,
+            feature: 'Sleep patterns',
+            help: 'That’s common at this age. Cozie watches whether the longest stretch is starting to grow.',
+          },
+          {
+            q: 'Long naps all day, wide awake at night.',
+            feature: 'Nap and bedtime rhythm',
+            help: 'Cozie suggests small cues — daylight, active feeds, a short bedtime routine — to help shift it.',
+          },
+          {
+            q: 'How do I get more sleep myself?',
+            feature: 'Help with night wakings',
+            help: 'Cozie helps plan who takes which wake-up, around feeds and pumps.',
+          },
+        ],
+        bridge: `Pair a Momcozy monitor and this card shows how ${baby} actually sleeps.`,
+      };
+    case 'growth':
+      return {
+        title: 'What moms ask about growth',
+        items: [
+          {
+            q: `Is ${baby} gaining enough?`,
+            feature: 'Growth log',
+            help: 'Add weigh-ins and Cozie keeps weight and length in one place, so you can see the trend.',
+          },
+          {
+            q: 'What happens at the 2-month check-up?',
+            feature: 'Check-up reminders',
+            help: 'Cozie reminds you a few days ahead and helps you list questions for the doctor.',
+          },
+          {
+            q: 'Which vaccines are coming up?',
+            feature: 'Vaccine reminders',
+            help: 'Cozie keeps the schedule and reminds you before each one.',
+          },
+        ],
+        bridge: `Add ${baby}’s last check-up and this card shows his own numbers.`,
+      };
+    case 'mood':
+      return {
+        title: 'What moms ask about themselves',
+        items: [
+          {
+            q: 'Is it normal to still feel this low?',
+            feature: 'Talk anytime',
+            help: 'Talk it through, day or night. If low days last more than two weeks, Cozie points you to people who can help.',
+          },
+          {
+            q: 'I never get a minute to myself.',
+            feature: 'Time for you',
+            help: 'Cozie finds small pockets in your day and keeps them for you.',
+          },
+          {
+            q: 'I feel alone with all of this.',
+            feature: 'Gentle check-ins',
+            help: 'Short check-ins now and then. No forms, no scores.',
+          },
+        ],
+      };
+  }
 }
 
 /** Questions to start with; tapping one sends it in the chat. */

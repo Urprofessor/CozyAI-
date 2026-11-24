@@ -925,3 +925,42 @@
 .ft .ft__btn:disabled {
   cursor: default;
 }
+
+/* "At 6 weeks" (no data for this direction): what moms commonly ask, each
+   with the Cozie feature that helps. */
+.sc .sc__common {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+.sc .sc__common li {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+.sc .sc__common li + li {
+  padding-top: 12px;
+  border-top: 1px solid var(--sc-line);
+}
+.sc .sc__common strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.sc .sc__common-feature {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+.sc .sc__common-help {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sc-soft);
+}

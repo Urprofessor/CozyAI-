@@ -11,7 +11,7 @@ import {
   useDemoAccount,
   type DemoAccount,
 } from '@/lib/cozy/account-demo';
-import { focusInsight, type FocusId } from '@/lib/cozy/focus';
+import { focusInsight, stageCommon, type FocusId } from '@/lib/cozy/focus';
 import { ILLUSTRATIONS, type IllustrationTopic } from '@/lib/cozy/illustrations';
 import { TYPE_TONE, type CardSpec, type CardTone, type DataKey } from '@/lib/cozy/story-card';
 import { FocusArt } from '../focus/LetterFocus';
@@ -158,8 +158,8 @@ export function insightFigures(account: DemoAccount, id: FocusId): InsightFigure
       trend: { values: p.perDayMl, label: 'Pumped each day · last 7 days' },
     };
   }
-  if (id === 'growth') {
-    const weights = account.growth.flatMap((g) => (g.weightKg ? [g.weightKg] : []));
+  const weights = account.growth.flatMap((g) => (g.weightKg ? [g.weightKg] : []));
+  if (id === 'growth' && weights.length >= 2) {
     return {
       tone,
       hero: {
@@ -186,26 +186,31 @@ export function insightFigures(account: DemoAccount, id: FocusId): InsightFigure
 }
 
 /** "I noticed" for one direction — the first letter, and each direction's
- *  preview sheet and hub. Without device data it says what would fill it in. */
+ *  preview sheet and hub. With data it's an observation from her own data;
+ *  without, it's what moms at this stage commonly ask and how Cozie helps. */
 export function InsightStoryCard({ account, id }: { account: DemoAccount; id: FocusId }) {
   const insight = focusInsight(account, id);
   if (!insight) {
-    const baby = account.baby.name;
+    const common = stageCommon(account, id);
     return (
       <StoryCard
         tone={FOCUS_TONE[id]}
-        eyebrow={id === 'mood' ? 'For you' : 'I noticed'}
-        title={id === 'mood' ? 'Cozie is here for you, too' : 'Nothing from a device yet'}
+        eyebrow={`At ${account.baby.weeks} weeks`}
+        title={common.title}
         art={id}
-        className="sc--insight"
+        source="Common questions at this stage · not from your data"
+        className="sc--insight sc--common"
       >
-        <p className="sc__note">
-          {id === 'lactation'
-            ? 'Pair a Momcozy pump and Cozie will see every session here. Until then, a pumping log or a quick chat works too.'
-            : id === 'sleep'
-              ? `Pair a Momcozy monitor and Cozie will see how ${baby} sleeps. Until then, a sleep tracker export or a quick chat works too.`
-              : 'Talk about anything — the hard nights, the small wins, the things nobody asks you about.'}
-        </p>
+        <ul className="sc__panel sc__common">
+          {common.items.map((it) => (
+            <li key={it.q}>
+              <strong>{it.q}</strong>
+              <span className="sc__common-feature">{it.feature}</span>
+              <span className="sc__common-help">{it.help}</span>
+            </li>
+          ))}
+        </ul>
+        {common.bridge && <p className="sc__note">{common.bridge}</p>}
       </StoryCard>
     );
   }
