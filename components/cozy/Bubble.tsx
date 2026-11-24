@@ -81,8 +81,11 @@ export function Bubble({
           )}
         </div>
       ) : (
+        // A clarify lead-in ("Two quick questions…") isn't an answer: no
+        // copy / rate / sources, and no response tail.
         done &&
-        msg.content && (
+        msg.content &&
+        !msg.ask && (
           <ActionBar
             content={msg.content}
             rateable={!isSupport}
@@ -95,7 +98,7 @@ export function Bubble({
         )
       )}
 
-      {isLatestReply && !isSupport && !msg.stopped && (msg.content || streaming) && (
+      {isLatestReply && !isSupport && !msg.stopped && !msg.ask && (msg.content || streaming) && (
         <ResponseTail completed={done} />
       )}
 

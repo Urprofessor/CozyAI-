@@ -14,6 +14,8 @@ interface Props {
   onStop: () => void;
   /** Keyboard (touch focus) state, so the page can hide home/quick access. */
   onKeyboardChange?: (open: boolean) => void;
+  /** Field hint; while a clarify card is open, typing answers its question. */
+  placeholder?: string;
 }
 
 // Metrics from the App's InputBoxComponent.
@@ -36,6 +38,7 @@ export function InputBar({
   onSend,
   onStop,
   onKeyboardChange,
+  placeholder = 'Talk with Cozie',
 }: Props) {
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
@@ -169,8 +172,8 @@ export function InputBar({
           onKeyDown={onKey}
           onFocus={onFocus}
           onBlur={onBlur}
-          placeholder="Talk with Cozie"
-          aria-label="Message Cozie"
+          placeholder={placeholder}
+          aria-label={placeholder}
           className="cz-input__field"
           style={
             multi

@@ -1,5 +1,7 @@
 // Shared types for CozyAI chat.
 
+import type { ClarifyAsk } from './clarify';
+
 export type Persona = 'qa' | 'support';
 
 export interface CozyMessage {
@@ -14,6 +16,7 @@ export interface CozyMessage {
   createdAt?: number;
   stopped?: boolean; // reply was stopped by the user mid-generation
   scripted?: boolean; // fixed copy (letter openers) — nothing to regenerate
+  ask?: ClarifyAsk; // clarifying questions docked above the input (lib/cozy/clarify.ts)
 }
 
 export type HandoffState = 'idle' | 'connecting' | 'queuing' | 'assigning' | 'joined';

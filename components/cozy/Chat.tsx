@@ -16,6 +16,7 @@ import { FeedbackSheet } from './FeedbackSheet';
 import { HandoffCard } from './HandoffCard';
 import { HistoryDrawer } from './HistoryDrawer';
 import { InputBar } from './InputBar';
+import { ClarifyCard, type ClarifyCardHandle } from './ClarifyCard';
 import { Lightbox } from './Lightbox';
 import { LoadingIndicator } from './LoadingIndicator';
 import { SettingsSheet } from './SettingsSheet';
@@ -195,6 +196,7 @@ export function CozyChat() {
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memoryMounted, setMemoryMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const clarifyRef = useRef<ClarifyCardHandle>(null);
 
   useEffect(() => {
     setWelcomed(localStorage.getItem(WELCOMED_KEY) === '1');
@@ -388,6 +390,9 @@ export function CozyChat() {
   }
 
   const isHome = !chat.messages.some((m) => m.role === 'user' || m.role === 'assistant');
+  // An open clarify card on the newest reply docks above the input; typing
+  // then answers its current question.
+  const askMsg = openAsk(chat.messages, chat.streaming);
   const title = profileTitle(profile.profile);
 
   function startNewChat() {
@@ -474,20 +479,30 @@ export function CozyChat() {
           </div>
         )}
 
-        <SuggestionPanel
-          showSuggestions={isHome}
-          onSend={chat.send}
-          onLactationPlan={() => chat.startSkill('lactation', 'Check my lactation plan')}
-          lactationActive={planStatus === 'completed'}
-        />
+        {askMsg?.ask ? (
+          <ClarifyCard
+            key={askMsg.id}
+            ref={clarifyRef}
+            ask={askMsg.ask}
+            onSubmit={(summary) => chat.answerAsk(askMsg.id, summary)}
+          />
+        ) : (
+          <SuggestionPanel
+            showSuggestions={isHome}
+            onSend={chat.send}
+            onLactationPlan={() => chat.startSkill('lactation', 'Check my lactation plan')}
+            lactationActive={planStatus === 'completed'}
+          />
+        )}
 
         <InputBar
           streaming={chat.streaming}
           pendingImages={chat.pendingImages}
           onAddImages={chat.addImages}
           onRemoveImage={chat.removeImage}
-          onSend={chat.send}
+          onSend={askMsg ? (t) => clarifyRef.current?.answerWithText(t) : chat.send}
           onStop={chat.stop}
+          placeholder={askMsg ? 'Or type your own answer' : undefined}
         />
       </div>
 
@@ -557,6 +572,17 @@ export function CozyChat() {
       <ToastHost />
     </>
   );
+}
+
+/** The newest reply's clarify card, if it is still waiting for answers. */
+function openAsk(messages: CozyMessage[], streaming: boolean): CozyMessage | null {
+  if (streaming) return null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === 'user') return null;
+    if (m.role === 'assistant') return m.ask?.status === 'open' ? m : null;
+  }
+  return null;
 }
 
 /** App agent_chat_profile_*: "Mom and Baby", one of them, or "Cozie". */

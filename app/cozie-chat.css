@@ -2245,3 +2245,282 @@
     transform: rotate(360deg);
   }
 }
+
+/* ---------- Clarifying questions (ClarifyCard) ----------
+   Docked above the input while open. Momcozy 3.0: white container on the
+   grays-50 page, grays-50 option fills, Mom 50 + Mom 700 for the selected
+   option (as the feedback reasons), Mom 700 only on the one action. */
+
+.cz-clarify {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  margin: 0 16px 2px;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--colors-grays-0, #fff);
+  border-radius: 24px;
+  background: var(--colors-grays-0, #fff);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  animation: czClarifyIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.kb-open .cz-clarify {
+  /* Keyboard up: keep the question, drop the choices she's typing past. */
+  padding-bottom: 14px;
+}
+.kb-open .cz-clarify__options,
+.kb-open .cz-clarify__hint,
+.kb-open .cz-clarify__foot {
+  display: none;
+}
+
+.cz-clarify__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.cz-clarify__back {
+  width: 20px;
+  height: 20px;
+  margin-left: -4px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cz-ink-2);
+  cursor: pointer;
+}
+.cz-clarify__back svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cz-clarify__count {
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.24px;
+  color: var(--cz-ink-2);
+}
+
+.cz-clarify__progress {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.cz-clarify__progress button {
+  position: relative;
+  width: 20px;
+  height: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 1.5px;
+  background: rgba(36, 15, 27, 0.1);
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+/* 44px-ish tap target around a 3px bar. */
+.cz-clarify__progress button::before {
+  content: '';
+  position: absolute;
+  inset: -12px -2px;
+}
+.cz-clarify__progress button.is-on {
+  background: var(--cz-accent);
+}
+.cz-clarify__progress button:disabled {
+  cursor: default;
+}
+
+.cz-clarify__body {
+  animation: czClarifyStep 220ms ease;
+}
+
+.cz-clarify__title {
+  margin: 10px 0 0;
+  font-family: var(--cz-brand);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 26px;
+  color: var(--cz-ink);
+}
+
+.cz-clarify__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.24px;
+  color: var(--cz-ink-2);
+}
+
+.cz-clarify__options {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cz-clarify__opt {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--colors-grays-50, #f9f7f5);
+  color: var(--cz-ink);
+  font-family: var(--cz-ui);
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 0.32px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.cz-clarify__opt.is-on {
+  background: var(--colors-brands-mom-50, #fff7f8);
+  border-color: var(--cz-accent);
+}
+.cz-clarify__opt:active {
+  transform: translateY(1px);
+}
+
+/* Radio: a circle for one answer. */
+.cz-clarify__radio {
+  flex-shrink: 0;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--colors-grays-300, #d3cfd1);
+  border-radius: 50%;
+  background: var(--colors-grays-0, #fff);
+  transition: border-color 160ms ease;
+}
+.cz-clarify__radio::after {
+  content: '';
+  position: absolute;
+  inset: 3.5px;
+  border-radius: 50%;
+  background: var(--cz-accent);
+  transform: scale(0);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1.4);
+}
+.cz-clarify__opt.is-on .cz-clarify__radio {
+  border-color: var(--cz-accent);
+}
+.cz-clarify__opt.is-on .cz-clarify__radio::after {
+  transform: scale(1);
+}
+
+/* Check box: a rounded square for several answers. */
+.cz-clarify__check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--colors-grays-300, #d3cfd1);
+  border-radius: 6px;
+  background: var(--colors-grays-0, #fff);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.cz-clarify__check svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  transition: stroke-dashoffset 200ms ease 40ms;
+}
+.cz-clarify__opt.is-on .cz-clarify__check {
+  border-color: var(--cz-accent);
+  background: var(--cz-accent);
+}
+.cz-clarify__opt.is-on .cz-clarify__check svg {
+  stroke-dashoffset: 0;
+}
+
+.cz-clarify__typed {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.24px;
+  color: var(--cz-ink-2);
+}
+.cz-clarify__typed em {
+  font-style: normal;
+  color: var(--cz-ink);
+}
+
+.cz-clarify__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  margin-top: 12px;
+}
+
+.cz-clarify__skip {
+  height: 40px;
+  margin-left: -8px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--cz-ink-2);
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+
+.cz-clarify__primary {
+  height: 40px;
+  min-width: 88px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--cz-accent);
+  color: #fff;
+  font-family: var(--cz-ui);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.28px;
+  cursor: pointer;
+}
+.cz-clarify__primary:disabled {
+  background: var(--colors-grays-500, #bdb7ba);
+  cursor: default;
+}
+.cz-clarify__primary:not(:disabled):active {
+  background: var(--colors-brands-mom-900, #3e0010);
+}
+
+@keyframes czClarifyIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes czClarifyStep {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}

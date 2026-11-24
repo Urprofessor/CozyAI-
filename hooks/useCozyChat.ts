@@ -20,6 +20,7 @@ import {
 } from '@/lib/cozy/constants';
 import { HANDOFF_TAG, EXIT_TAG, PROFILE_TAG_RE, PUMP_TAG_RE, SKILL_TAG_RE } from '@/lib/cozy/prompts';
 import { detectHandoffTrigger, detectSkillTrigger, type CardSkill } from '@/lib/cozy/keywords';
+import { ASK_TAG_RE, ASK_TAG_RE_G, WORKDAY_ASK, detectClarifyTrigger, parseAsk } from '@/lib/cozy/clarify';
 import { pickRandomSupportAvatar } from '@/lib/cozy/support-avatars';
 import type { CozyMessage, CozySession, HandoffState, Persona } from '@/lib/cozy/types';
 import type { CozyProfile } from '@/lib/cozy/profile';
@@ -254,7 +255,7 @@ export function useCozyChat(opts: Options = {}) {
   // ---------- sending ----------
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: { answering?: boolean }) => {
       const cleaned = text.trim();
       const images = pendingImages.slice();
       if (!cleaned && !images.length) return;
@@ -277,6 +278,24 @@ export function useCozyChat(opts: Options = {}) {
 
       if (persona === 'qa' && cleaned && detectHandoffTrigger(cleaned)) {
         beginHandoffCard();
+        return;
+      }
+
+      // Demo backstop for the model's [[ASK]] tag: the workday-schedule
+      // request always asks its two questions first (lib/cozy/clarify.ts).
+      if (persona === 'qa' && cleaned && !images.length && !opts?.answering && detectClarifyTrigger(cleaned)) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: newId(),
+            role: 'assistant',
+            content: WORKDAY_ASK.lead,
+            persona,
+            scripted: true,
+            ask: structuredClone(WORKDAY_ASK.ask),
+            createdAt: Date.now(),
+          },
+        ]);
         return;
       }
 
@@ -487,9 +506,14 @@ export function useCozyChat(opts: Options = {}) {
       }
     }
 
+    // Clarifying questions: the card docks above the input; no follow-up
+    // chips while it's open (the questions are the next step).
+    const askMatch = personaAtStart === 'qa' ? text.match(ASK_TAG_RE) : null;
+    const ask = askMatch ? parseAsk(askMatch[1]) : null;
+
     const hasHandoff = text.includes(HANDOFF_TAG);
     const hasExit = text.includes(EXIT_TAG);
-    const clean = cleanForDisplay(text).trim();
+    const clean = cleanForDisplay(text).trim() || (ask ? 'A couple of quick questions first:' : '');
 
     if (personaAtStart === 'qa' && hasHandoff) {
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
@@ -497,7 +521,14 @@ export function useCozyChat(opts: Options = {}) {
       return;
     }
 
-    if (clean && personaAtStart === 'qa') {
+    if (clean && personaAtStart === 'qa' && ask) {
+      // A reply that is only the tag never got a bubble while streaming.
+      setMessages((prev) =>
+        prev.some((m) => m.id === assistantId)
+          ? prev.map((m) => (m.id === assistantId ? { ...m, content: clean, ask } : m))
+          : [...prev, { id: assistantId, role: 'assistant', content: clean, persona: personaAtStart, ask, createdAt: Date.now() }]
+      );
+    } else if (clean && personaAtStart === 'qa') {
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantId ? { ...m, content: clean } : m))
       );
@@ -578,6 +609,17 @@ export function useCozyChat(opts: Options = {}) {
     setHandoffState('joined');
     setPersona('support');
   }, []);
+
+  /** Close an open clarify card and send its answers as her next message. */
+  const answerAsk = useCallback(
+    (msgId: string, summary: string) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId && m.ask ? { ...m, ask: { ...m.ask, status: 'answered' } } : m))
+      );
+      void send(summary, { answering: true });
+    },
+    [send]
+  );
 
   const appendSystem = useCallback((content: string) => {
     setMessages((prev) => [...prev, { id: newId(), role: 'system', content }]);
@@ -710,6 +752,7 @@ export function useCozyChat(opts: Options = {}) {
     advanceHandoff,
     finishHandoff,
     appendSystem,
+    answerAsk,
     appendAssistant,
     deliverLetter,
     deliverOpener,
@@ -765,6 +808,7 @@ function cleanForDisplay(text: string): string {
     .replace(/\[\[PROFILE:[\s\S]*?\]\]/g, '')
     .replace(/\[\[SKILL:[a-z_]+\]\]/g, '')
     .replace(/\[\[PUMP:[\s\S]*?\]\]/g, '')
+    .replace(ASK_TAG_RE_G, '')
     .replaceAll(HANDOFF_TAG, '')
     .replaceAll(EXIT_TAG, '');
   const open = t.lastIndexOf('[[');
