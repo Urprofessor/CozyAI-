@@ -1687,7 +1687,8 @@
 
 /* ---------- mobile: fullscreen, no frame ---------- */
 
-@media (max-width: 480px) {
+/* Phones in either orientation get the bare app, edge to edge. */
+@media (max-width: 480px), (hover: none) and (pointer: coarse) and (max-width: 932px) {
   .demo-stage {
     min-height: 100svh;
     padding: 0;
@@ -1699,6 +1700,21 @@
     min-height: 0;
     border: 0;
     border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Feel like the app: no long-press callouts or stray text selection on
+     buttons and chrome. Messages and fields stay selectable. */
+  .phone-screen {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .phone-screen :is(input, textarea, [contenteditable], .cozy-md, .cz-user-bubble) {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
   }
 }
 

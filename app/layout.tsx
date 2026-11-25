@@ -27,6 +27,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  // Android Chrome: the keyboard shrinks the page, as it does in the app.
+  interactiveWidget: 'resizes-content',
   themeColor: '#F9F7F5',
 };
 
