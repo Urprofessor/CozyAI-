@@ -122,9 +122,9 @@ export function FirstLetterBody({
       const order = stampOrder(account);
       for (let i = 0; i < order.length; i++) {
         ts.push(window.setTimeout(() => onThump?.(), 520 + i * STAMP_GAP_MS));
-        if (chosen.includes(order[i])) ts.push(window.setTimeout(() => onThump?.(), 880 + i * STAMP_GAP_MS));
+        if (chosen.includes(order[i])) ts.push(window.setTimeout(() => onThump?.(), 980 + i * STAMP_GAP_MS));
       }
-      ms = 680 + 3 * STAMP_GAP_MS + 520;
+      ms = 680 + 3 * STAMP_GAP_MS + 720;
     } else if (current === 'sign') ms = 520;
     else if (current === 'end') ms = 0;
     else return;

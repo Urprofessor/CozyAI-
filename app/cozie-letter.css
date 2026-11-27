@@ -747,15 +747,17 @@
   text-transform: uppercase;
   color: rgba(119, 5, 35, 0.5);
 }
-/* The tick box: a dashed ring in the top-right corner. Choosing a direction
-   stamps a postmark onto it; choosing again lifts it off. */
+/* The tick box: a small ring inside the stamp's top-right corner, level
+   with the icon. Choosing a direction brings a rubber stamp down onto it,
+   which presses and lifts away, leaving a postmark with a tick. Unchosen
+   stamps stay blank. */
 .cz-stampcard__pick {
   position: absolute;
   z-index: 2;
-  top: -15px;
-  right: -17px;
-  width: 70px;
-  height: 70px;
+  top: 21px;
+  right: 21px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -764,69 +766,113 @@
   background: none;
   cursor: pointer;
 }
+.cz-stampcard__pick::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
 .cz-stampcard__pick:focus-visible {
   outline: 2px solid var(--letter-wine);
-  outline-offset: -6px;
+  outline-offset: 3px;
 }
-.cz-stampcard__slot {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border: 1.5px dashed rgba(142, 14, 51, 0.42);
+.cz-stampcard__box {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid rgba(142, 14, 51, 0.38);
   border-radius: 50%;
-  background: rgba(255, 253, 250, 0.6);
+  background: rgba(255, 255, 255, 0.62);
   transition:
     opacity var(--dur-2) ease,
-    transform var(--dur-2) var(--spring-snappy);
+    transform var(--dur-1) var(--spring-snappy);
 }
-.cz-stampcard__slot svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: rgba(142, 14, 51, 0.6);
-  stroke-width: 1.6;
-  stroke-linecap: round;
+.cz-stampcard__pick:active .cz-stampcard__box {
+  transform: scale(0.86);
 }
-.cz-stampcard__pick:active .cz-stampcard__slot {
-  transform: scale(0.88);
-}
-.cz-stampcard.is-on .cz-stampcard__slot {
+.cz-stampcard.is-on .cz-stampcard__box {
   opacity: 0;
-  transform: scale(0.7);
 }
+
+/* The postmark, centred on the box. */
 .cz-stampcard__mark {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  z-index: 1;
+  top: -2px;
+  right: -2px;
+  width: 70px;
+  height: 70px;
   stroke: var(--letter-wine);
   opacity: 0;
-  transform: rotate(-14deg) scale(1.15);
+  transform: rotate(-14deg) scale(1.08);
   transition:
-    opacity 180ms ease,
-    transform 180ms ease;
+    opacity 220ms ease,
+    transform 220ms ease;
   pointer-events: none;
 }
 .cz-stampcard.is-on .cz-stampcard__mark {
-  opacity: 0.62;
+  opacity: 0.66;
   transform: rotate(-14deg) scale(1);
 }
-.cz-stampcard.is-on.is-fresh .cz-stampcard__mark {
-  animation: cz-postmark-stamp 420ms cubic-bezier(0.3, 0, 0.2, 1) both;
+
+/* The rubber stamp: comes down, squashes on contact, lifts off. Its base
+   meets the paper at the postmark's centre. */
+.cz-stamper {
+  position: absolute;
+  z-index: 3;
+  top: -50px;
+  right: -9px;
+  width: 84px;
+  height: 110px;
+  opacity: 0;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 6px rgba(62, 0, 16, 0.22));
 }
-@keyframes cz-postmark-stamp {
+.cz-stamper svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* A tap: the press plays, the ink appears at the moment of contact. */
+.cz-stampcard.is-on.is-fresh .cz-stamper {
+  animation: cz-stamper 680ms cubic-bezier(0.4, 0, 0.3, 1) both;
+}
+.cz-stampcard.is-on.is-fresh .cz-stampcard__mark {
+  animation: cz-ink 200ms ease-out 290ms both;
+}
+@keyframes cz-stamper {
   0% {
     opacity: 0;
-    transform: rotate(-30deg) scale(1.8);
+    transform: translateY(-46px) rotate(-8deg) scale(1.06);
   }
-  55% {
-    opacity: 0.8;
-    transform: rotate(-12deg) scale(0.94);
+  18% {
+    opacity: 1;
+    transform: translateY(-30px) rotate(-5deg) scale(1.04);
+  }
+  42% {
+    transform: translateY(0) rotate(-2deg) scale(1);
+  }
+  52% {
+    transform: translateY(2px) rotate(-2deg) scale(1.04, 0.9);
+  }
+  64% {
+    opacity: 1;
+    transform: translateY(0) rotate(-2deg) scale(1);
   }
   100% {
-    opacity: 0.62;
+    opacity: 0;
+    transform: translateY(-58px) rotate(4deg) scale(1.04);
+  }
+}
+@keyframes cz-ink {
+  from {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.05);
+    filter: blur(0.8px);
+  }
+  to {
+    opacity: 0.66;
     transform: rotate(-14deg) scale(1);
+    filter: blur(0);
   }
 }
 .cz-stampcard__mark text {
@@ -868,8 +914,11 @@
   animation: cz-stamp-drop 520ms cubic-bezier(0.35, 0, 0.3, 1.2) calc(120ms + var(--i) * 430ms) both;
 }
 /* --n is the stamp's index too, but inherited (the registered --i is not). */
+.cz-first__focus.is-in:not(.is-settled) .cz-stampcard.is-on .cz-stamper {
+  animation: cz-stamper 680ms cubic-bezier(0.4, 0, 0.3, 1) calc(680ms + var(--n) * 430ms) both;
+}
 .cz-first__focus.is-in:not(.is-settled) .cz-stampcard.is-on .cz-stampcard__mark {
-  animation: cz-postmark-stamp 420ms cubic-bezier(0.3, 0, 0.2, 1) calc(680ms + var(--n) * 430ms) both;
+  animation: cz-ink 200ms ease-out calc(970ms + var(--n) * 430ms) both;
 }
 .cz-first__focus.is-settled .cz-stampcard {
   animation: none;

@@ -14,8 +14,8 @@ const STAMP: Record<FocusId, { title: string; line: string; glyph: GlyphName; ti
   mood: { title: 'Talk anytime', line: 'No judgment. Day or night, just tell me.', glyph: 'chat', tint: ['#f1d9d9', '#ecd0d0'] },
 };
 const TILT = [-2, 1.4, 1, -1.6];
-/** The postmark lands this long after a tap (matches cz-postmark-stamp). */
-const LAND_MS = 200;
+/** The rubber stamp touches the paper this long after a tap (matches cz-stamper in CSS). */
+const LAND_MS = 300;
 
 /** Stamp order: directions that match her devices first. */
 export function stampOrder(account: DemoAccount): FocusId[] {
@@ -28,10 +28,12 @@ export function stampOrder(account: DemoAccount): FocusId[] {
  *  They drop onto the letter one by one (CSS, once the list has .is-in).
  *  Directions that match her Momcozy devices come first.
  *
- *  Choosing one is stamping it: the dashed ring in the corner is the tick
- *  box, and a tap slams a postmark onto it (the paper jolts); a second tap
- *  lifts it off. The ones already chosen get stamped one by one as the
- *  letter writes them. A tap anywhere else opens the direction's preview. */
+ *  Choosing one is stamping it: a tap on the round box in the stamp's
+ *  corner brings a rubber stamp down onto it, which presses, inks a
+ *  postmark with a tick, and lifts away (the paper jolts). Unchosen
+ *  stamps are left blank; a second tap clears the postmark. The ones
+ *  already chosen get stamped one by one as the letter writes them. A tap
+ *  anywhere else opens the direction's preview. */
 export function FocusCards({
   account,
   chosen,
@@ -87,6 +89,7 @@ export function FocusCards({
                 onPreview(c.id);
               }}
             />
+            {/* The tick box, inside the stamp's top-right corner. */}
             <button
               type="button"
               role="checkbox"
@@ -97,31 +100,42 @@ export function FocusCards({
                 e.stopPropagation();
                 setFresh(on ? null : c.id);
                 if (!on) {
-                  window.setTimeout(() => onThump?.(), LAND_MS);
-                  navigator.vibrate?.(12);
+                  window.setTimeout(() => {
+                    onThump?.();
+                    navigator.vibrate?.(12);
+                  }, LAND_MS);
                 }
                 onToggle(c.id);
               }}
             >
-              <span className="cz-stampcard__slot" aria-hidden>
-                <svg viewBox="0 0 16 16">
-                  <path d="M8 4v8M4 8h8" />
-                </svg>
-              </span>
-              <svg className="cz-stampcard__mark" viewBox="0 0 70 70" fill="none" aria-hidden>
-                <defs>
-                  <path id={`cz-pm-${c.id}`} d="M35 9.5a25.5 25.5 0 1 1 0 51a25.5 25.5 0 1 1 0-51" />
-                </defs>
-                <circle cx="35" cy="35" r="32" strokeWidth="1.4" />
-                <circle cx="35" cy="35" r="16" strokeWidth="1.1" />
-                <text className="cz-stampcard__ring">
-                  <textPath href={`#cz-pm-${c.id}`}>
-                    COZIE POST · {month} {day} · {year} ·
-                  </textPath>
-                </text>
-                <path className="cz-stampcard__tick" d="m28.5 35.5 4.5 4.5 9-10" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span className="cz-stampcard__box" aria-hidden />
             </button>
+            {/* The ink a rubber stamp leaves; blank until chosen. */}
+            <svg className="cz-stampcard__mark" viewBox="0 0 70 70" fill="none" aria-hidden>
+              <defs>
+                <path id={`cz-pm-${c.id}`} d="M35 9.5a25.5 25.5 0 1 1 0 51a25.5 25.5 0 1 1 0-51" />
+              </defs>
+              <circle cx="35" cy="35" r="32" strokeWidth="1.4" />
+              <circle cx="35" cy="35" r="16" strokeWidth="1.1" />
+              <text className="cz-stampcard__ring">
+                <textPath href={`#cz-pm-${c.id}`}>
+                  COZIE POST · {month} {day} · {year} ·
+                </textPath>
+              </text>
+              <path className="cz-stampcard__tick" d="m28.5 35.5 4.5 4.5 9-10" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {/* The rubber stamp that comes down, presses, and lifts away. */}
+            <span className="cz-stamper" aria-hidden>
+              <svg viewBox="0 0 70 92">
+                <ellipse cx="35" cy="12" rx="12" ry="10" fill="#9a5a45" />
+                <ellipse cx="31" cy="9" rx="4.5" ry="3" fill="#c48a72" opacity="0.7" />
+                <path d="M30 20h10v16H30z" fill="#7d4434" />
+                <path d="M19 36h32l6 22H13z" fill="#8e0e33" />
+                <path d="M19 36h32l1.6 6H17.4z" fill="#b0284f" opacity="0.8" />
+                <rect x="8" y="58" width="54" height="10" rx="2" fill="#3e0010" />
+                <rect x="10" y="68" width="50" height="5" rx="1.5" fill="#5a0219" />
+              </svg>
+            </span>
           </li>
         );
       })}
