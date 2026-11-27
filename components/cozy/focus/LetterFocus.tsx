@@ -1,41 +1,89 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { FOCUS_LIST, cardSummary, recommendedFor, type FocusId } from '@/lib/cozy/focus';
+import { Glyph, type GlyphName } from '../letter/Glyph';
 
-/** The four directions on the first letter, as cards: a check box, the name,
- *  what Cozie can do there, and one line on what it already knows (with its
- *  source), over a faint line drawing. Directions that match her Momcozy
- *  devices come first. The check box only ticks; the rest of the card opens
- *  the direction's preview sheet. */
+/** How each direction looks as a stamp on the letter. */
+const STAMP: Record<FocusId, { title: string; glyph: GlyphName; tint: [string, string] }> = {
+  lactation: { title: 'Pump smarter', glyph: 'bottle', tint: ['#f9dfe5', '#f0c6d1'] },
+  sleep: { title: 'Read the nights', glyph: 'moon', tint: ['#ebe5f7', '#d9d0ef'] },
+  growth: { title: 'Keep the log', glyph: 'chart', tint: ['#f8eadc', '#efd7c0'] },
+  mood: { title: 'Talk anytime', glyph: 'chat', tint: ['#f7e0e3', '#ebc7cd'] },
+};
+const TILT = [-2, 1.6, 1.1, -1.4];
+
+/** The four directions on the first letter, as perforated postage stamps:
+ *  what Cozie does there, one line on what it already knows, its source,
+ *  and a postmark. They drop onto the letter one by one (CSS, once the list
+ *  has .is-in). Directions that match her Momcozy devices come first. The
+ *  round box only ticks; the rest of the stamp opens the direction's
+ *  preview sheet. */
 export function FocusCards({
   account,
   chosen,
+  date,
   onToggle,
   onPreview,
 }: {
   account: DemoAccount;
   chosen: FocusId[];
+  /** "Nov 27", for the postmarks. */
+  date: string;
   onToggle: (id: FocusId) => void;
   onPreview: (id: FocusId) => void;
 }) {
   const cards = [...FOCUS_LIST].sort(
     (a, b) => Number(!!recommendedFor(account, b.id)) - Number(!!recommendedFor(account, a.id)),
   );
+  const [month, day] = date.toUpperCase().split(' ');
 
   return (
-    <ul className="cz-focus__list">
-      {cards.map((c) => {
+    <ul className="cz-stamps">
+      {cards.map((c, n) => {
         const on = chosen.includes(c.id);
         const summary = cardSummary(account, c.id);
+        const look = STAMP[c.id];
         return (
-          <li key={c.id} className={cn('cz-focus__card', on && 'is-on')} data-focus={c.id}>
-            {/* Covers the card under its content: a tap anywhere but the box opens the preview. */}
+          <li
+            key={c.id}
+            className={cn('cz-stampcard', on && 'is-on')}
+            data-focus={c.id}
+            style={{ '--i': n, '--tilt': `${TILT[n % TILT.length]}deg`, '--t1': look.tint[0], '--t2': look.tint[1] } as CSSProperties}
+          >
+            <span className="cz-stampcard__paper" aria-hidden>
+              <span className="cz-stampcard__face">
+                <span className="cz-stampcard__ic">
+                  <Glyph name={look.glyph} />
+                </span>
+                <strong>{look.title}</strong>
+                <span className="cz-stampcard__line">“{summary.text}”</span>
+                <span className="cz-stampcard__foot">
+                  <b>{summary.source}</b>
+                  <b>No. {n + 1}</b>
+                </span>
+              </span>
+            </span>
+            <svg className="cz-stampcard__mark" viewBox="0 0 70 70" fill="none" aria-hidden>
+              <defs>
+                <path id={`cz-pm-${c.id}`} d="M35 11a24 24 0 1 1 0 48a24 24 0 1 1 0-48" />
+              </defs>
+              <circle cx="35" cy="35" r="31" strokeWidth="1.4" />
+              <circle cx="35" cy="35" r="17" strokeWidth="1" />
+              <text className="cz-stampcard__ring">
+                <textPath href={`#cz-pm-${c.id}`}>COZIE POST · {month} · COZIE POST ·</textPath>
+              </text>
+              <text className="cz-stampcard__day" x="35" y="39" textAnchor="middle">
+                {day}
+              </text>
+            </svg>
+            {/* Covers the stamp under its box: a tap anywhere else opens the preview. */}
             <button
               type="button"
-              className="cz-focus__open"
-              aria-label={`See what Cozie can do for ${c.short}`}
+              className="cz-stampcard__open"
+              aria-label={`${look.title}: see what Cozie can do for ${c.short}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(c.id);
@@ -46,7 +94,7 @@ export function FocusCards({
               role="checkbox"
               aria-checked={on}
               aria-label={`Keep an eye on ${c.short}`}
-              className="cz-focus__check"
+              className="cz-stampcard__check"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggle(c.id);
@@ -56,19 +104,6 @@ export function FocusCards({
                 <path d="m3.8 8.4 2.7 2.7 5.7-6" />
               </svg>
             </button>
-            <span className="cz-focus__text" aria-hidden>
-              <strong>{c.short}</strong>
-              <ul className="cz-focus__can">
-                {c.can.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </span>
-            <span className="cz-focus__known">
-              <b>{summary.source}</b>
-              {summary.text}
-            </span>
-            <FocusArt id={c.id} />
           </li>
         );
       })}

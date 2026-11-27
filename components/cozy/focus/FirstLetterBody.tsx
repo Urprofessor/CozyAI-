@@ -1,196 +1,261 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import type { DemoAccount } from '@/lib/cozy/account-demo';
 import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import type { FocusId } from '@/lib/cozy/focus';
-import { InsightStoryCard, insightFigures } from '../cards/StoryCard';
-import { InsightMoment } from './InsightMoment';
-import { LetterStory } from './LetterStory';
-import { storyPages } from '@/lib/cozy/letter-story';
-import { useLetterVariant } from '@/lib/cozy/letterVariant';
+import { healthInsight } from '@/lib/cozy/health-demo';
+import { prefersReducedMotion } from '@/lib/cozy/motion';
 import { FocusCards } from './LetterFocus';
+import { Ink } from '../letter/Ink';
+import { HeartTile, SharpInsight } from '../letter/Health';
 
-/* Body of the first letter. On arrival it is "written" in front of her:
- * the greeting and opening appear line by line, the observation rises with
- * its chart, the focus cards rise in, the closing line appears, then
- * the sign-off and buttons fade in. Anything below the fold waits until she
- * scrolls to it. A tap anywhere shows everything at once; rereading, or
- * "reduce motion", shows it all straight away. */
+/* Body of the first letter. On arrival Cozie writes it in front of her: the
+ * greeting by hand, then the opening word by word with its figures stamped
+ * on, the observation with a hand underline, the stamps of what Cozie will
+ * keep an eye on dropping onto the paper, the closing, the sign-off, and a
+ * handwritten P.S. asking for Apple Health. The letter scrolls along as it
+ * writes. A tap anywhere shows everything at once; rereading, or "reduce
+ * motion", shows it all straight away.
+ *
+ * When she connects Health, the space under the observation opens and Cozie
+ * writes what it can now see, with a small drawn chart. */
 
-type Step = 'salutation' | 'opening' | 'insight' | 'focus' | 'emphasis' | 'sign' | 'end';
-const ORDER: Step[] = ['salutation', 'opening', 'insight', 'focus', 'emphasis', 'sign', 'end'];
+type Step = 'salutation' | 'opening' | 'noticed' | 'focus' | 'emphasis' | 'sign' | 'ps' | 'end';
+const ORDER: Step[] = ['salutation', 'opening', 'noticed', 'focus', 'emphasis', 'sign', 'ps', 'end'];
 const ALL = ORDER.length;
 
-/** Each line starts this long after the one above it. */
-const LINE_MS = 300;
-/** How long one line takes to fade up. */
-const LINE_FADE_MS = 520;
-/** The header settles first; then the writing starts. */
-const START_DELAY_MS = 650;
-/** Pause after a block finishes before the next one starts. */
-const GAP_MS = 220;
-/** Fade-in blocks hold this long before handing over. */
-const FADE_MS = { insight: 950, focus: 520, sign: 420, end: 0 };
+/** Pause after a block before the next one starts. */
+const GAP_MS = 260;
+/** Stamps drop this far apart (matches .cz-stampcard in CSS). */
+const STAMP_GAP_MS = 430;
 
 interface Props {
   account: DemoAccount;
-  /** Play the writing animation (first arrival only). */
+  /** Write it out (first arrival only). */
   animate: boolean;
+  /** The sheet has landed: start writing. */
+  start: boolean;
   /** Line drawing beside the greeting. */
   art: ReactNode;
+  /** "Nov 27", for the stamps' postmarks. */
+  date: string;
   chosen: FocusId[];
   onToggleFocus: (id: FocusId) => void;
   onPreviewFocus: (id: FocusId) => void;
+  /** Something was stamped onto the paper. */
+  onThump?: () => void;
+  health: { connected: boolean; onConnect: () => void };
   /** First arrival: into the chat, where Cozie offers a first action. */
   onTalk?: () => void;
   onLater?: () => void;
 }
 
-export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, onPreviewFocus, onTalk, onLater }: Props) {
-  const letter = buildFirstLetter(account);
-  // -1: waiting for the sheet to settle before the first letter is written.
+export function FirstLetterBody({
+  account,
+  animate,
+  start,
+  art,
+  date,
+  chosen,
+  onToggleFocus,
+  onPreviewFocus,
+  onThump,
+  health,
+  onTalk,
+  onLater,
+}: Props) {
+  const letter = useMemo(() => buildFirstLetter(account), [account]);
+  const sharp = useMemo(() => healthInsight(account), [account]);
+  // -1: waiting for the sheet to land.
   const [step, setStep] = useState(() => (animate && !prefersReducedMotion() ? -1 : ALL));
-  useEffect(() => {
-    if (step !== -1) return;
-    const t = window.setTimeout(() => setStep(0), START_DELAY_MS);
-    return () => window.clearTimeout(t);
-  }, [step]);
   const at = (s: Step) => ORDER.indexOf(s);
   const next = (from: Step) => setStep((cur) => (cur === at(from) ? cur + 1 : cur));
+  const writing = step < ALL;
+  const runs = (s: Step) => step === at(s);
+  const past = (s: Step) => step > at(s);
 
-  // Blocks after the opening wait until they're on screen.
-  const insightRef = useRef<HTMLDivElement>(null);
-  const focusRef = useRef<HTMLDivElement>(null);
-  const emphasisRef = useRef<HTMLParagraphElement>(null);
-  const signRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-  const refs: Partial<Record<Step, RefObject<HTMLElement | null>>> = {
-    insight: insightRef,
-    focus: focusRef,
-    emphasis: emphasisRef,
-    sign: signRef,
-    end: endRef,
+  useEffect(() => {
+    if (step === -1 && start) setStep(0);
+  }, [step, start]);
+
+  // P.S. in three beats: the line, the sticker, the promise under it.
+  const [ps, setPs] = useState(0);
+
+  // Health: connected before this letter opened shows the insight as written.
+  const [wasConnected] = useState(health.connected);
+  const [sharpDone, setSharpDone] = useState(wasConnected);
+  const sharpRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!health.connected || wasConnected) return;
+    const el = sharpRef.current;
+    if (el) reveal(el, 'top');
+  }, [health.connected, wasConnected]);
+
+  // Keep what's being written on screen.
+  const refs: Record<Step, RefObject<HTMLDivElement | null>> = {
+    salutation: useRef(null),
+    opening: useRef(null),
+    noticed: useRef(null),
+    focus: useRef(null),
+    emphasis: useRef(null),
+    sign: useRef(null),
+    ps: useRef(null),
+    end: useRef(null),
   };
   const current = ORDER[step] as Step | undefined;
-  const ready = useInView(current ? refs[current] : undefined, step < ALL);
-
-  // Story letter style: the year-in-review pages play first, then "I noticed"
-  // fills the screen and settles into its card; the letter underneath is
-  // already fully shown. The Letter style just writes the letter (no moment).
-  const [moment, setMoment] = useState<'off' | 'story' | 'playing' | 'landed'>('off');
-  const variant = useLetterVariant();
-  const storyMode =
-    animate && variant === 'story' && !!insightFigures(account, letter.insightFocus).hero && !prefersReducedMotion();
-  const momentOn = storyMode;
-  const pages = storyPages(account, letter.insightFocus);
   useEffect(() => {
-    // The setting is read after mount; switch over before anything is written.
-    if (storyMode && moment === 'off' && step <= 0) {
-      setStep(ALL);
-      setMoment('story');
-    }
-  }, [storyMode, moment, step]);
-
-  // Fade-in steps hand over on a timer once they're on screen.
-  useEffect(() => {
-    if (!current || !(current in FADE_MS) || !ready) return;
-    if (current === 'insight' && momentOn) return; // the moment hands over instead
-    const t = window.setTimeout(() => next(current), FADE_MS[current as keyof typeof FADE_MS] + GAP_MS);
-    return () => window.clearTimeout(t);
+    if (!current || step < 2) return;
+    const el = refs[current].current;
+    if (el) reveal(el, 'bottom');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, ready]);
+  }, [current, step, ps]);
+
+  // Timed steps.
+  useEffect(() => {
+    if (!current) return;
+    let ms = 0;
+    const ts: number[] = [];
+    if (current === 'focus') {
+      for (let i = 0; i < 4; i++) ts.push(window.setTimeout(() => onThump?.(), 520 + i * STAMP_GAP_MS));
+      ms = 520 + 3 * STAMP_GAP_MS + 560;
+    } else if (current === 'sign') ms = 520;
+    else if (current === 'end') ms = 0;
+    else return;
+    ts.push(window.setTimeout(() => next(current), ms + GAP_MS));
+    return () => ts.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current]);
+
+  // The sticker lands, then the promise is written.
+  useEffect(() => {
+    if (ps !== 1) return;
+    const a = window.setTimeout(() => onThump?.(), 240);
+    const b = window.setTimeout(() => setPs(2), 620);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ps]);
 
   const finishAll = () => {
     setStep(ALL);
-    setMoment((m) => (m === 'off' ? m : 'landed'));
+    setPs(3);
+    setSharpDone(true);
   };
-  const writing = step < ALL;
+
+  const ink = (s: Step) => ({
+    run: runs(s),
+    done: past(s),
+    onDone: () => window.setTimeout(() => next(s), GAP_MS),
+    onThump,
+  });
 
   return (
     <div className={cn('cz-first', writing && 'is-writing')} onClick={writing ? finishAll : undefined}>
-      <div className="cz-letter__greeting">
-        <p className="cz-letter__salutation">
-          <Lines text={letter.salutation} run={step === at('salutation')} done={step > at('salutation')} onDone={() => next('salutation')} />
-        </p>
+      <div ref={refs.salutation} className="cz-letter__greeting">
+        <Ink as="span" hand text={letter.salutation} className="cz-letter__salutation" {...ink('salutation')} />
         {art}
       </div>
 
-      <p className="cz-first__opening">
-        <Lines text={letter.opening} run={step === at('opening')} done={step > at('opening')} onDone={() => next('opening')} />
-      </p>
+      <div ref={refs.opening}>
+        <Ink text={letter.opening} className="cz-first__opening" {...ink('opening')} />
+      </div>
 
-      <div
-        ref={insightRef}
-        className={cn(
-          'cz-first__block',
-          (moment === 'story' || moment === 'playing') && 'is-holding',
-          moment === 'landed' ? 'is-in is-landed' : !momentOn && isIn(step, at('insight'), ready) && 'is-in',
-          momentOn && moment !== 'landed' && step > at('insight') && 'is-in',
+      <div ref={refs.noticed} className="cz-first__noticed">
+        <Ink text={letter.noticed} {...ink('noticed')} />
+        {health.connected && (wasConnected ? past('noticed') : true) && (
+          <div ref={sharpRef}>
+            <SharpInsight insight={sharp} run={!wasConnected} done={sharpDone} onDone={() => setSharpDone(true)} />
+          </div>
         )}
-      >
-        {/* Remounted when it appears, so the trend line draws in front of her. */}
-        <InsightStoryCard key={isIn(step, at('insight'), ready) ? 'in' : 'wait'} account={account} id={letter.insightFocus} />
       </div>
-      {moment === 'story' && (
-        <LetterStory
-          pages={pages}
-          total={pages.length + 1}
-          anchor={() => insightRef.current}
-          onDone={() => setMoment('playing')}
-          onSkip={() => setMoment('landed')}
-        />
-      )}
-      {moment === 'playing' && (storyMode || step === at('insight')) && (
-        <InsightMoment
-          account={account}
-          id={letter.insightFocus}
-          target={() => insightRef.current?.querySelector<HTMLElement>('.sc') ?? null}
-          fromStory={storyMode ? { total: pages.length + 1 } : undefined}
-          onDone={() => {
-            setMoment('landed');
-            if (!storyMode) next('insight');
-          }}
-        />
-      )}
 
-      <div ref={focusRef} className={cn('cz-first__block cz-first__focus', isIn(step, at('focus'), ready) && 'is-in')}>
+      <div ref={refs.focus} className={cn('cz-first__block cz-first__focus', (runs('focus') || past('focus')) && 'is-in', past('focus') && 'is-settled')}>
         <p className="cz-first__lead">I’ll keep an eye on these for you:</p>
-        <FocusCards account={account} chosen={chosen} onToggle={onToggleFocus} onPreview={onPreviewFocus} />
-        <p className="cz-first__hint">
-          {account.devices.length > 0 ? 'Ticked to match your Momcozy devices. ' : ''}Tap a card to see what Cozie can do
-          there.
-        </p>
+        <FocusCards account={account} chosen={chosen} date={date} onToggle={onToggleFocus} onPreview={onPreviewFocus} />
+        <p className="cz-first__hint">Tick the ones you want me to watch. Tap a stamp to see more.</p>
       </div>
 
-      <p ref={emphasisRef} className="cz-letter__emphasis cz-first__emphasis">
-        <Lines
-          text={letter.emphasis}
-          run={step === at('emphasis') && ready}
-          done={step > at('emphasis')}
-          onDone={() => next('emphasis')}
-        />
-      </p>
+      <div ref={refs.emphasis}>
+        <Ink text={letter.emphasis} className="cz-letter__emphasis" {...ink('emphasis')} />
+      </div>
 
-      <div ref={signRef} className={cn('cz-first__block', isIn(step, at('sign'), ready) && 'is-in')}>
-        <div className="cz-letter__sign">
+      <div ref={refs.sign} className={cn('cz-first__block', (runs('sign') || past('sign')) && 'is-in')}>
+        <div className="cz-letter__sign cz-letter__sign--hand">
           <span>{letter.closing}</span>
           <strong>Cozie</strong>
         </div>
       </div>
 
-      <div ref={endRef} className={cn('cz-first__block cz-first__end', isIn(step, at('end'), ready) && 'is-in')}>
-        <p className="cz-first__source">
-          Based on your Momcozy account. Everything Cozie knows is in your memory profile, where you can change it.
-        </p>
+      <div ref={refs.ps} className="cz-first__ps">
+        <Ink
+          hand
+          text={letter.ps}
+          run={runs('ps') && ps === 0}
+          done={past('ps') || ps > 0}
+          onDone={() => setPs(1)}
+          onThump={onThump}
+        />
+        <div className={cn('cz-sticker-wrap', (ps >= 1 || past('ps')) && 'is-in', ps === 1 && runs('ps') && 'is-stamping')}>
+          <button
+            type="button"
+            className={cn('cz-sticker', health.connected && 'is-done')}
+            disabled={health.connected}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (writing) finishAll();
+              health.onConnect();
+            }}
+          >
+            <HeartTile />
+            <span>{health.connected ? 'Apple Health connected' : 'Connect Apple Health'}</span>
+            {health.connected && (
+              <i className="cz-sticker__check" aria-hidden>
+                <svg viewBox="0 0 16 16">
+                  <path d="m3.8 8.4 2.7 2.7 5.7-6" />
+                </svg>
+              </i>
+            )}
+          </button>
+        </div>
+        <Ink
+          hand
+          text={letter.trust}
+          className="cz-first__trust"
+          run={runs('ps') && ps === 2}
+          done={past('ps') || ps > 2}
+          onDone={() => {
+            setPs(3);
+            window.setTimeout(() => next('ps'), GAP_MS);
+          }}
+        />
+      </div>
+
+      <div ref={refs.end} className={cn('cz-first__block cz-first__end', (runs('end') || past('end')) && 'is-in')}>
         {onTalk && (
           <div className="cz-first__actions">
-            <button type="button" className="cz-letter__btn cz-letter__connect cz-first__talk" onClick={onTalk}>
+            <button
+              type="button"
+              className="cz-letter__btn cz-first__talk"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTalk();
+              }}
+            >
               Talk to Cozie
             </button>
             {onLater && (
-              <button type="button" className="cz-letter__btn is-quiet" onClick={onLater}>
+              <button
+                type="button"
+                className="cz-letter__btn is-quiet"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLater();
+                }}
+              >
                 Maybe later
               </button>
             )}
@@ -201,76 +266,15 @@ export function FirstLetterBody({ account, animate, art, chosen, onToggleFocus, 
   );
 }
 
-/** A block is visible once its step has started and it's on screen, or once
- *  the writing has moved past it. */
-function isIn(step: number, index: number, readyNow: boolean) {
-  return step > index || (step === index && readyNow);
-}
-
-function prefersReducedMotion() {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-
-/** True once the element has been on screen (while `active`). */
-function useInView(ref: RefObject<HTMLElement | null> | undefined, active: boolean) {
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    setInView(false);
-    const el = ref?.current;
-    if (!active || !el) return;
-    const io = new IntersectionObserver(([entry]) => entry.isIntersecting && setInView(true), { threshold: 0.2 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [ref, active]);
-  return inView;
-}
-
-/** Text that appears line by line as it is laid out: each word knows which
- *  line it landed on, and lines fade up one after another. The text keeps its
- *  place while hidden, so nothing below jumps. */
-function Lines({ text, run, done, onDone }: { text: string; run: boolean; done: boolean; onDone: () => void }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [lineOf, setLineOf] = useState<number[]>([]);
-  const doneRef = useRef(onDone);
-  doneRef.current = onDone;
-  const tokens = text.split(/(\s+)/).filter(Boolean);
-
-  // Which line each word sits on, from where it was laid out.
-  useLayoutEffect(() => {
-    const words = ref.current?.querySelectorAll<HTMLElement>('[data-w]');
-    if (!words) return;
-    const out: number[] = [];
-    let line = -1;
-    let top = -Infinity;
-    words.forEach((w) => {
-      if (w.offsetTop > top + 2) {
-        line++;
-        top = w.offsetTop;
-      }
-      out.push(line);
-    });
-    setLineOf(out);
-  }, [text]);
-
-  const lines = lineOf.length ? lineOf[lineOf.length - 1] + 1 : 1;
-  useEffect(() => {
-    if (!run) return;
-    const t = window.setTimeout(() => doneRef.current(), (lines - 1) * LINE_MS + LINE_FADE_MS + GAP_MS);
-    return () => window.clearTimeout(t);
-  }, [run, lines]);
-
-  let w = -1;
-  return (
-    <span ref={ref} className={cn('cz-lines', (run || done) && 'is-run', done && 'is-done')}>
-      {tokens.map((t, i) => {
-        if (/^\s+$/.test(t)) return t;
-        w++;
-        return (
-          <span key={i} data-w="" style={{ '--l': lineOf[w] ?? 0 } as CSSProperties}>
-            {t}
-          </span>
-        );
-      })}
-    </span>
-  );
+/** Scrolls the letter so the block being written is in view: its bottom
+ *  while it writes, or its top for something that just opened. */
+function reveal(el: HTMLElement, edge: 'top' | 'bottom') {
+  const box = el.closest<HTMLElement>('.cz-letter__body');
+  if (!box) return;
+  const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+  const want =
+    edge === 'top' ? top - 120 : Math.min(top - 24, top + el.offsetHeight - box.clientHeight + 48);
+  if (edge === 'top' ? Math.abs(want - box.scrollTop) > 8 : want > box.scrollTop + 4) {
+    box.scrollTo({ top: Math.max(0, want), behavior: 'smooth' });
+  }
 }

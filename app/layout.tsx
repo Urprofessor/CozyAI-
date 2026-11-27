@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import { Caveat } from 'next/font/google';
 import './globals.css';
 import { OriginMark } from '@/components/OriginMark';
+
+// Handwriting in the From Cozie letter.
+const caveat = Caveat({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-caveat', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'CozyAI',
@@ -34,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-build="CZ-275C06BC-347D">
+    <html lang="en" data-build="CZ-275C06BC-347D" className={caveat.variable}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
