@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 
 # Momcozy demo reference project — internal-use fonts, do not push to GitHub
 /momcozy-demo/
+
+# Third-party reference sources, kept out of git
+reference/
