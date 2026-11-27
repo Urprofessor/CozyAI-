@@ -1,5 +1,5 @@
 /* App shell + page styles, ported from the Momcozy demo App.css.
-   Changes vs the demo: no fake iOS status bar, bottom nav replaced by the
+   Changes vs the demo: on desktop an iPhone frame with its own status bar (phones get the bare app), bottom nav replaced by the
    5-tab liquid-glass bar, plus Home-rebuild and Cozy chat additions. */
 
 .demo-stage {
@@ -9,22 +9,116 @@
   padding: var(--space-6);
 }
 
+/* ---------- desktop: an iPhone around the app ---------- */
+.phone-device {
+  --device-bezel: 12px;
+  --status-h: 50px;
+  position: relative;
+  padding: var(--device-bezel);
+  border-radius: 66px;
+  background: linear-gradient(150deg, #2c2c30 0%, #0e0e10 38%, #1c1c1f 100%);
+  box-shadow:
+    inset 0 0 0 1.5px #3b3b40,
+    inset 0 0 0 4px #0a0a0b,
+    0 40px 80px rgba(36, 15, 27, 0.18),
+    0 8px 20px rgba(36, 15, 27, 0.12);
+}
+
+/* Side buttons: action, volume up and down on the left, power on the right. */
+.phone-device__btn {
+  position: absolute;
+  width: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #1a1a1d, #3a3a3f);
+}
+.phone-device__btn.is-action { left: -3px; top: 118px; height: 32px; }
+.phone-device__btn.is-up { left: -3px; top: 176px; height: 60px; }
+.phone-device__btn.is-down { left: -3px; top: 248px; height: 60px; }
+.phone-device__btn.is-power {
+  right: -3px;
+  top: 206px;
+  height: 92px;
+  background: linear-gradient(270deg, #1a1a1d, #3a3a3f);
+}
+
 .phone-screen {
   width: min(100vw, 403px);
-  height: min(100svh, 874px);
-  min-height: 740px;
+  height: min(calc(100svh - 2 * var(--space-6) - 2 * var(--device-bezel)), 874px);
+  min-height: 700px;
   position: relative;
   overflow: hidden;
   isolation: isolate;
   color: var(--colors-text-color-text-primary);
   background: var(--colors-backgrouds-primary);
-  border: var(--colors-border-width-primary) solid var(--colors-border-primary);
-  border-radius: var(--radius-4xl);
-  box-shadow:
-    0 var(--tokens-32) var(--tokens-72)
-      color-mix(in srgb, var(--colors-grays-900) 13%, transparent),
-    0 var(--tokens-2) var(--tokens-8)
-      color-mix(in srgb, var(--colors-grays-900) 6%, transparent);
+  border-radius: 54px;
+}
+
+/* The app sits under the status bar, as with iOS's default status bar style. */
+.phone-app {
+  position: absolute;
+  inset: var(--status-h) 0 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.phone-status {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1000;
+  height: var(--status-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 30px 0 46px;
+  color: #000;
+  pointer-events: none;
+}
+/* Over Cozie's chat the strip takes the chat's pink wash, so there is no seam. */
+.phone-status::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, #fce3e6, #fed7dd 50%, #fce3e6);
+  opacity: 0;
+  transition: opacity var(--dur-3) ease;
+}
+.phone-screen:has(.cozy-stage.is-open) .phone-status::before {
+  opacity: 1;
+}
+.phone-status__time {
+  font: 600 16px/1 -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  letter-spacing: -0.2px;
+}
+.phone-status__icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.phone-status__icons svg {
+  fill: currentColor;
+}
+.phone-status__island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 122px;
+  height: 35px;
+  margin-left: -61px;
+  border-radius: 20px;
+  background: #000;
+}
+.phone-homebar {
+  position: absolute;
+  z-index: 1000;
+  bottom: 8px;
+  left: 50%;
+  width: 134px;
+  height: 5px;
+  margin-left: -67px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.82);
+  pointer-events: none;
 }
 
 .phone-screen::before {
@@ -1683,13 +1777,28 @@
     padding: 0;
   }
 
+  .phone-device {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .phone-device__btn,
+  .phone-status,
+  .phone-homebar {
+    display: none;
+  }
+
   .phone-screen {
     width: 100vw;
     height: 100dvh;
     min-height: 0;
-    border: 0;
     border-radius: 0;
-    box-shadow: none;
+  }
+
+  .phone-app {
+    inset: 0;
   }
 
   /* Feel like the app: no long-press callouts or stray text selection on
