@@ -140,7 +140,7 @@
   box-shadow: 0 6px 18px rgba(36, 15, 27, 0.1), 0 1px 3px rgba(36, 15, 27, 0.08);
   cursor: pointer;
   /* Position and size follow the orbit frame by frame (MemoryOrbit). */
-  transition: box-shadow 300ms ease;
+  transition: box-shadow var(--dur-3) ease;
 }
 
 /* White mat inside, crimson rule outside when selected. */
@@ -158,7 +158,7 @@
   inset: 0;
   border-radius: inherit;
   border: 2.5px solid transparent;
-  transition: border-color 300ms ease;
+  transition: border-color var(--dur-3) ease;
   pointer-events: none;
 }
 
@@ -190,7 +190,7 @@
   line-height: 20px;
   color: var(--cz-ink);
   white-space: nowrap;
-  transition: opacity 200ms ease;
+  transition: opacity var(--dur-2) ease;
 }
 
 /* ---------- Portrait ---------- */
@@ -303,14 +303,8 @@
   display: grid;
   gap: 12px;
   margin: 20px 16px 0;
-  animation: mpFade 260ms ease both;
-}
-
-@keyframes mpFade {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
+  --cz-rise: 6px;
+  animation: cz-in-rise var(--dur-3) var(--spring-smooth) both;
 }
 
 .mp-empty {

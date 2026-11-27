@@ -191,7 +191,7 @@
 .sc .sc__trend-dot {
   fill: var(--sc-ink);
   opacity: 0;
-  animation: sc-dot 300ms 1200ms ease-out forwards;
+  animation: sc-dot var(--dur-3) 1200ms ease-out forwards;
 }
 .sc .sc__trend figcaption {
   margin-top: 6px;
@@ -392,7 +392,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 64px 28px 84px;
-  transition: opacity 260ms ease;
+  transition: opacity var(--dur-3) ease;
 }
 .im.is-out .im__content {
   opacity: 0;
@@ -464,9 +464,10 @@
 .im .im__trend,
 .im .im__art,
 .im .im__source {
-  animation-name: im-rise;
+  --cz-rise: 14px;
+  animation-name: cz-in-rise;
   animation-duration: 560ms;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-timing-function: var(--spring-smooth);
   animation-fill-mode: both;
 }
 .im .im__eyebrow { animation-delay: 220ms; }
@@ -476,15 +477,10 @@
 .im .im__trend { animation-delay: 640ms; }
 .im .im__source { animation-delay: 760ms; }
 .im .im__art {
+  --cz-rise: 14px;
   animation:
-    im-rise 700ms 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    cz-in-rise 700ms 380ms var(--spring-smooth) both,
     im-drift 4s 1100ms ease-in-out infinite alternate;
-}
-@keyframes im-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
 }
 @keyframes im-drift {
   to {
@@ -602,7 +598,8 @@
   padding: 80px 28px 120px;
 }
 .ls__page > * {
-  animation: im-rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --cz-rise: 14px;
+  animation: cz-in-rise 600ms var(--spring-smooth) both;
 }
 .ls__page > :nth-child(2) { animation-delay: 120ms; }
 .ls__page > :nth-child(3) { animation-delay: 240ms; }
@@ -646,8 +643,9 @@
   width: 44%;
   max-width: 200px;
   height: auto;
+  --cz-rise: 14px;
   animation:
-    im-rise 700ms 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    cz-in-rise 700ms 300ms var(--spring-smooth) both,
     im-drift 4s 1000ms ease-in-out infinite alternate;
 }
 
@@ -728,7 +726,7 @@
 .im.is-out .im__progress,
 .im.is-out .im__hint {
   opacity: 0;
-  transition: opacity 200ms ease;
+  transition: opacity var(--dur-2) ease;
 }
 .im .im__source {
   bottom: 46px;

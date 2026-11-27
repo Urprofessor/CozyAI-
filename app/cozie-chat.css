@@ -42,7 +42,7 @@
   height: 62px;
   display: flex;
   gap: 10px;
-  transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--dur-3) var(--spring-smooth);
 }
 
 .glass-tab-bar__pill,
@@ -108,7 +108,7 @@
   border-radius: 27px;
   color: var(--cz-rose);
   text-decoration: none;
-  transition: background-color 150ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 
 .glass-tab-bar__item.is-active {
@@ -155,9 +155,9 @@
      indicator area. */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   transition:
-    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-radius 300ms ease,
-    box-shadow 300ms ease;
+    transform var(--dur-3) var(--spring-smooth),
+    border-radius var(--dur-3) ease,
+    box-shadow var(--dur-3) ease;
 }
 
 .kb-open .cz-page {
@@ -296,7 +296,7 @@
   justify-content: center;
   gap: 6px;
   padding: 52px 24px 0;
-  animation: czFadeIn 180ms ease both;
+  animation: cz-in-fade var(--dur-1) ease both;
 }
 
 .kb-open .cz-home {
@@ -333,15 +333,6 @@
   line-height: 34px;
   color: var(--cz-accent);
   text-align: center;
-}
-
-@keyframes czFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 /* ---------- Chat list (ChatListComponent + cells) ---------- */
@@ -804,7 +795,7 @@
   border: 0;
   border-radius: 18px;
   background: #e4e2e3;
-  transition: background-color 150ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 
 .cz-send.is-enabled {
@@ -878,7 +869,7 @@
   display: flex;
   padding: 60px 16px 16px;
   background: var(--cz-bg);
-  animation: czFadeIn 180ms ease both;
+  animation: cz-in-fade var(--dur-1) ease both;
 }
 
 .cz-fullinput__card {
@@ -929,7 +920,7 @@
   padding-top: 18px;
   background: #fff;
   visibility: hidden;
-  transition: visibility 0s linear 300ms;
+  transition: visibility 0s linear var(--dur-3);
 }
 
 .cz-history.is-open {
@@ -991,7 +982,7 @@
   border-radius: 12px;
   background: var(--cz-fill);
   opacity: 0;
-  transition: opacity 150ms ease;
+  transition: opacity var(--dur-1) ease;
 }
 
 .cz-history__row.is-current::before,
@@ -1059,7 +1050,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 10px 40px rgba(36, 15, 27, 0.16);
-  animation: czFadeIn 120ms ease both;
+  animation: cz-in-fade var(--dur-1) ease both;
 }
 
 .cz-history__menu button {
@@ -1141,8 +1132,8 @@
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 300ms ease,
-    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity var(--dur-3) ease,
+    transform var(--dur-3) var(--spring-smooth);
 }
 
 .cz-history-preview.is-open {
@@ -1172,7 +1163,7 @@
   background: rgba(36, 15, 27, 0.25);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 250ms ease;
+  transition: opacity var(--dur-2) ease;
 }
 
 .cz-sheet-scrim.is-open {
@@ -1197,8 +1188,8 @@
   transform: translateY(calc(100% + 16px));
   visibility: hidden;
   transition:
-    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s linear 320ms;
+    transform var(--dur-3) var(--spring-smooth),
+    visibility 0s linear var(--dur-3);
 }
 
 .cz-sheet.is-open {
@@ -1326,7 +1317,7 @@
   border: 0;
   border-radius: 16px;
   background: #e9e9ea;
-  transition: background-color 200ms ease;
+  transition: background-color var(--dur-2) ease;
 }
 
 .cz-switch::after {
@@ -1339,7 +1330,7 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-  transition: transform 200ms ease;
+  transition: transform var(--dur-2) var(--spring-snappy);
 }
 
 .cz-switch.is-on {
@@ -1425,7 +1416,7 @@
   place-items: center;
   padding: 0 40px;
   background: rgba(36, 15, 27, 0.25);
-  animation: czFadeIn 150ms ease both;
+  animation: cz-in-fade var(--dur-1) ease both;
 }
 
 .cz-alert {
@@ -1498,7 +1489,7 @@
   font-size: 14px;
   line-height: 18px;
   transform: translateX(-50%);
-  animation: czToastIn 220ms ease both;
+  animation: czToastIn var(--dur-2) var(--spring-smooth) both;
   pointer-events: none;
 }
 
@@ -1635,7 +1626,7 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity var(--dur-3) ease;
 }
 
 .cz-consent__video.is-ready {
@@ -2264,7 +2255,8 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
   color: var(--cz-ink);
   font-family: var(--cz-ui);
-  animation: czClarifyIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --cz-rise: 16px;
+  animation: cz-in-rise var(--dur-3) var(--spring-smooth);
 }
 
 .kb-open .cz-clarify {
@@ -2325,7 +2317,7 @@
   border-radius: 1.5px;
   background: rgba(36, 15, 27, 0.1);
   cursor: pointer;
-  transition: background 200ms ease;
+  transition: background var(--dur-2) ease;
 }
 /* 44px-ish tap target around a 3px bar. */
 .cz-clarify__progress button::before {
@@ -2341,7 +2333,7 @@
 }
 
 .cz-clarify__body {
-  animation: czClarifyStep 220ms ease;
+  animation: czClarifyStep var(--dur-2) var(--spring-smooth);
 }
 
 .cz-clarify__title {
@@ -2385,8 +2377,8 @@
   text-align: left;
   cursor: pointer;
   transition:
-    background 160ms ease,
-    border-color 160ms ease;
+    background var(--dur-1) ease,
+    border-color var(--dur-1) ease;
 }
 .cz-clarify__opt.is-on {
   background: var(--colors-brands-mom-50, #fff7f8);
@@ -2405,7 +2397,7 @@
   border: 1.5px solid var(--colors-grays-300, #d3cfd1);
   border-radius: 50%;
   background: var(--colors-grays-0, #fff);
-  transition: border-color 160ms ease;
+  transition: border-color var(--dur-1) ease;
 }
 .cz-clarify__radio::after {
   content: '';
@@ -2414,7 +2406,7 @@
   border-radius: 50%;
   background: var(--cz-accent);
   transform: scale(0);
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1.4);
+  transition: transform var(--dur-1) var(--spring-soft);
 }
 .cz-clarify__opt.is-on .cz-clarify__radio {
   border-color: var(--cz-accent);
@@ -2434,8 +2426,8 @@
   border-radius: 6px;
   background: var(--colors-grays-0, #fff);
   transition:
-    background 160ms ease,
-    border-color 160ms ease;
+    background var(--dur-1) ease,
+    border-color var(--dur-1) ease;
 }
 .cz-clarify__check svg {
   width: 14px;
@@ -2447,7 +2439,7 @@
   stroke-linejoin: round;
   stroke-dasharray: 14;
   stroke-dashoffset: 14;
-  transition: stroke-dashoffset 200ms ease 40ms;
+  transition: stroke-dashoffset var(--dur-2) ease 40ms;
 }
 .cz-clarify__opt.is-on .cz-clarify__check {
   border-color: var(--cz-accent);
@@ -2513,12 +2505,6 @@
   background: var(--colors-brands-mom-900, #3e0010);
 }
 
-@keyframes czClarifyIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-}
 @keyframes czClarifyStep {
   from {
     opacity: 0;

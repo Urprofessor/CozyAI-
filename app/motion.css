@@ -1,0 +1,102 @@
+/* Motion tokens. Every transition and entrance picks from these.
+ *
+ * Springs (mass 1, stiffness / damping), sampled into CSS linear():
+ *   smooth  170/26  no overshoot      panels, pages, sheets, neutral moves
+ *   snappy  420/38  settles fast      presses, toggles, small state flips
+ *   soft    220/21  ~4% overshoot     cards and bubbles arriving
+ *   bouncy  320/16  ~20% overshoot    celebration, checks, stamps, pop-ins
+ * The curve shape is fixed; the duration you pair it with sets the speed.
+ * Natural lengths: smooth 730ms, snappy 400ms, soft 710ms, bouncy 920ms.
+ * Pick by feeling: neutral content never bounces, only good news does.
+ *
+ * Durations: four steps. Longer, choreographed sequences (intro, letter,
+ * stories) keep their own lengths.
+ *
+ * Entrances: cz-in-fade, cz-in-rise, cz-in-card, cz-in-pop, cz-in-sheet,
+ * cz-in-focus. Moves stay small (rise 8px, scale .97); depth comes from
+ * stagger and blur, not distance. Tune per element with --cz-rise,
+ * --cz-scale, --cz-pop, --cz-blur; stagger with --i.
+ *
+ * Curves come from scripts/springs.mjs; rerun it if a spring changes.
+ */
+
+:root {
+  --spring-smooth: linear(0, 0.007 1.1%, 0.023 2.3%, 0.082 4.8%, 0.16 7.3%, 0.366 13.3%, 0.463 16.2%, 0.557 19.5%, 0.639 22.7%, 0.708 25.9%, 0.769 29.3%, 0.822 33%, 0.863 36.6%, 0.901 41%, 0.932 46%, 0.956 51.5%, 0.973 57.7%, 0.992 73%, 1);
+  --spring-snappy: linear(0, 0.007 1.3%, 0.022 2.5%, 0.053 4.2%, 0.093 5.9%, 0.176 8.9%, 0.473 18.6%, 0.563 21.9%, 0.643 25.3%, 0.712 28.7%, 0.769 32.1%, 0.823 35.9%, 0.865 39.7%, 0.905 44.3%, 0.934 48.9%, 0.958 54.4%, 0.975 60.3%, 0.994 75.1%, 1);
+  --spring-soft: linear(0, 0.009 1.2%, 0.03 2.4%, 0.062 3.5%, 0.111 5%, 0.22 7.5%, 0.465 12.7%, 0.582 15.3%, 0.686 17.9%, 0.776 20.5%, 0.851 23.1%, 0.911 25.7%, 0.96 28.5%, 0.995 31.4%, 1.015 33.7%, 1.03 36.3%, 1.041 42.2%, 1.003 69.6%, 1);
+  --spring-bouncy: linear(0, 0.009 0.7%, 0.037 1.6%, 0.082 2.6%, 0.154 3.6%, 0.225 4.6%, 0.303 5.5%, 0.626 8.9%, 0.755 10.4%, 0.885 12%, 0.983 13.5%, 1.063 14.9%, 1.131 16.6%, 1.172 18%, 1.198 19.7%, 1.205 21.5%, 1.191 23.7%, 1.16 25.9%, 1.054 31.5%, 1.011 34.2%, 0.976 37.5%, 0.96 40.8%, 0.961 45.2%, 0.997 55.4%, 1.008 61.6%, 0.999 81.8%, 1);
+
+  /* Leaving the screen: accelerate away, no spring. */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --dur-1: 160ms; /* presses, toggles, colour */
+  --dur-2: 200ms; /* fades, small pops */
+  --dur-3: 300ms; /* cards, sheets, page moves */
+  --dur-4: 420ms; /* panels, big arrivals */
+
+  --stagger: 50ms;
+}
+
+/* Browsers without linear(): close cubic-bezier stand-ins. */
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --spring-snappy: cubic-bezier(0.25, 1, 0.5, 1);
+    --spring-soft: cubic-bezier(0.34, 1.3, 0.64, 1);
+    --spring-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* ---- Entrances ---- */
+
+/* Not inherited, so a parent's --cz-rise never leaks into a child's entrance. */
+@property --cz-rise { syntax: '<length>'; inherits: false; initial-value: 8px; }
+@property --cz-scale { syntax: '<number>'; inherits: false; initial-value: 0.97; }
+@property --cz-pop { syntax: '<number>'; inherits: false; initial-value: 0.6; }
+@property --cz-blur { syntax: '<length>'; inherits: false; initial-value: 6px; }
+@property --i { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+@keyframes cz-in-fade {
+  from { opacity: 0; }
+}
+@keyframes cz-in-rise {
+  from { opacity: 0; transform: translateY(var(--cz-rise, 8px)); }
+}
+@keyframes cz-in-card {
+  from { opacity: 0; transform: translateY(var(--cz-rise, 8px)) scale(var(--cz-scale, 0.97)); }
+}
+@keyframes cz-in-pop {
+  from { opacity: 0; transform: scale(var(--cz-pop, 0.6)); }
+}
+@keyframes cz-in-sheet {
+  from { transform: translateY(100%); }
+}
+@keyframes cz-in-focus {
+  from { opacity: 0; filter: blur(var(--cz-blur, 6px)); }
+}
+
+.cz-in-fade { animation: cz-in-fade var(--dur-2) ease both; }
+.cz-in-rise { animation: cz-in-rise var(--dur-3) var(--spring-smooth) both; }
+.cz-in-card { animation: cz-in-card var(--dur-4) var(--spring-soft) both; }
+.cz-in-pop { animation: cz-in-pop var(--dur-4) var(--spring-bouncy) both; }
+.cz-in-sheet { animation: cz-in-sheet var(--dur-4) var(--spring-smooth) both; }
+.cz-in-focus { animation: cz-in-focus var(--dur-4) var(--spring-smooth) both; }
+
+:is(.cz-in-fade, .cz-in-rise, .cz-in-card, .cz-in-pop, .cz-in-sheet, .cz-in-focus) {
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* ---- Reduced motion: everything lands at once, nothing loops ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

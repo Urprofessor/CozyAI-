@@ -85,10 +85,10 @@
   letter-spacing: 0;
   line-height: var(--type-title-m-medium-line-height);
   transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease;
+    background-color var(--dur-1) ease,
+    color var(--dur-1) ease,
+    box-shadow var(--dur-1) ease,
+    transform var(--dur-1) var(--spring-snappy);
 }
 
 .mc-button:hover {
@@ -1336,19 +1336,8 @@
   --color-mom-900: var(--colors-brands-mom-900);
 }
 
-@keyframes cozyRise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 .animate-rise {
-  animation: cozyRise 260ms ease both;
+  animation: cz-in-rise var(--dur-3) var(--spring-smooth) both;
 }
 
 /* ---------- Next-up briefing (sticky, collapsible) ---------- */
@@ -1378,7 +1367,7 @@
 .nextup__body {
   max-height: 320px;
   opacity: 1;
-  transition: max-height 0.28s ease, opacity 0.2s ease;
+  transition: max-height var(--dur-3) ease, opacity var(--dur-2) ease;
 }
 
 .nextup__body--collapsed {
@@ -1604,7 +1593,7 @@
   height: 100%;
   border-radius: var(--radius-full);
   background: var(--colors-brands-mom-700);
-  transition: width 240ms ease;
+  transition: width var(--dur-2) ease;
 }
 
 .lac-q__scroll {
@@ -1870,7 +1859,7 @@
   font-family: 'Aeonik Soft Pro', system-ui, sans-serif;
   text-align: left;
   cursor: pointer;
-  animation: notifyIn 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: notifyIn var(--dur-4) var(--spring-smooth);
 }
 .notify-banner__icon {
   flex-shrink: 0;

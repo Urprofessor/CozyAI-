@@ -20,7 +20,7 @@
   background: rgba(249, 247, 245, 0.7);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  animation: czFadeIn 300ms ease both;
+  animation: cz-in-fade var(--dur-3) ease both;
 }
 
 /* Envelope: back, paper, front pocket, flap, seal — stacked in that order. */
@@ -249,7 +249,7 @@
 .cz-letter__head,
 .cz-letter__body > *,
 .cz-letter__actions {
-  animation: czLetterLine 520ms ease both;
+  animation: cz-in-rise 520ms var(--spring-smooth) both;
 }
 
 .cz-letter__head {
@@ -282,13 +282,6 @@
 .cz-letter.is-instant .cz-letter__actions {
   animation-delay: 0ms;
   animation-duration: 1ms;
-}
-
-@keyframes czLetterLine {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
 }
 
 .cz-letter__head {
