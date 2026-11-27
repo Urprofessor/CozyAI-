@@ -674,42 +674,48 @@
   box-shadow: 0 8px 18px rgba(119, 5, 35, 0.22);
 }
 
-/* Stamps: what Cozie keeps an eye on (components/cozy/focus/LetterFocus.tsx). */
+/* Stamps: what Cozie keeps an eye on (components/cozy/focus/LetterFocus.tsx).
+   A white perforated stamp (edge holes cut with a mask), a pastel face, and
+   a postmark over the top-right corner. */
 .cz-stamps {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 14px;
+  grid-template-columns: repeat(2, 150px);
+  justify-content: center;
+  gap: 14px 13px;
   margin: 0;
-  padding: 8px 6px 0;
+  padding: 10px 0 0;
   list-style: none;
 }
 .cz-stampcard {
   position: relative;
-  aspect-ratio: 150 / 204;
+  width: 150px;
+  height: 210px;
   transform: rotate(var(--tilt));
+  filter: drop-shadow(0 1px 1.5px rgba(62, 0, 16, 0.12)) drop-shadow(0 6px 10px rgba(62, 0, 16, 0.07));
 }
 .cz-stampcard__paper {
   position: absolute;
   inset: 0;
-  padding: 6px;
-  background: radial-gradient(circle, transparent 3px, #fffdfa 3.5px) -5px -5px / 10px 10px;
-  filter: drop-shadow(0 1.5px 2.5px rgba(62, 0, 16, 0.16));
+  background: #fffdfa;
+  -webkit-mask:
+    linear-gradient(#000 0 0) center / calc(100% - 10px) calc(100% - 10px) no-repeat,
+    radial-gradient(circle at 5px 5px, transparent 3.1px, #000 3.6px) -5px -5px / 10px 10px;
+  mask:
+    linear-gradient(#000 0 0) center / calc(100% - 10px) calc(100% - 10px) no-repeat,
+    radial-gradient(circle at 5px 5px, transparent 3.1px, #000 3.6px) -5px -5px / 10px 10px;
 }
 .cz-stampcard__face {
-  height: 100%;
+  position: absolute;
+  inset: 9px;
   display: flex;
   flex-direction: column;
-  padding: 12px 11px 9px;
-  border: 1px solid rgba(142, 14, 51, 0.12);
-  background: linear-gradient(165deg, var(--t1), var(--t2));
-  transition: filter var(--dur-2) ease;
-}
-.cz-stampcard:not(.is-on) .cz-stampcard__face {
-  filter: saturate(0.45) brightness(1.03);
+  padding: 11px 11px 9px;
+  border: 1px solid rgba(142, 14, 51, 0.08);
+  background: linear-gradient(170deg, var(--t1), var(--t2));
 }
 .cz-stampcard__ic {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -717,55 +723,124 @@
   color: var(--letter-wine);
 }
 .cz-stampcard__ic svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
 }
 .cz-stampcard__face strong {
-  margin-top: 10px;
-  font: 400 17px/1.06 var(--cz-brand);
+  margin-top: 13px;
+  font: 400 17px/18px var(--cz-brand);
   color: #3e0010;
 }
 .cz-stampcard__line {
-  flex: 1;
-  margin-top: 6px;
+  margin-top: 7px;
   font-size: 11.5px;
-  line-height: 1.35;
+  line-height: 15px;
   color: rgba(36, 15, 27, 0.78);
 }
 .cz-stampcard__foot {
   display: flex;
   justify-content: space-between;
-  gap: 4px;
+  margin-top: auto;
   font-size: 7px;
   font-weight: 600;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.26px;
   text-transform: uppercase;
   color: rgba(119, 5, 35, 0.5);
 }
+/* The tick box: a dashed ring in the top-right corner. Choosing a direction
+   stamps a postmark onto it; choosing again lifts it off. */
+.cz-stampcard__pick {
+  position: absolute;
+  z-index: 2;
+  top: -15px;
+  right: -17px;
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.cz-stampcard__pick:focus-visible {
+  outline: 2px solid var(--letter-wine);
+  outline-offset: -6px;
+}
+.cz-stampcard__slot {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed rgba(142, 14, 51, 0.42);
+  border-radius: 50%;
+  background: rgba(255, 253, 250, 0.6);
+  transition:
+    opacity var(--dur-2) ease,
+    transform var(--dur-2) var(--spring-snappy);
+}
+.cz-stampcard__slot svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: rgba(142, 14, 51, 0.6);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.cz-stampcard__pick:active .cz-stampcard__slot {
+  transform: scale(0.88);
+}
+.cz-stampcard.is-on .cz-stampcard__slot {
+  opacity: 0;
+  transform: scale(0.7);
+}
 .cz-stampcard__mark {
   position: absolute;
-  top: -12px;
-  right: -14px;
-  width: 64px;
-  height: 64px;
-  stroke: var(--letter-ink);
-  opacity: 0.34;
-  transform: rotate(-14deg);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--letter-wine);
+  opacity: 0;
+  transform: rotate(-14deg) scale(1.15);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
   pointer-events: none;
 }
+.cz-stampcard.is-on .cz-stampcard__mark {
+  opacity: 0.62;
+  transform: rotate(-14deg) scale(1);
+}
+.cz-stampcard.is-on.is-fresh .cz-stampcard__mark {
+  animation: cz-postmark-stamp 420ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes cz-postmark-stamp {
+  0% {
+    opacity: 0;
+    transform: rotate(-30deg) scale(1.8);
+  }
+  55% {
+    opacity: 0.8;
+    transform: rotate(-12deg) scale(0.94);
+  }
+  100% {
+    opacity: 0.62;
+    transform: rotate(-14deg) scale(1);
+  }
+}
 .cz-stampcard__mark text {
-  fill: var(--letter-ink);
+  fill: var(--letter-wine);
   stroke: none;
   font-family: var(--cz-ui);
 }
 .cz-stampcard__ring {
-  font-size: 6.4px;
+  font-size: 7px;
   font-weight: 600;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.9px;
 }
-.cz-stampcard__day {
-  font-size: 12px;
-  font-weight: 700;
+.cz-stampcard__tick {
+  stroke: var(--letter-wine);
 }
 .cz-stampcard__open {
   position: absolute;
@@ -779,69 +854,24 @@
   outline: 2px solid var(--letter-wine);
   outline-offset: 3px;
 }
-.cz-stampcard__check {
-  position: absolute;
-  top: -9px;
-  left: -9px;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1.5px solid rgba(142, 14, 51, 0.35);
-  border-radius: 50%;
-  background: #fffdfa;
-  box-shadow: 0 2px 5px rgba(62, 0, 16, 0.12);
-  cursor: pointer;
-  transition:
-    background var(--dur-1) ease,
-    border-color var(--dur-1) ease,
-    transform var(--dur-1) var(--spring-snappy);
-}
-.cz-stampcard__check::before {
-  content: '';
-  position: absolute;
-  inset: -9px;
-}
-.cz-stampcard__check svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 14;
-  stroke-dashoffset: 14;
-  transition: stroke-dashoffset var(--dur-2) ease 40ms;
-}
-.cz-stampcard.is-on .cz-stampcard__check {
-  border-color: var(--letter-wine);
-  background: var(--letter-wine);
-}
-.cz-stampcard.is-on .cz-stampcard__check svg {
-  stroke-dashoffset: 0;
-}
-.cz-stampcard__check:active {
-  transform: scale(0.9);
+.cz-stampcard:has(.cz-stampcard__open:active) {
+  transform: rotate(var(--tilt)) scale(0.97);
 }
 
 /* They drop onto the paper one by one, then the postmark inks on. The script
    jolts the paper as each lands (STAMP_GAP_MS). */
-.cz-first__focus .cz-stampcard,
-.cz-first__focus .cz-stampcard__mark {
+.cz-first__focus .cz-stampcard {
   opacity: 0;
 }
 .cz-first__focus.is-in .cz-stampcard {
   opacity: 1;
   animation: cz-stamp-drop 520ms cubic-bezier(0.35, 0, 0.3, 1.2) calc(120ms + var(--i) * 430ms) both;
 }
-.cz-first__focus.is-in .cz-stampcard__mark {
-  opacity: 0.34;
-  animation: cz-mark-in 260ms cubic-bezier(0.3, 0, 0.2, 1) calc(680ms + var(--i) * 430ms) both;
+/* --n is the stamp's index too, but inherited (the registered --i is not). */
+.cz-first__focus.is-in:not(.is-settled) .cz-stampcard.is-on .cz-stampcard__mark {
+  animation: cz-postmark-stamp 420ms cubic-bezier(0.3, 0, 0.2, 1) calc(680ms + var(--n) * 430ms) both;
 }
-.cz-first__focus.is-settled .cz-stampcard,
-.cz-first__focus.is-settled .cz-stampcard__mark {
+.cz-first__focus.is-settled .cz-stampcard {
   animation: none;
 }
 @keyframes cz-stamp-drop {
@@ -857,17 +887,6 @@
     transform: rotate(var(--tilt));
   }
 }
-@keyframes cz-mark-in {
-  from {
-    opacity: 0;
-    transform: rotate(-14deg) scale(1.35);
-  }
-  to {
-    opacity: 0.34;
-    transform: rotate(-14deg) scale(1);
-  }
-}
-
 /* The P.S. sticker: "Connect Apple Health". */
 .cz-sticker-wrap {
   margin: 10px 0 14px 4px;

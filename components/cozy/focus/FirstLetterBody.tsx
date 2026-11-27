@@ -7,7 +7,7 @@ import { buildFirstLetter } from '@/lib/cozy/first-letter';
 import type { FocusId } from '@/lib/cozy/focus';
 import { healthInsight } from '@/lib/cozy/health-demo';
 import { prefersReducedMotion } from '@/lib/cozy/motion';
-import { FocusCards } from './LetterFocus';
+import { FocusCards, stampOrder } from './LetterFocus';
 import { Ink } from '../letter/Ink';
 import { HeartTile, SharpInsight } from '../letter/Health';
 
@@ -118,8 +118,13 @@ export function FirstLetterBody({
     let ms = 0;
     const ts: number[] = [];
     if (current === 'focus') {
-      for (let i = 0; i < 4; i++) ts.push(window.setTimeout(() => onThump?.(), 520 + i * STAMP_GAP_MS));
-      ms = 520 + 3 * STAMP_GAP_MS + 560;
+      // Each stamp lands, then the chosen ones get their postmark.
+      const order = stampOrder(account);
+      for (let i = 0; i < order.length; i++) {
+        ts.push(window.setTimeout(() => onThump?.(), 520 + i * STAMP_GAP_MS));
+        if (chosen.includes(order[i])) ts.push(window.setTimeout(() => onThump?.(), 880 + i * STAMP_GAP_MS));
+      }
+      ms = 680 + 3 * STAMP_GAP_MS + 520;
     } else if (current === 'sign') ms = 520;
     else if (current === 'end') ms = 0;
     else return;
@@ -175,8 +180,8 @@ export function FirstLetterBody({
 
       <div ref={refs.focus} className={cn('cz-first__block cz-first__focus', (runs('focus') || past('focus')) && 'is-in', past('focus') && 'is-settled')}>
         <p className="cz-first__lead">I’ll keep an eye on these for you:</p>
-        <FocusCards account={account} chosen={chosen} date={date} onToggle={onToggleFocus} onPreview={onPreviewFocus} />
-        <p className="cz-first__hint">Tick the ones you want me to watch. Tap a stamp to see more.</p>
+        <FocusCards account={account} chosen={chosen} date={date} onToggle={onToggleFocus} onPreview={onPreviewFocus} onThump={onThump} />
+        <p className="cz-first__hint">Stamp the ones you want me to watch. Tap a stamp to see more.</p>
       </div>
 
       <div ref={refs.emphasis}>
